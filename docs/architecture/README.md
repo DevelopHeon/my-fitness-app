@@ -34,6 +34,7 @@
 - Spring Boot: 4.1.1
 - Database: PostgreSQL 17 + Flyway
 - Schema DDL: Flyway migration으로 이력과 배포 가능한 DDL을 관리
+- Spring Boot 4 Flyway 자동 설정은 `spring-boot-starter-flyway`를 사용
 - Main runtime DDL: Hibernate `ddl-auto: none`
 - Test DDL: 테스트 전용 H2 환경은 `create-drop` 사용
 - Frontend: Next.js + TypeScript + PWA

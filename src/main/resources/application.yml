@@ -5,6 +5,12 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/my_fitness}
     username: ${DB_USERNAME:my_fitness}
     password: ${DB_PASSWORD:my_fitness}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: false
+    clean-disabled: true
   jpa:
     open-in-view: false
     hibernate:
