@@ -101,6 +101,51 @@ class WorkoutApiIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void 세트와_운동종목을_삭제할_수_있다() throws Exception {
+        long exerciseId = createExercise();
+
+        MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long workoutId = json(workoutCreated).path("id").asLong();
+
+        MvcResult exerciseAdded = mockMvc.perform(post("/api/workouts/{workoutId}/exercises", workoutId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"exerciseId\":%d}".formatted(exerciseId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        long workoutExerciseId = json(exerciseAdded).path("exercises").get(0).path("id").asLong();
+
+        MvcResult setAdded = mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
+                        workoutId, workoutExerciseId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"weightKg\":40,\"reps\":12,\"completed\":true}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        long setId = json(setAdded).path("exercises").get(0).path("sets").get(0).path("id").asLong();
+
+        mockMvc.perform(delete(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}",
+                        workoutId, workoutExerciseId, setId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].sets").isEmpty());
+
+        mockMvc.perform(delete(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}",
+                        workoutId, workoutExerciseId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises").isEmpty());
+    }
+
     private long createExercise() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/exercises")
                         .header("X-User-Id", 1L)
