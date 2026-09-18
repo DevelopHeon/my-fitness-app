@@ -339,7 +339,20 @@ export default function RoutineScreen({
           />
 
           <ExercisePicker
-            key={"routine-picker-" + editorVersion}
+            key={
+              "routine-picker-" +
+              editorVersion +
+              "-" +
+              selectedExercises
+                .map((exercise) =>
+                  exerciseKey(
+                    exercise.exerciseType,
+                    exercise.exerciseId,
+                  ),
+                )
+                .sort()
+                .join("|")
+            }
             exercises={exercises}
             excludedKeys={excludedKeys}
             busy={busy}

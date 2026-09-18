@@ -28,14 +28,14 @@ import {
 
 const EMPTY_PREVIOUS_RECORDS: PreviousExerciseRecord[] = [];
 
-type BatchSetDraft = {
+type SetGroupDraft = {
   weightKg: string;
   reps: string;
+  setCount: string;
 };
 
 type SetPlan = {
-  count: string;
-  drafts: BatchSetDraft[];
+  drafts: SetGroupDraft[];
 };
 
 type EditingSet = {
@@ -57,21 +57,25 @@ function previousKey(record: PreviousExerciseRecord) {
   return exerciseKey(record.exerciseType, record.exerciseId);
 }
 
-function createPlan(entry: WorkoutExercise): SetPlan {
-  const targetCount =
-    entry.sets.length > 0 ? entry.sets.length : 3;
-  const drafts = Array.from(
-    { length: Math.max(0, targetCount - entry.sets.length) },
-    () => ({
-      weightKg: "",
-      reps: "",
-    }),
-  );
-
+function emptySetGroup(): SetGroupDraft {
   return {
-    count: String(targetCount),
-    drafts,
+    weightKg: "",
+    reps: "",
+    setCount: "",
   };
+}
+
+function createPlan(): SetPlan {
+  return {
+    drafts: [emptySetGroup()],
+  };
+}
+
+function totalPlannedSets(plan: SetPlan) {
+  return plan.drafts.reduce(
+    (total, draft) => total + (Number(draft.setCount) || 0),
+    0,
+  );
 }
 
 export default function WorkoutScreen({
@@ -187,7 +191,7 @@ export default function WorkoutScreen({
           Object.fromEntries(
             inProgress.exercises.map((entry) => [
               entry.id,
-              createPlan(entry),
+              createPlan(),
             ]),
           ),
         );
@@ -288,7 +292,7 @@ export default function WorkoutScreen({
       Object.fromEntries(
         prepared.workout.exercises.map((entry) => [
           entry.id,
-          createPlan(entry),
+          createPlan(),
         ]),
       ),
     );
@@ -343,7 +347,7 @@ export default function WorkoutScreen({
       Object.fromEntries(
         result.workout.exercises.map((entry) => [
           entry.id,
-          createPlan(entry),
+          createPlan(),
         ]),
       ),
     );
@@ -403,7 +407,7 @@ export default function WorkoutScreen({
     if (entry) {
       setSetPlans((current) => ({
         ...current,
-        [entry.id]: createPlan(entry),
+        [entry.id]: createPlan(),
       }));
     }
 
@@ -435,72 +439,22 @@ export default function WorkoutScreen({
     await attachExercise(exercise);
   }
 
-  function updatePlanCount(
-    workoutExerciseId: number,
-    value: string,
-  ) {
+  function addSetGroup(workoutExerciseId: number) {
     setSetPlans((current) => ({
       ...current,
       [workoutExerciseId]: {
-        ...(current[workoutExerciseId] ?? {
-          count: "",
-          drafts: [],
-        }),
-        count: sanitizeInteger(value).slice(0, 2),
+        drafts: [
+          ...(current[workoutExerciseId]?.drafts ?? []),
+          emptySetGroup(),
+        ],
       },
     }));
-  }
-
-  function applySetCount(entry: WorkoutExercise) {
-    const currentPlan =
-      setPlans[entry.id] ?? createPlan(entry);
-    const targetCount = Number(currentPlan.count);
-
-    if (
-      !Number.isInteger(targetCount) ||
-      targetCount < 1 ||
-      targetCount > 20
-    ) {
-      setError("세트 수는 1~20 사이 숫자로 입력해주세요.");
-      return;
-    }
-
-    if (targetCount < entry.sets.length) {
-      setError(
-        "이미 저장된 " +
-          entry.sets.length +
-          "세트보다 적게 설정할 수 없습니다.",
-      );
-      return;
-    }
-
-    const drafts = Array.from(
-      { length: targetCount - entry.sets.length },
-      (_, offset) => {
-        const existing = currentPlan.drafts[offset];
-        if (existing) return existing;
-
-        return {
-          weightKg: "",
-          reps: "",
-        };
-      },
-    );
-
-    setSetPlans((current) => ({
-      ...current,
-      [entry.id]: {
-        count: String(targetCount),
-        drafts,
-      },
-    }));
-    setError(null);
   }
 
   function updateDraft(
     workoutExerciseId: number,
     draftIndex: number,
-    field: keyof BatchSetDraft,
+    field: keyof SetGroupDraft,
     value: string,
   ) {
     setSetPlans((current) => {
@@ -519,7 +473,6 @@ export default function WorkoutScreen({
       return {
         ...current,
         [workoutExerciseId]: {
-          ...plan,
           drafts,
         },
       };
@@ -529,7 +482,6 @@ export default function WorkoutScreen({
   function removePlannedSetDraft(
     workoutExerciseId: number,
     draftIndex: number,
-    savedSetCount: number,
   ) {
     setSetPlans((current) => {
       const plan = current[workoutExerciseId];
@@ -542,8 +494,8 @@ export default function WorkoutScreen({
       return {
         ...current,
         [workoutExerciseId]: {
-          count: String(savedSetCount + drafts.length),
-          drafts,
+          drafts:
+            drafts.length > 0 ? drafts : [emptySetGroup()],
         },
       };
     });
@@ -558,23 +510,39 @@ export default function WorkoutScreen({
       return;
     }
 
-    const sets = plan.drafts.map((draft) => ({
+    const groups = plan.drafts.map((draft) => ({
       weightKg: draft.weightKg ? Number(draft.weightKg) : 0,
       reps: draft.reps ? Number(draft.reps) : 0,
-      durationSeconds: null,
+      setCount: draft.setCount ? Number(draft.setCount) : 0,
     }));
 
-    const invalid = sets.some(
-      (set) =>
-        !Number.isFinite(set.weightKg) ||
-        set.weightKg < 0 ||
-        !Number.isInteger(set.reps) ||
-        set.reps <= 0,
+    const invalid = groups.some(
+      (group) =>
+        !Number.isFinite(group.weightKg) ||
+        group.weightKg < 0 ||
+        !Number.isInteger(group.reps) ||
+        group.reps <= 0 ||
+        !Number.isInteger(group.setCount) ||
+        group.setCount <= 0,
     );
-    if (invalid) {
-      setError("각 세트의 중량과 반복 횟수를 확인해주세요.");
+    const totalSetCount = groups.reduce(
+      (total, group) => total + group.setCount,
+      0,
+    );
+    if (invalid || totalSetCount > 20) {
+      setError(
+        "중량, 횟수, 세트 수를 확인해주세요. 한 번에 최대 20세트까지 저장할 수 있습니다.",
+      );
       return;
     }
+
+    const sets = groups.flatMap((group) =>
+      Array.from({ length: group.setCount }, () => ({
+        weightKg: group.weightKg,
+        reps: group.reps,
+        durationSeconds: null,
+      })),
+    );
 
     const workout = await run(() =>
       workoutApi.addSets(
@@ -595,8 +563,7 @@ export default function WorkoutScreen({
       setSetPlans((current) => ({
         ...current,
         [entry.id]: {
-          count: String(updatedEntry.sets.length),
-          drafts: [],
+          drafts: [emptySetGroup()],
         },
       }));
     }
@@ -680,7 +647,7 @@ export default function WorkoutScreen({
     if (entry) {
       setSetPlans((current) => ({
         ...current,
-        [entry.id]: createPlan(entry),
+        [entry.id]: createPlan(),
       }));
     }
   }
@@ -961,6 +928,12 @@ export default function WorkoutScreen({
             </p>
             <div className="mt-4">
               <ExercisePicker
+                key={
+                  "workout-picker-" +
+                  Array.from(excludedExerciseKeys)
+                    .sort()
+                    .join("|")
+                }
                 exercises={exercises}
                 excludedKeys={excludedExerciseKeys}
                 busy={busy}
@@ -991,7 +964,7 @@ export default function WorkoutScreen({
               ] ?? null;
             const plan =
               setPlans[entry.id] ??
-              createPlan(entry);
+              createPlan();
 
             return (
               <section
@@ -1167,121 +1140,124 @@ export default function WorkoutScreen({
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-zinc-200 p-4">
-                  <div className="flex items-end gap-2">
-                    <label className="min-w-0 flex-1 text-xs font-medium text-zinc-500">
-                      총 세트 수
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={plan.count}
-                        onChange={(event) =>
-                          updatePlanCount(
-                            entry.id,
-                            event.target.value,
-                          )
-                        }
-                        className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
-                      />
-                    </label>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-900">
+                        세트 묶음 입력
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-400">
+                        같은 중량과 횟수는 세트 수로 묶어 한 줄에 입력하세요.
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        applySetCount(entry)
-                      }
-                      className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold"
+                      onClick={() => addSetGroup(entry.id)}
+                      className="shrink-0 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
                     >
-                      적용
+                      + 로우 추가
                     </button>
                   </div>
 
-                  {plan.drafts.length > 0 ? (
-                    <div className="mt-4 space-y-2">
-                      {plan.drafts.map((draft, index) => {
-                        const setNumber =
-                          entry.sets.length + index + 1;
-                        return (
-                          <div
-                            key={setNumber}
-                            className="grid grid-cols-[36px_1fr_1fr_auto] items-center gap-2"
-                          >
-                            <span className="text-center text-sm font-medium text-zinc-400">
-                              {setNumber}
-                            </span>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              pattern="[0-9]*[.]?[0-9]*"
-                              value={draft.weightKg}
-                              onChange={(event) =>
-                                updateDraft(
-                                  entry.id,
-                                  index,
-                                  "weightKg",
-                                  event.target.value,
-                                )
-                              }
-                              aria-label={
-                                setNumber + "세트 중량 kg"
-                              }
-                              placeholder="중량 kg"
-                              className="min-w-0 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
-                            />
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={draft.reps}
-                              onChange={(event) =>
-                                updateDraft(
-                                  entry.id,
-                                  index,
-                                  "reps",
-                                  event.target.value,
-                                )
-                              }
-                              aria-label={
-                                setNumber + "세트 반복 횟수"
-                              }
-                              placeholder="횟수"
-                              className="min-w-0 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removePlannedSetDraft(
-                                  entry.id,
-                                  index,
-                                  entry.sets.length,
-                                )
-                              }
-                              aria-label={
-                                setNumber + "세트 입력 행 삭제"
-                              }
-                              className="rounded-lg px-2 py-2 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
-                            >
-                              삭제
-                            </button>
-                          </div>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          void handleSavePlannedSets(entry);
-                        }}
-                        className="mt-2 w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                  <div className="mt-4 space-y-2">
+                    {plan.drafts.map((draft, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-[1fr_1fr_72px_auto] items-end gap-2"
                       >
-                        {plan.drafts.length}세트 한 번에 저장
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-xs text-zinc-400">
-                      현재 {entry.sets.length}세트가 저장되어 있습니다. 더 추가하려면 총 세트 수를 늘려주세요.
-                    </p>
-                  )}
+                        <label className="min-w-0 text-[11px] font-medium text-zinc-400">
+                          무게
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            pattern="[0-9]*[.]?[0-9]*"
+                            value={draft.weightKg}
+                            onChange={(event) =>
+                              updateDraft(
+                                entry.id,
+                                index,
+                                "weightKg",
+                                event.target.value,
+                              )
+                            }
+                            aria-label={(index + 1) + "번째 묶음 중량 kg"}
+                            placeholder="40"
+                            className="mt-1 w-full min-w-0 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
+                          />
+                        </label>
+                        <label className="min-w-0 text-[11px] font-medium text-zinc-400">
+                          횟수
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={draft.reps}
+                            onChange={(event) =>
+                              updateDraft(
+                                entry.id,
+                                index,
+                                "reps",
+                                event.target.value,
+                              )
+                            }
+                            aria-label={(index + 1) + "번째 묶음 반복 횟수"}
+                            placeholder="10"
+                            className="mt-1 w-full min-w-0 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
+                          />
+                        </label>
+                        <label className="min-w-0 text-[11px] font-medium text-zinc-400">
+                          세트
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={draft.setCount}
+                            onChange={(event) =>
+                              updateDraft(
+                                entry.id,
+                                index,
+                                "setCount",
+                                event.target.value,
+                              )
+                            }
+                            aria-label={(index + 1) + "번째 묶음 세트 수"}
+                            placeholder="3"
+                            className="mt-1 w-full min-w-0 rounded-xl border border-zinc-200 px-2 py-2.5 text-sm outline-none focus:border-zinc-500"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removePlannedSetDraft(
+                              entry.id,
+                              index,
+                            )
+                          }
+                          aria-label={(index + 1) + "번째 세트 묶음 삭제"}
+                          className="mb-0.5 rounded-lg px-2 py-2.5 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 rounded-xl bg-zinc-50 px-3 py-2.5 text-xs text-zinc-500">
+                    입력 예정: 총 {totalPlannedSets(plan)}세트
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={
+                      busy ||
+                      totalPlannedSets(plan) === 0
+                    }
+                    onClick={() => {
+                      void handleSavePlannedSets(entry);
+                    }}
+                    className="mt-3 w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                  >
+                    총 {totalPlannedSets(plan)}세트 저장
+                  </button>
                 </div>
               </section>
             );
