@@ -73,14 +73,32 @@ WorkoutExercise 1 --- N WorkoutSet
 - POST /api/exercises
 - GET /api/exercises/{exerciseId}/previous-record
 
-## 5. 완료 조건
+## 5. 테스트 요구사항
+
+Workout 구현 시 비즈니스 규칙을 자동 테스트로 검증한다.
+
+필수 테스트 후보:
+- Workout 생성 시 IN_PROGRESS 상태로 시작한다.
+- 운동 종목과 세트를 순서대로 추가할 수 있다.
+- 세트의 중량/횟수 수정 및 삭제 결과가 올바르다.
+- Workout 완료 시 COMPLETED 상태와 완료 시각이 기록된다.
+- 완료된 Workout에 허용되지 않은 변경을 시도하면 거부한다.
+- 특정 종목의 이전 기록 조회 시 가장 최근 완료 Workout을 기준으로 반환한다.
+- 다른 사용자의 Workout/WorkoutExercise/WorkoutSet 접근을 거부한다.
+- 빈 기록, 잘못된 식별자 등 경계 조건을 검증한다.
+
+Repository 쿼리가 포함되는 이전 기록 조회는 JPA 통합 테스트를 작성하고, 핵심 REST 흐름은 API 통합 테스트를 포함한다.
+
+## 6. 완료 조건
 
 - 한 번의 운동 세션을 생성하고 여러 종목/세트를 기록할 수 있다.
 - 운동을 완료 상태로 변경할 수 있다.
 - 동일 종목을 다시 수행할 때 직전 Workout 기록을 조회할 수 있다.
 - 다른 사용자의 Workout/Set에는 접근할 수 없다.
+- 위 비즈니스 규칙을 검증하는 자동 테스트가 존재하고 전체 테스트가 통과한다.
+- 프론트 변경이 있으면 lint/build가 통과하고 통합 bootJar가 성공한다.
 
-## 6. 제외 범위
+## 7. 제외 범위
 
 - Routine
 - Dashboard 집계

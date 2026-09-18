@@ -1,7 +1,11 @@
-# Manual Testing Guide
+# Testing Guide
 
-이 디렉터리는 요청 시 사람이 직접 검증할 수 있는 수동 테스트 절차를 기록한다.
-자동 테스트 코드와 달리 실제 사용자 흐름, 모바일 UX, PWA 동작, Ollama 응답 확인 등을 대상으로 한다.
+이 디렉터리는 프로젝트의 테스트 전략과 요청 시 사람이 직접 검증할 수 있는 수동 테스트 절차를 기록한다.
+
+- 자동 테스트 원칙: [AUTOMATED_TEST_STRATEGY.md](./AUTOMATED_TEST_STRATEGY.md)
+- 수동 테스트 템플릿: [MANUAL_TEST_TEMPLATE.md](./MANUAL_TEST_TEMPLATE.md)
+
+자동 테스트는 비즈니스 규칙 검증을 기본으로 하며, 수동 테스트는 실제 사용자 흐름, 모바일 UX, PWA 동작, Ollama 응답처럼 자동화가 어려운 영역을 보완한다.
 
 ## 작성 시점
 

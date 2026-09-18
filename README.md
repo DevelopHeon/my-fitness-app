@@ -65,11 +65,12 @@ npm run dev
 
 기능 개발은 Phase 단위로 진행합니다.
 
-1. 해당 Phase 구현
-2. 관련 문서 업데이트
-3. 자동 테스트 및 빌드 확인
-4. 한글 커밋
-5. GitHub push
-6. 작업 중단
+1. 해당 Phase의 핵심 비즈니스 규칙을 테스트로 정의
+2. 자동 테스트를 작성하면서 기능 구현
+3. 관련 spec / architecture 문서 업데이트
+4. 전체 테스트, 프론트 lint/build, 통합 bootJar 확인
+5. 한글 커밋
+6. GitHub push
+7. 작업 중단
 
 다음 작업은 Phase 1 Workout 기록 구현입니다.
