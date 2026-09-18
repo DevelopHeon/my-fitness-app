@@ -34,7 +34,8 @@
 - 카테고리 선택 후 운동 종목 추가
 - 커스텀 Exercise 등록 후 Routine에 즉시 추가
 - Routine 운동 종목 순서 위/아래 변경
-- Routine으로 Workout 시작
+- Routine 화면에서 Workout 시작
+- Workout 시작 화면에서도 저장된 Routine을 선택해 바로 Workout 시작
 - Workout 화면 전환 즉시 직전 기록 표시
 - Routine 시작 후에도 기존 Workout 종목 추가/삭제 및 세트 기록 기능 유지
 

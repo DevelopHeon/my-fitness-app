@@ -15,6 +15,8 @@ Workout 기록 입력을 세트 수 중심으로 단순화하고,
 예:
 - 총 세트 수 4 입력
 - 1~4세트 중량 / 횟수 입력 행 생성
+- 저장 전 각 세트 입력 행을 개별 삭제 가능
+- 삭제 시 남은 입력 행 기준으로 총 세트 수 자동 조정
 - 한 번에 저장
 
 이미 2세트가 저장된 상태에서 총 세트 수를 4로 바꾸면
@@ -37,6 +39,11 @@ POST /api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/batch
 ## Workout 일 단위 화면
 
 기본 Workout 화면은 선택한 날짜의 Workout만 조회한다.
+
+Workout이 진행 중이지 않을 때는 저장된 Routine 목록을 먼저 보여주고,
+Routine을 선택하면 해당 날짜로 운동 종목/순서를 복사한 Workout을 시작한다.
+각 종목의 직전 완료 기록도 함께 불러와 세트 입력 초깃값으로 사용한다.
+Routine 없이 시작하는 빈 Workout 옵션도 함께 제공한다.
 
 - 기본 날짜: 오늘
 - 날짜 직접 선택 가능

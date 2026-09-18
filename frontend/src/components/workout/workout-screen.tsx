@@ -9,6 +9,10 @@ import {
   todayString,
 } from "@/lib/input-utils";
 import {
+  Routine,
+  routineApi,
+} from "@/lib/routine-api";
+import {
   categoryLabel,
   Exercise,
   ExerciseCategory,
@@ -87,6 +91,7 @@ export default function WorkoutScreen({
   initialPreviousRecords = EMPTY_PREVIOUS_RECORDS,
 }: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [routines, setRoutines] = useState<Routine[]>([]);
   const [dailyWorkouts, setDailyWorkouts] = useState<Workout[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(
     initialWorkout?.workoutDate === selectedDate ? initialWorkout : null,
@@ -125,10 +130,12 @@ export default function WorkoutScreen({
       setBusy(true);
       setError(null);
       try {
-        const [exerciseList, workouts] = await Promise.all([
-          workoutApi.getExercises(),
-          workoutApi.getWorkouts(selectedDate, selectedDate),
-        ]);
+        const [exerciseList, routineList, workouts] =
+          await Promise.all([
+            workoutApi.getExercises(),
+            routineApi.getRoutines(),
+            workoutApi.getWorkouts(selectedDate, selectedDate),
+          ]);
         if (cancelled) return;
 
         const initialForDate =
@@ -142,6 +149,7 @@ export default function WorkoutScreen({
             : workouts;
 
         setExercises(exerciseList);
+        setRoutines(routineList);
         setDailyWorkouts(mergedWorkouts);
 
         const inProgress =
@@ -259,6 +267,40 @@ export default function WorkoutScreen({
     replaceWorkout(workout);
     setPreviousRecords({});
     setSetPlans({});
+  }
+
+  async function handleStartRoutine(routine: Routine) {
+    const result = await run(() =>
+      routineApi.startWorkout(routine.id, selectedDate),
+    );
+    if (!result) return;
+
+    const previousMap = Object.fromEntries(
+      result.previousRecords.map((record) => [
+        previousKey(record),
+        record,
+      ]),
+    );
+
+    setActiveWorkout(result.workout);
+    replaceWorkout(result.workout);
+    setPreviousRecords(previousMap);
+    setSetPlans(
+      Object.fromEntries(
+        result.workout.exercises.map((entry) => [
+          entry.id,
+          createPlan(
+            entry,
+            previousMap[
+              exerciseKey(
+                entry.exerciseType,
+                entry.exerciseId,
+              )
+            ] ?? null,
+          ),
+        ]),
+      ),
+    );
   }
 
   function scrollToExerciseCard(
@@ -442,6 +484,29 @@ export default function WorkoutScreen({
         ...current,
         [workoutExerciseId]: {
           ...plan,
+          drafts,
+        },
+      };
+    });
+  }
+
+  function removePlannedSetDraft(
+    workoutExerciseId: number,
+    draftIndex: number,
+    savedSetCount: number,
+  ) {
+    setSetPlans((current) => {
+      const plan = current[workoutExerciseId];
+      if (!plan) return current;
+
+      const drafts = plan.drafts.filter(
+        (_, index) => index !== draftIndex,
+      );
+
+      return {
+        ...current,
+        [workoutExerciseId]: {
+          count: String(savedSetCount + drafts.length),
           drafts,
         },
       };
@@ -687,22 +752,82 @@ export default function WorkoutScreen({
       )}
 
       {!activeWorkout ? (
-        <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">
-            {selectedDate} 운동
-          </p>
-          <h2 className="mt-2 text-xl font-semibold">
-            새로운 Workout을 시작할까요?
-          </h2>
-          <button
-            type="button"
-            disabled={busy || !selectedDate}
-            onClick={handleStartWorkout}
-            className="mt-5 w-full rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            운동 시작
-          </button>
-        </section>
+        <div className="space-y-4">
+          <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-zinc-400">
+                  {selectedDate} 운동
+                </p>
+                <h2 className="mt-1 text-xl font-semibold">
+                  루틴으로 시작
+                </h2>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">
+                  저장한 루틴을 선택하면 운동 종목과 순서를 그대로 불러옵니다.
+                </p>
+              </div>
+              <span className="text-xs text-zinc-400">
+                {routines.length}개
+              </span>
+            </div>
+
+            {routines.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 px-4 py-5 text-center text-sm text-zinc-400">
+                저장된 루틴이 없습니다. Routine 탭에서 먼저 루틴을 만들어주세요.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {routines.map((routine) => (
+                  <button
+                    key={routine.id}
+                    type="button"
+                    disabled={busy || !selectedDate}
+                    onClick={() => {
+                      void handleStartRoutine(routine);
+                    }}
+                    className="w-full rounded-2xl border border-zinc-200 px-4 py-3.5 text-left transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-40"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-zinc-900">
+                          {routine.name}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-zinc-400">
+                          {routine.exercises
+                            .map((entry) => entry.exerciseName)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs font-semibold text-zinc-500">
+                        {routine.exercises.length}종목 →
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-zinc-400">
+              직접 구성
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">
+              빈 Workout으로 시작
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-zinc-400">
+              루틴 없이 카테고리에서 운동 종목을 하나씩 추가합니다.
+            </p>
+            <button
+              type="button"
+              disabled={busy || !selectedDate}
+              onClick={handleStartWorkout}
+              className="mt-4 w-full rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              직접 운동 시작
+            </button>
+          </section>
+        </div>
       ) : (
         <div className="space-y-5">
           <section className="rounded-3xl bg-zinc-950 p-5 text-white shadow-sm">
@@ -970,7 +1095,7 @@ export default function WorkoutScreen({
                         return (
                           <div
                             key={setNumber}
-                            className="grid grid-cols-[36px_1fr_1fr] items-center gap-2"
+                            className="grid grid-cols-[36px_1fr_1fr_auto] items-center gap-2"
                           >
                             <span className="text-center text-sm font-medium text-zinc-400">
                               {setNumber}
@@ -1013,6 +1138,22 @@ export default function WorkoutScreen({
                               placeholder="횟수"
                               className="min-w-0 rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-500"
                             />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removePlannedSetDraft(
+                                  entry.id,
+                                  index,
+                                  entry.sets.length,
+                                )
+                              }
+                              aria-label={
+                                setNumber + "세트 입력 행 삭제"
+                              }
+                              className="rounded-lg px-2 py-2 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
+                            >
+                              삭제
+                            </button>
                           </div>
                         );
                       })}
