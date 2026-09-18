@@ -1,0 +1,18 @@
+.idea/
+.DS_Store
+*.iml
+
+# Java / Gradle
+.gradle/
+build/
+out/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Environment
+.env
+.env.*
+!.env.example
