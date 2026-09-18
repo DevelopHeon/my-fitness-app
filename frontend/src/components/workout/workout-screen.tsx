@@ -1111,12 +1111,6 @@ export default function WorkoutScreen({
             </p>
             <div className="mt-4">
               <ExercisePicker
-                key={
-                  "workout-picker-" +
-                  Array.from(excludedExerciseKeys)
-                    .sort()
-                    .join("|")
-                }
                 exercises={exercises}
                 excludedKeys={excludedExerciseKeys}
                 busy={busy}

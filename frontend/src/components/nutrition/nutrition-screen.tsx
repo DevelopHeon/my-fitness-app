@@ -35,6 +35,8 @@ type GoalFormState = {
   fatGrams: string;
 };
 
+type NutritionView = "summary" | "meals" | "foods";
+
 const mealTypes: { value: MealType; label: string }[] = [
   { value: "BREAKFAST", label: "아침" },
   { value: "LUNCH", label: "점심" },
@@ -70,6 +72,7 @@ function emptyGoalForm(): GoalFormState {
 }
 
 export default function NutritionScreen() {
+  const [view, setView] = useState<NutritionView>("summary");
   const [date, setDate] = useState(todayString);
   const [daily, setDaily] = useState<DailyNutrition | null>(null);
   const [foods, setFoods] = useState<Food[]>([]);
@@ -86,7 +89,6 @@ export default function NutritionScreen() {
   const [editingItemId, setEditingItemId] =
     useState<number | null>(null);
   const [editingServings, setEditingServings] = useState("");
-  const [foodManagerOpen, setFoodManagerOpen] = useState(false);
   const [foodForm, setFoodForm] =
     useState<FoodFormState>(emptyFoodForm);
   const [editingFoodId, setEditingFoodId] =
@@ -183,6 +185,7 @@ export default function NutritionScreen() {
   }
 
   function openFoodPicker(mealType: MealType) {
+    setView("meals");
     setAddingMealType(mealType);
     setSelectedFoodId(null);
     setServings("1");
@@ -262,6 +265,7 @@ export default function NutritionScreen() {
   }
 
   function beginEditFood(food: Food) {
+    setView("foods");
     setEditingFoodId(food.id);
     setFoodForm({
       name: food.name,
@@ -272,7 +276,6 @@ export default function NutritionScreen() {
       proteinGrams: String(food.proteinGrams),
       fatGrams: String(food.fatGrams),
     });
-    setFoodManagerOpen(true);
     requestAnimationFrame(() => {
       document
         .getElementById("nutrition-food-manager")
@@ -304,7 +307,6 @@ export default function NutritionScreen() {
     if (!saved) return;
 
     resetFoodForm();
-    setFoodManagerOpen(false);
     await refreshFoods();
   }
 
@@ -373,30 +375,57 @@ export default function NutritionScreen() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-end justify-between gap-3">
+      <div className="mb-5 grid grid-cols-3 gap-1.5 rounded-2xl bg-zinc-100 p-1.5">
+        <NutritionMenuButton
+          active={view === "summary"}
+          label="요약 · 목표"
+          onClick={() => setView("summary")}
+        />
+        <NutritionMenuButton
+          active={view === "meals"}
+          label="식단 기록"
+          onClick={() => setView("meals")}
+        />
+        <NutritionMenuButton
+          active={view === "foods"}
+          label="음식 관리"
+          onClick={() => setView("foods")}
+        />
+      </div>
+
+      {view !== "foods" && (
+        <div className="mb-4 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3">
           <div>
             <p className="text-xs font-medium text-zinc-400">
-              일별 섭취
+              기록 날짜
             </p>
-            <h2 className="mt-1 text-lg font-semibold">
-              오늘의 영양 요약
-            </h2>
+            <p className="mt-1 text-sm font-semibold text-zinc-700">
+              {date}
+            </p>
           </div>
-          <label className="text-xs font-medium text-zinc-500">
-            날짜
-            <input
-              type="date"
-              max={todayString()}
-              value={date}
-              onChange={(event) => {
-                setDate(event.target.value);
-                setAddingMealType(null);
-                setSelectedFoodId(null);
-              }}
-              className="mt-1 block rounded-xl border border-zinc-200 px-2.5 py-2 text-sm outline-none focus:border-zinc-500"
-            />
-          </label>
+          <input
+            type="date"
+            max={todayString()}
+            value={date}
+            onChange={(event) => {
+              setDate(event.target.value);
+              setAddingMealType(null);
+              setSelectedFoodId(null);
+            }}
+            className="rounded-xl border border-zinc-200 px-2.5 py-2 text-sm outline-none focus:border-zinc-500"
+          />
+        </div>
+      )}
+
+      {view === "summary" && (
+      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-medium text-zinc-400">
+            일별 섭취
+          </p>
+          <h2 className="mt-1 text-lg font-semibold">
+            오늘의 영양 요약
+          </h2>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -506,8 +535,11 @@ export default function NutritionScreen() {
           </form>
         )}
       </section>
+      )}
 
-      <section className="mt-6 space-y-3">
+      {view === "meals" && (
+      <>
+      <section className="space-y-3">
         {daily.meals.map((meal) => (
           <article
             key={meal.mealType}
@@ -692,34 +724,25 @@ export default function NutritionScreen() {
           )}
         </section>
       )}
+      </>
+      )}
 
+      {view === "foods" && (
       <section
         id="nutrition-food-manager"
         className="mt-6 scroll-mt-20 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
       >
-        <button
-          type="button"
-          aria-expanded={foodManagerOpen}
-          onClick={() =>
-            setFoodManagerOpen((current) => !current)
-          }
-          className="flex w-full items-center justify-between text-left"
-        >
-          <div>
-            <p className="text-xs font-medium text-zinc-400">
-              음식 카탈로그
-            </p>
-            <h2 className="mt-1 text-lg font-semibold">
-              내 음식 관리
-            </h2>
-          </div>
-          <span className="text-xs font-semibold text-zinc-400">
-            {foodManagerOpen ? "접기 ↑" : "열기 ↓"}
-          </span>
-        </button>
-
-        {foodManagerOpen && (
-          <>
+        <div>
+          <p className="text-xs font-medium text-zinc-400">
+            음식 카탈로그
+          </p>
+          <h2 className="mt-1 text-lg font-semibold">
+            음식 등록 · 수정 · 삭제
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-zinc-400">
+            자주 먹는 음식의 1회 제공량과 영양정보를 관리합니다.
+          </p>
+        </div>
             <form
               onSubmit={handleFoodSubmit}
               className="mt-4 rounded-2xl bg-zinc-50 p-4"
@@ -895,10 +918,34 @@ export default function NutritionScreen() {
                 ))
               )}
             </div>
-          </>
-        )}
       </section>
+      )}
     </main>
+  );
+}
+
+function NutritionMenuButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "rounded-xl px-2 py-2.5 text-xs font-semibold transition " +
+        (active
+          ? "bg-white text-zinc-950 shadow-sm"
+          : "text-zinc-500 hover:text-zinc-900")
+      }
+    >
+      {label}
+    </button>
   );
 }
 

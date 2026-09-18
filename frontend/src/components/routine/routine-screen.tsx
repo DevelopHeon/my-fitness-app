@@ -25,9 +25,12 @@ type Props = {
   onWorkoutStarted: (result: RoutineWorkoutStart) => void;
 };
 
+type RoutineView = "list" | "editor";
+
 export default function RoutineScreen({
   onWorkoutStarted,
 }: Props) {
+  const [view, setView] = useState<RoutineView>("list");
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState("");
@@ -214,9 +217,11 @@ export default function RoutineScreen({
         : [routine, ...current],
     );
     resetEditor();
+    setView("list");
   }
 
   function handleEdit(routine: Routine) {
+    setView("editor");
     setEditingRoutineId(routine.id);
     setEditorVersion((current) => current + 1);
     setName(routine.name);
@@ -296,6 +301,23 @@ export default function RoutineScreen({
         </div>
       )}
 
+      <div className="mb-5 grid grid-cols-2 gap-1.5 rounded-2xl bg-zinc-100 p-1.5">
+        <RoutineMenuButton
+          active={view === "list"}
+          label="루틴 조회"
+          onClick={() => setView("list")}
+        />
+        <RoutineMenuButton
+          active={view === "editor"}
+          label={editingRoutineId ? "루틴 수정" : "루틴 등록"}
+          onClick={() => {
+            if (view !== "editor") resetEditor();
+            setView("editor");
+          }}
+        />
+      </div>
+
+      {view === "editor" && (
       <section
         id="routine-editor"
         className="scroll-mt-20 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
@@ -309,7 +331,10 @@ export default function RoutineScreen({
           {editingRoutineId && (
             <button
               type="button"
-              onClick={resetEditor}
+              onClick={() => {
+                resetEditor();
+                setView("list");
+              }}
               className="text-xs font-medium text-zinc-400 hover:text-zinc-900"
             >
               취소
@@ -336,27 +361,6 @@ export default function RoutineScreen({
             placeholder="루틴 이름 (예: Push, Pull, Legs)"
             maxLength={100}
             className="w-full rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
-          />
-
-          <ExercisePicker
-            key={
-              "routine-picker-" +
-              editorVersion +
-              "-" +
-              selectedExercises
-                .map((exercise) =>
-                  exerciseKey(
-                    exercise.exerciseType,
-                    exercise.exerciseId,
-                  ),
-                )
-                .sort()
-                .join("|")
-            }
-            exercises={exercises}
-            excludedKeys={excludedKeys}
-            busy={busy}
-            onSelect={handleSelectExercise}
           />
 
           <div className="space-y-2">
@@ -449,6 +453,13 @@ export default function RoutineScreen({
             )}
           </div>
 
+          <ExercisePicker
+            exercises={exercises}
+            excludedKeys={excludedKeys}
+            busy={busy}
+            onSelect={handleSelectExercise}
+          />
+
           <button
             type="submit"
             disabled={
@@ -470,8 +481,10 @@ export default function RoutineScreen({
           onCreate={handleCreateCustomExercise}
         />
       </section>
+      )}
 
-      <section className="mt-6">
+      {view === "list" && (
+      <section>
         <div className="mb-3 flex items-end justify-between gap-4">
           <div>
             <h2 className="font-semibold">
@@ -568,6 +581,32 @@ export default function RoutineScreen({
           )}
         </div>
       </section>
+      )}
     </main>
+  );
+}
+
+function RoutineMenuButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "rounded-xl px-3 py-2.5 text-sm font-semibold transition " +
+        (active
+          ? "bg-white text-zinc-950 shadow-sm"
+          : "text-zinc-500 hover:text-zinc-900")
+      }
+    >
+      {label}
+    </button>
   );
 }
