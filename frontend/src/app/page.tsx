@@ -1,5 +1,5 @@
-import WorkoutScreen from "@/components/workout/workout-screen";
+import AppShell from "@/components/app-shell";
 
 export default function Home() {
-  return <WorkoutScreen />;
+  return <AppShell />;
 }

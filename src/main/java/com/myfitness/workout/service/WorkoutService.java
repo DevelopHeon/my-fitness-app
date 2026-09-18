@@ -40,9 +40,18 @@ public class WorkoutService {
     }
 
     public Workout start(Long userId, LocalDate workoutDate, String memo) {
+        return startWithExercises(userId, workoutDate, memo, List.of());
+    }
+
+    public Workout startWithExercises(
+            Long userId,
+            LocalDate workoutDate,
+            String memo,
+            List<Exercise> exercises) {
         LocalDate date = workoutDate == null ? LocalDate.now(clock) : workoutDate;
-        return workoutRepository.saveAndFlush(
-                Workout.start(userId, date, memo, clock.instant()));
+        Workout workout = Workout.start(userId, date, memo, clock.instant());
+        exercises.forEach(exercise -> workout.addExercise(exercise, null));
+        return workoutRepository.saveAndFlush(workout);
     }
 
     public Workout getOwned(Long userId, Long workoutId) {

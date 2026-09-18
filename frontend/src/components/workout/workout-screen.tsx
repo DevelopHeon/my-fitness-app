@@ -15,13 +15,25 @@ type SetDraft = {
   durationSeconds: string;
 };
 
-export default function WorkoutScreen() {
+type Props = {
+  initialWorkout?: Workout | null;
+  initialPreviousRecords?: PreviousExerciseRecord[];
+};
+
+export default function WorkoutScreen({
+  initialWorkout = null,
+  initialPreviousRecords = [],
+}: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
-  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(initialWorkout);
   const [previousRecords, setPreviousRecords] = useState<
     Record<number, PreviousExerciseRecord | null>
-  >({});
+  >(() =>
+    Object.fromEntries(
+      initialPreviousRecords.map((record) => [record.exerciseId, record]),
+    ),
+  );
   const [setDrafts, setSetDrafts] = useState<Record<number, SetDraft>>({});
   const [editingSet, setEditingSet] = useState<{
     workoutExerciseId: number;
@@ -60,7 +72,10 @@ export default function WorkoutScreen() {
         const inProgress = workouts.find(
           (workout) => workout.status === "IN_PROGRESS",
         );
-        if (!inProgress) return;
+        if (!inProgress) {
+          setActiveWorkout(null);
+          return;
+        }
 
         setActiveWorkout(inProgress);
         const entries = await Promise.all(
@@ -338,7 +353,7 @@ export default function WorkoutScreen() {
           </p>
         </div>
         <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
-          Phase 1
+          Phase 2
         </span>
       </header>
 

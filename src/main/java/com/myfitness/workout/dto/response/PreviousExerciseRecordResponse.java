@@ -8,6 +8,7 @@ public record PreviousExerciseRecordResponse(
         Long workoutId,
         LocalDate workoutDate,
         Long workoutExerciseId,
+        Long exerciseId,
         String exerciseName,
         List<WorkoutResponse.SetEntry> sets
 ) {
@@ -16,6 +17,7 @@ public record PreviousExerciseRecordResponse(
                 entry.getWorkout().getId(),
                 entry.getWorkout().getWorkoutDate(),
                 entry.getId(),
+                entry.getExercise().getId(),
                 entry.getExercise().getName(),
                 entry.getSets().stream().map(set -> new WorkoutResponse.SetEntry(
                         set.getId(),

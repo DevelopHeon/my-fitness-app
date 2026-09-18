@@ -1,5 +1,8 @@
 package com.myfitness.common.exception;
 
+import com.myfitness.routine.exception.RoutineAccessException;
+import com.myfitness.routine.exception.RoutineNotFoundException;
+import com.myfitness.routine.exception.RoutineRuleException;
 import com.myfitness.workout.exception.WorkoutAccessException;
 import com.myfitness.workout.exception.WorkoutNotFoundException;
 import com.myfitness.workout.exception.WorkoutRuleException;
@@ -18,9 +21,21 @@ public class GlobalExceptionHandler {
         return ApiErrorResponse.of("NOT_FOUND", exception.getMessage());
     }
 
+    @ExceptionHandler(RoutineNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleRoutineNotFound(RoutineNotFoundException exception) {
+        return ApiErrorResponse.of("NOT_FOUND", exception.getMessage());
+    }
+
     @ExceptionHandler(WorkoutAccessException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiErrorResponse handleAccess(WorkoutAccessException exception) {
+        return ApiErrorResponse.of("FORBIDDEN", exception.getMessage());
+    }
+
+    @ExceptionHandler(RoutineAccessException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiErrorResponse handleRoutineAccess(RoutineAccessException exception) {
         return ApiErrorResponse.of("FORBIDDEN", exception.getMessage());
     }
 
@@ -28,6 +43,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse handleWorkoutRule(WorkoutRuleException exception) {
         return ApiErrorResponse.of("WORKOUT_RULE_VIOLATION", exception.getMessage());
+    }
+
+    @ExceptionHandler(RoutineRuleException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse handleRoutineRule(RoutineRuleException exception) {
+        return ApiErrorResponse.of("ROUTINE_RULE_VIOLATION", exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

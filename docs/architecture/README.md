@@ -132,7 +132,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 ## 7. 단계별 확장
 
 1. Workout: 운동/세트 기록과 이전 기록 조회 — 완료
-2. Routine: 반복 운동 템플릿
+2. Routine: 반복 운동 템플릿 — 완료
 3. BodyRecord: 체중/체지방/골격근
 4. Dashboard: 운동량과 신체 변화 시각화
 5. Nutrition: 음식/식단/탄단지
