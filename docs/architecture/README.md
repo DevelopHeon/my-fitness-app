@@ -33,6 +33,8 @@
 - Java: 21 타깃
 - Spring Boot: 4.1.1
 - Database: PostgreSQL 17 + Flyway
+- Schema DDL: Flyway migration으로 이력과 배포 가능한 DDL을 관리
+- Development DDL: MVP 개발 완료 전까지 Hibernate `ddl-auto: create-drop` 유지
 - Frontend: Next.js + TypeScript + PWA
 - AI: Spring AI 2.0.x + Ollama (Phase 6에서 연결)
 
@@ -43,6 +45,8 @@
 - production 빌드 시 Next.js 산출물을 Spring Boot static 리소스에 포함한다.
 - 최종 서비스 진입점은 Spring Boot 하나를 우선한다.
 - PostgreSQL과 Ollama는 별도 프로세스/컨테이너로 운영한다.
+- 테이블/인덱스/제약조건 변경은 반드시 Flyway migration에 반영한다.
+- MVP 개발 중 `ddl-auto: create-drop`은 빠른 개발을 위한 로컬 스키마 재생성 용도로만 사용하며, Flyway DDL 관리를 대체하지 않는다.
 
 ## 4. 백엔드 책임
 

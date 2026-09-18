@@ -10,6 +10,7 @@ import com.myfitness.workout.repository.WorkoutRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -22,7 +23,8 @@ class WorkoutServiceTest {
             new WorkoutService(workoutRepository, workoutExerciseRepository);
 
     @Test
-    void 다른_사용자의_운동은_조회할_수_없다() {
+    @DisplayName("다른 사용자의 Workout은 조회할 수 없다")
+    void rejectsWorkoutAccessByAnotherUser() {
         Workout workout = Workout.start(
                 2L,
                 LocalDate.of(2026, 9, 18),

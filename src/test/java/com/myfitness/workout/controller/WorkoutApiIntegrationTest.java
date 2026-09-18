@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,7 +32,8 @@ class WorkoutApiIntegrationTest {
     }
 
     @Test
-    void 운동을_생성하고_세트를_기록한_뒤_완료하고_이전기록을_조회한다() throws Exception {
+    @DisplayName("Workout 생성부터 세트 기록, 완료, 이전 기록 조회까지 수행한다")
+    void completesWorkoutFlowAndReadsPreviousRecord() throws Exception {
         long exerciseId = createExercise();
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
                         .header("X-User-Id", 1L)
@@ -102,7 +104,8 @@ class WorkoutApiIntegrationTest {
     }
 
     @Test
-    void 세트와_운동종목을_삭제할_수_있다() throws Exception {
+    @DisplayName("Workout에서 세트와 운동 종목을 삭제할 수 있다")
+    void deletesSetAndExerciseFromWorkout() throws Exception {
         long exerciseId = createExercise();
 
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")

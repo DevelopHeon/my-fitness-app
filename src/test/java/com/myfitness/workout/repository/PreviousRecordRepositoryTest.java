@@ -6,6 +6,7 @@ import com.myfitness.workout.domain.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,7 +21,8 @@ class PreviousRecordRepositoryTest {
     @Autowired WorkoutExerciseRepository workoutExerciseRepository;
 
     @Test
-    void 가장_최근에_완료한_운동의_기록을_조회한다() {
+    @DisplayName("동일 종목의 가장 최근 완료 Workout 기록을 조회한다")
+    void findsMostRecentCompletedWorkoutRecord() {
         Exercise exercise = exerciseRepository.save(
                 Exercise.create(1L, "벤치프레스", "CHEST", Instant.parse("2026-09-01T00:00:00Z")));
 
