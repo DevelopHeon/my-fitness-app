@@ -132,6 +132,11 @@ public class WorkoutService {
         return workoutRepository.saveAndFlush(workout);
     }
 
+    public Workout reopen(Workout workout) {
+        workout.reopen();
+        return workoutRepository.saveAndFlush(workout);
+    }
+
     public WorkoutExercise getPreviousCompletedExercise(
             Long userId,
             ExerciseType exerciseType,

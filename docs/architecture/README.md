@@ -116,8 +116,10 @@ Next.js PWA가 다음을 담당한다.
 - 모바일 우선 UI
 - 카테고리 선택 → 운동 종목 선택 흐름
 - 총 세트 수 지정 후 중량/횟수 일괄 입력
+- Workout 내부의 일별 조회 / 월간 Calendar 전환
 - 선택 날짜의 Workout만 조회하는 일 단위 기록 화면
-- 월간 Workout Calendar 탐색
+- 기록 중 이전 화면 이동 및 진행 중 기록 이어쓰기
+- 완료 Workout 재오픈 후 수정 / 재완료
 - 완료 Workout 기록 상세 토글
 - 입력 의미에 맞는 text / numeric / date 제약
 - Dashboard 시각화

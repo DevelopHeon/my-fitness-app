@@ -96,6 +96,14 @@ public class Workout {
         this.completedAt = completedAt;
     }
 
+    public void reopen() {
+        if (status != WorkoutStatus.COMPLETED) {
+            throw new WorkoutRuleException("완료된 운동만 다시 수정할 수 있습니다.");
+        }
+        this.status = WorkoutStatus.IN_PROGRESS;
+        this.completedAt = null;
+    }
+
     public void ensureMutable() {
         if (status == WorkoutStatus.COMPLETED) {
             throw new WorkoutRuleException("완료된 운동은 수정할 수 없습니다.");

@@ -117,4 +117,11 @@ public class WorkoutController {
             @PathVariable Long workoutId) {
         return workoutApplicationService.completeWorkout(userId, workoutId);
     }
+
+    @PatchMapping("/{workoutId}/reopen")
+    public WorkoutResponse reopen(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long workoutId) {
+        return workoutApplicationService.reopenWorkout(userId, workoutId);
+    }
 }

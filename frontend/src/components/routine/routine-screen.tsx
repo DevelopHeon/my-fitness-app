@@ -35,6 +35,7 @@ export default function RoutineScreen({
     useState<RoutineExerciseRequest[]>([]);
   const [editingRoutineId, setEditingRoutineId] =
     useState<number | null>(null);
+  const [editorVersion, setEditorVersion] = useState(0);
   const [workoutDate, setWorkoutDate] = useState(todayString);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -118,6 +119,8 @@ export default function RoutineScreen({
     setName("");
     setSelectedExercises([]);
     setEditingRoutineId(null);
+    setEditorVersion((current) => current + 1);
+    setError(null);
   }
 
   function handleSelectExercise(exercise: Exercise) {
@@ -215,6 +218,7 @@ export default function RoutineScreen({
 
   function handleEdit(routine: Routine) {
     setEditingRoutineId(routine.id);
+    setEditorVersion((current) => current + 1);
     setName(routine.name);
     setSelectedExercises(
       routine.exercises.map((entry) => ({
@@ -335,6 +339,7 @@ export default function RoutineScreen({
           />
 
           <ExercisePicker
+            key={"routine-picker-" + editorVersion}
             exercises={exercises}
             excludedKeys={excludedKeys}
             busy={busy}
@@ -447,6 +452,7 @@ export default function RoutineScreen({
         </form>
 
         <CustomExerciseForm
+          key={"routine-custom-" + editorVersion}
           busy={busy}
           onCreate={handleCreateCustomExercise}
         />

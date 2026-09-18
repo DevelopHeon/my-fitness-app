@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import BodyScreen from "@/components/body/body-screen";
-import WorkoutCalendarScreen from "@/components/calendar/workout-calendar-screen";
 import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
 import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
 
-type View = "workout" | "calendar" | "routine" | "body";
+type View = "workout" | "routine" | "body";
 
 export default function AppShell() {
   const [view, setView] = useState<View>("workout");
@@ -28,23 +27,14 @@ export default function AppShell() {
     setView("workout");
   }
 
-  function handleCalendarDateSelected(date: string) {
-    openWorkout(date);
-  }
-
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950">
       <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-4 gap-1.5 px-4 py-3 sm:px-6">
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-3 gap-1.5 px-4 py-3 sm:px-6">
           <NavButton
             active={view === "workout"}
             label="Workout"
             onClick={() => openWorkout()}
-          />
-          <NavButton
-            active={view === "calendar"}
-            label="Calendar"
-            onClick={() => setView("calendar")}
           />
           <NavButton
             active={view === "routine"}
@@ -72,11 +62,6 @@ export default function AppShell() {
           initialPreviousRecords={
             startedWorkout?.previousRecords
           }
-        />
-      ) : view === "calendar" ? (
-        <WorkoutCalendarScreen
-          selectedDate={workoutDate}
-          onSelectDate={handleCalendarDateSelected}
         />
       ) : view === "routine" ? (
         <RoutineScreen onWorkoutStarted={handleWorkoutStarted} />

@@ -194,4 +194,8 @@ export const workoutApi = {
     request<Workout>("/api/workouts/" + workoutId + "/complete", {
       method: "PATCH",
     }),
+  reopenWorkout: (workoutId: number) =>
+    request<Workout>("/api/workouts/" + workoutId + "/reopen", {
+      method: "PATCH",
+    }),
 };

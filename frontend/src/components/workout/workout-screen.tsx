@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import WorkoutCalendarScreen from "@/components/calendar/workout-calendar-screen";
 import CustomExerciseForm from "@/components/exercise/custom-exercise-form";
 import ExercisePicker from "@/components/exercise/exercise-picker";
 import {
@@ -56,26 +57,15 @@ function previousKey(record: PreviousExerciseRecord) {
   return exerciseKey(record.exerciseType, record.exerciseId);
 }
 
-function createPlan(
-  entry: WorkoutExercise,
-  previous: PreviousExerciseRecord | null,
-): SetPlan {
-  const targetCount = Math.max(
-    entry.sets.length,
-    previous?.sets.length ?? 3,
-  );
+function createPlan(entry: WorkoutExercise): SetPlan {
+  const targetCount =
+    entry.sets.length > 0 ? entry.sets.length : 3;
   const drafts = Array.from(
     { length: Math.max(0, targetCount - entry.sets.length) },
-    (_, offset) => {
-      const previousSet = previous?.sets[entry.sets.length + offset];
-      return {
-        weightKg: previousSet ? String(previousSet.weightKg) : "",
-        reps:
-          previousSet && previousSet.reps > 0
-            ? String(previousSet.reps)
-            : "",
-      };
-    },
+    () => ({
+      weightKg: "",
+      reps: "",
+    }),
   );
 
   return {
@@ -90,6 +80,8 @@ export default function WorkoutScreen({
   initialWorkout = null,
   initialPreviousRecords = EMPTY_PREVIOUS_RECORDS,
 }: Props) {
+  const [workoutView, setWorkoutView] =
+    useState<"daily" | "calendar">("daily");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [dailyWorkouts, setDailyWorkouts] = useState<Workout[]>([]);
@@ -195,15 +187,7 @@ export default function WorkoutScreen({
           Object.fromEntries(
             inProgress.exercises.map((entry) => [
               entry.id,
-              createPlan(
-                entry,
-                previousMap[
-                  exerciseKey(
-                    entry.exerciseType,
-                    entry.exerciseId,
-                  )
-                ],
-              ),
+              createPlan(entry),
             ]),
           ),
         );
@@ -257,16 +241,84 @@ export default function WorkoutScreen({
     });
   }
 
+  function clearRecordingInputs() {
+    setPreviousRecords({});
+    setSetPlans({});
+    setEditingSet(null);
+    setError(null);
+  }
+
+  async function openWorkoutForEditing(
+    workout: Workout,
+    reopenCompleted: boolean,
+  ) {
+    const prepared = await run(async () => {
+      const editableWorkout = reopenCompleted
+        ? await workoutApi.reopenWorkout(workout.id)
+        : workout;
+      const previousEntries = await Promise.all(
+        editableWorkout.exercises.map(async (entry) => {
+          const previous = await workoutApi
+            .getPreviousRecord(
+              entry.exerciseType,
+              entry.exerciseId,
+            )
+            .catch(() => null);
+          return [
+            exerciseKey(
+              entry.exerciseType,
+              entry.exerciseId,
+            ),
+            previous,
+          ] as const;
+        }),
+      );
+
+      return {
+        workout: editableWorkout,
+        previousMap: Object.fromEntries(previousEntries),
+      };
+    });
+    if (!prepared) return;
+
+    replaceWorkout(prepared.workout);
+    setActiveWorkout(prepared.workout);
+    setPreviousRecords(prepared.previousMap);
+    setSetPlans(
+      Object.fromEntries(
+        prepared.workout.exercises.map((entry) => [
+          entry.id,
+          createPlan(entry),
+        ]),
+      ),
+    );
+    setEditingSet(null);
+    setWorkoutView("daily");
+  }
+
+  function handleBackFromRecording() {
+    setActiveWorkout(null);
+    clearRecordingInputs();
+    setWorkoutView("daily");
+  }
+
+  async function handleResumeWorkout(workout: Workout) {
+    await openWorkoutForEditing(workout, false);
+  }
+
+  async function handleEditCompletedWorkout(workout: Workout) {
+    await openWorkoutForEditing(workout, true);
+  }
+
   async function handleStartWorkout() {
     const workout = await run(() =>
       workoutApi.startWorkout(selectedDate),
     );
     if (!workout) return;
 
+    clearRecordingInputs();
     setActiveWorkout(workout);
     replaceWorkout(workout);
-    setPreviousRecords({});
-    setSetPlans({});
   }
 
   async function handleStartRoutine(routine: Routine) {
@@ -285,19 +337,13 @@ export default function WorkoutScreen({
     setActiveWorkout(result.workout);
     replaceWorkout(result.workout);
     setPreviousRecords(previousMap);
+    setEditingSet(null);
+    setError(null);
     setSetPlans(
       Object.fromEntries(
         result.workout.exercises.map((entry) => [
           entry.id,
-          createPlan(
-            entry,
-            previousMap[
-              exerciseKey(
-                entry.exerciseType,
-                entry.exerciseId,
-              )
-            ] ?? null,
-          ),
+          createPlan(entry),
         ]),
       ),
     );
@@ -357,7 +403,7 @@ export default function WorkoutScreen({
     if (entry) {
       setSetPlans((current) => ({
         ...current,
-        [entry.id]: createPlan(entry, previous),
+        [entry.id]: createPlan(entry),
       }));
     }
 
@@ -405,12 +451,9 @@ export default function WorkoutScreen({
     }));
   }
 
-  function applySetCount(
-    entry: WorkoutExercise,
-    previous: PreviousExerciseRecord | null,
-  ) {
+  function applySetCount(entry: WorkoutExercise) {
     const currentPlan =
-      setPlans[entry.id] ?? createPlan(entry, previous);
+      setPlans[entry.id] ?? createPlan(entry);
     const targetCount = Number(currentPlan.count);
 
     if (
@@ -437,16 +480,9 @@ export default function WorkoutScreen({
         const existing = currentPlan.drafts[offset];
         if (existing) return existing;
 
-        const previousSet =
-          previous?.sets[entry.sets.length + offset];
         return {
-          weightKg: previousSet
-            ? String(previousSet.weightKg)
-            : "",
-          reps:
-            previousSet && previousSet.reps > 0
-              ? String(previousSet.reps)
-              : "",
+          weightKg: "",
+          reps: "",
         };
       },
     );
@@ -642,16 +678,9 @@ export default function WorkoutScreen({
       (item) => item.id === workoutExerciseId,
     );
     if (entry) {
-      const previous =
-        previousRecords[
-          exerciseKey(
-            entry.exerciseType,
-            entry.exerciseId,
-          )
-        ];
       setSetPlans((current) => ({
         ...current,
-        [entry.id]: createPlan(entry, previous),
+        [entry.id]: createPlan(entry),
       }));
     }
   }
@@ -698,9 +727,7 @@ export default function WorkoutScreen({
       return next;
     });
     setActiveWorkout(null);
-    setPreviousRecords({});
-    setSetPlans({});
-    setEditingSet(null);
+    clearRecordingInputs();
   }
 
   function toggleWorkout(workoutId: number) {
@@ -714,6 +741,10 @@ export default function WorkoutScreen({
       return next;
     });
   }
+
+  const pausedWorkout = dailyWorkouts.find(
+    (workout) => workout.status === "IN_PROGRESS",
+  );
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-6 sm:px-6">
@@ -730,21 +761,63 @@ export default function WorkoutScreen({
               선택한 날짜의 운동만 기록하고 확인합니다.
             </p>
           </div>
-          <label className="shrink-0 text-xs font-medium text-zinc-500">
-            날짜
-            <input
-              type="date"
-              max={todayString()}
-              value={selectedDate}
-              onChange={(event) =>
-                onSelectedDateChange(event.target.value)
-              }
-              className="mt-1 block rounded-xl border border-zinc-200 px-2.5 py-2 text-sm outline-none focus:border-zinc-500"
-            />
-          </label>
+          {workoutView === "daily" && (
+            <label className="shrink-0 text-xs font-medium text-zinc-500">
+              날짜
+              <input
+                type="date"
+                max={todayString()}
+                value={selectedDate}
+                onChange={(event) =>
+                  onSelectedDateChange(event.target.value)
+                }
+                className="mt-1 block rounded-xl border border-zinc-200 px-2.5 py-2 text-sm outline-none focus:border-zinc-500"
+              />
+            </label>
+          )}
         </div>
       </header>
 
+      <div className="mb-6 grid grid-cols-2 rounded-2xl bg-zinc-100 p-1">
+        <button
+          type="button"
+          onClick={() => setWorkoutView("daily")}
+          className={
+            "rounded-xl px-4 py-2.5 text-sm font-semibold transition " +
+            (workoutView === "daily"
+              ? "bg-white text-zinc-950 shadow-sm"
+              : "text-zinc-500")
+          }
+        >
+          일별 조회
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (activeWorkout) handleBackFromRecording();
+            setWorkoutView("calendar");
+          }}
+          className={
+            "rounded-xl px-4 py-2.5 text-sm font-semibold transition " +
+            (workoutView === "calendar"
+              ? "bg-white text-zinc-950 shadow-sm"
+              : "text-zinc-500")
+          }
+        >
+          캘린더 조회
+        </button>
+      </div>
+
+      {workoutView === "calendar" ? (
+        <WorkoutCalendarScreen
+          selectedDate={selectedDate}
+          onSelectDate={(date) => {
+            setWorkoutView("daily");
+            onSelectedDateChange(date);
+          }}
+        />
+      ) : (
+        <>
       {error && (
         <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -753,6 +826,30 @@ export default function WorkoutScreen({
 
       {!activeWorkout ? (
         <div className="space-y-4">
+          {pausedWorkout && (
+            <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-emerald-700">
+                진행 중인 운동
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-zinc-950">
+                작성 중인 Workout이 있습니다.
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-zinc-500">
+                이전 화면으로 나와도 기록은 유지됩니다. 이어서 작성하거나 완료해주세요.
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  void handleResumeWorkout(pausedWorkout);
+                }}
+                className="mt-4 w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                운동 기록 이어서 작성
+              </button>
+            </section>
+          )}
+
           <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -781,7 +878,9 @@ export default function WorkoutScreen({
                   <button
                     key={routine.id}
                     type="button"
-                    disabled={busy || !selectedDate}
+                    disabled={
+                      busy || !selectedDate || Boolean(pausedWorkout)
+                    }
                     onClick={() => {
                       void handleStartRoutine(routine);
                     }}
@@ -820,7 +919,9 @@ export default function WorkoutScreen({
             </p>
             <button
               type="button"
-              disabled={busy || !selectedDate}
+              disabled={
+                busy || !selectedDate || Boolean(pausedWorkout)
+              }
               onClick={handleStartWorkout}
               className="mt-4 w-full rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
             >
@@ -831,6 +932,13 @@ export default function WorkoutScreen({
       ) : (
         <div className="space-y-5">
           <section className="rounded-3xl bg-zinc-950 p-5 text-white shadow-sm">
+            <button
+              type="button"
+              onClick={handleBackFromRecording}
+              className="mb-4 text-xs font-semibold text-zinc-300 hover:text-white"
+            >
+              ← 이전 화면
+            </button>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-zinc-400">
@@ -883,7 +991,7 @@ export default function WorkoutScreen({
               ] ?? null;
             const plan =
               setPlans[entry.id] ??
-              createPlan(entry, previous);
+              createPlan(entry);
 
             return (
               <section
@@ -1079,7 +1187,7 @@ export default function WorkoutScreen({
                     <button
                       type="button"
                       onClick={() =>
-                        applySetCount(entry, previous)
+                        applySetCount(entry)
                       }
                       className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold"
                     >
@@ -1222,23 +1330,23 @@ export default function WorkoutScreen({
                   key={workout.id}
                   className="overflow-hidden rounded-2xl border border-zinc-200 bg-white"
                 >
-                  <button
-                    type="button"
-                    disabled={!completed}
-                    aria-expanded={
-                      completed ? expanded : undefined
-                    }
-                    onClick={() =>
-                      completed &&
-                      toggleWorkout(workout.id)
-                    }
-                    className="flex w-full items-center justify-between px-4 py-3 text-left disabled:cursor-default"
-                  >
-                    <div>
+                  <div className="flex items-center gap-2 px-4 py-3">
+                    <button
+                      type="button"
+                      disabled={!completed}
+                      aria-expanded={
+                        completed ? expanded : undefined
+                      }
+                      onClick={() =>
+                        completed &&
+                        toggleWorkout(workout.id)
+                      }
+                      className="min-w-0 flex-1 text-left disabled:cursor-default"
+                    >
                       <p className="text-sm font-semibold">
                         Workout #{workout.id}
                       </p>
-                      <p className="mt-1 text-xs text-zinc-400">
+                      <p className="mt-1 truncate text-xs text-zinc-400">
                         {workout.exercises
                           .map((entry) => entry.exerciseName)
                           .slice(0, 3)
@@ -1249,25 +1357,52 @@ export default function WorkoutScreen({
                             (workout.exercises.length - 3)
                           : ""}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={
-                          "rounded-full px-2.5 py-1 text-xs font-medium " +
-                          (completed
-                            ? "bg-zinc-100 text-zinc-600"
-                            : "bg-emerald-50 text-emerald-700")
-                        }
-                      >
-                        {completed ? "완료" : "진행 중"}
-                      </span>
-                      {completed && (
-                        <span className="text-xs text-zinc-400">
+                    </button>
+                    <span
+                      className={
+                        "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium " +
+                        (completed
+                          ? "bg-zinc-100 text-zinc-600"
+                          : "bg-emerald-50 text-emerald-700")
+                      }
+                    >
+                      {completed ? "완료" : "진행 중"}
+                    </span>
+                    {completed ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleWorkout(workout.id)
+                          }
+                          className="shrink-0 text-xs font-medium text-zinc-400 hover:text-zinc-900"
+                        >
                           {expanded ? "접기" : "보기"}
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || Boolean(pausedWorkout)}
+                          onClick={() => {
+                            void handleEditCompletedWorkout(workout);
+                          }}
+                          className="shrink-0 text-xs font-semibold text-zinc-600 hover:text-zinc-950 disabled:opacity-30"
+                        >
+                          수정
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          void handleResumeWorkout(workout);
+                        }}
+                        className="shrink-0 text-xs font-semibold text-emerald-700 hover:text-emerald-900 disabled:opacity-40"
+                      >
+                        이어하기
+                      </button>
+                    )}
+                  </div>
 
                   {completed && expanded && (
                     <div className="border-t border-zinc-100 px-4 py-4">
@@ -1326,6 +1461,8 @@ export default function WorkoutScreen({
           )}
         </div>
       </section>
+        </>
+      )}
     </main>
   );
 }

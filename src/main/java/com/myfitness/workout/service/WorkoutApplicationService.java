@@ -188,4 +188,10 @@ public class WorkoutApplicationService {
         Workout workout = workoutService.getOwned(userId, workoutId);
         return WorkoutResponse.from(workoutService.complete(workout));
     }
+
+    @Transactional
+    public WorkoutResponse reopenWorkout(Long userId, Long workoutId) {
+        Workout workout = workoutService.getOwned(userId, workoutId);
+        return WorkoutResponse.from(workoutService.reopen(workout));
+    }
 }

@@ -69,6 +69,28 @@ class WorkoutTest {
     }
 
     @Test
+    @DisplayName("완료된 운동은 다시 편집 상태로 열어 수정한 뒤 재완료할 수 있다")
+    void reopensCompletedWorkoutForEditing() {
+        Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
+        workout.addExercise(
+                new ExerciseReference(
+                        ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
+                null);
+        workout.complete(startedAt.plusSeconds(3600));
+
+        workout.reopen();
+        workout.addExercise(
+                new ExerciseReference(
+                        ExerciseType.DEFAULT, 2L, "딥스", ExerciseCategory.CHEST, null),
+                null);
+        workout.complete(startedAt.plusSeconds(7200));
+
+        assertThat(workout.getStatus()).isEqualTo(WorkoutStatus.COMPLETED);
+        assertThat(workout.getExercises()).hasSize(2);
+        assertThat(workout.getCompletedAt()).isEqualTo(startedAt.plusSeconds(7200));
+    }
+
+    @Test
     @DisplayName("세트에는 반복 횟수 또는 운동 시간 중 하나가 필요하다")
     void requiresRepsOrDurationForSet() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);

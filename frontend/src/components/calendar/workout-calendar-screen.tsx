@@ -98,18 +98,15 @@ export default function WorkoutCalendarScreen({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-6">
-      <header className="mb-6">
-        <p className="text-xs font-semibold tracking-[0.18em] text-zinc-400">
-          MY FITNESS
+    <section>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-zinc-950">
+          월간 운동 기록
+        </h2>
+        <p className="mt-1 text-xs leading-5 text-zinc-400">
+          운동한 날짜와 수행 종목을 확인하고 날짜를 선택해 일별 기록으로 이동하세요.
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-zinc-950">
-          Workout Calendar
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-zinc-500">
-          월 단위로 운동한 날짜와 수행 종목을 확인하고 날짜를 선택해 상세 기록으로 이동하세요.
-        </p>
-      </header>
+      </div>
 
       {error && (
         <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -259,6 +256,6 @@ export default function WorkoutCalendarScreen({
           날짜 우측 숫자는 완료 운동 수 / 전체 운동 수입니다. 날짜를 누르면 해당 날짜의 Workout 화면으로 이동합니다.
         </p>
       </section>
-    </main>
+    </section>
   );
 }

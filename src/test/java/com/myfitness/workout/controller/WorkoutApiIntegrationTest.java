@@ -146,6 +146,75 @@ class WorkoutApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("완료된 Workout을 다시 열어 세트 기록을 수정하고 재완료할 수 있다")
+    void reopensCompletedWorkoutAndEditsSet() throws Exception {
+        long exerciseId = findDefaultExerciseId("벤치프레스");
+
+        MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"workoutDate":"2026-09-17"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long workoutId = json(workoutCreated).path("id").asLong();
+
+        MvcResult exerciseAdded = mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises", workoutId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"exerciseType":"DEFAULT","exerciseId":%d}
+                                """.formatted(exerciseId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        long workoutExerciseId =
+                json(exerciseAdded).path("exercises").get(0).path("id").asLong();
+
+        MvcResult setAdded = mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
+                        workoutId, workoutExerciseId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"weightKg":60,"reps":10,"completed":true}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        long setId = json(setAdded).path("exercises")
+                .get(0).path("sets").get(0).path("id").asLong();
+
+        mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        mockMvc.perform(patch("/api/workouts/{workoutId}/reopen", workoutId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.completedAt").doesNotExist());
+
+        mockMvc.perform(patch(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}",
+                        workoutId, workoutExerciseId, setId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"weightKg":67.5,"reps":8,"completed":true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].sets[0].weightKg").value(67.5));
+
+        mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.exercises[0].sets[0].weightKg").value(67.5));
+    }
+
+    @Test
     @DisplayName("사용자 커스텀 운동의 세트와 운동 종목을 삭제할 수 있다")
     void deletesSetAndCustomExerciseFromWorkout() throws Exception {
         JsonNode custom = createCustomExercise("개인 인터벌", "ABS");

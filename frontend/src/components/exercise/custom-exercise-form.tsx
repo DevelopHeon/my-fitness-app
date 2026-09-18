@@ -29,7 +29,10 @@ export default function CustomExerciseForm({
     if (!trimmed) return;
 
     const created = await onCreate(trimmed, category);
-    if (created) setName("");
+    if (created) {
+      setName("");
+      setCategory("CHEST");
+    }
   }
 
   return (
