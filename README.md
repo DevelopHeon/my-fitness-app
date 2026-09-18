@@ -78,10 +78,10 @@ npm run dev
 - [x] Phase 1 Workout 기록
 - [x] Phase 2 Routine
 - [x] Phase 3 BodyRecord
-- [ ] Phase 4 Dashboard
+- [x] Phase 4 Dashboard
 - [ ] Phase 5 Nutrition
 - [ ] Phase 6 Local AI Coach
 
 현재 개발 환경에서는 인증 구현 전까지 `X-User-Id: 1`을 임시 사용자 컨텍스트로 사용합니다.
 
-다음 작업은 Phase 4 Dashboard 구현입니다.
+다음 작업은 Phase 5 Nutrition 구현입니다.

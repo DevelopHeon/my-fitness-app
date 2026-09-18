@@ -93,6 +93,20 @@ Domain + Repository
 
 예외 타입은 각 도메인의 `exception` 패키지에 두되, HTTP 상태와 공통 오류 응답 변환은 `common.exception.GlobalExceptionHandler`가 담당한다.
 
+Dashboard는 쓰기 도메인을 만들지 않고 Workout / BodyRecord의 완료 기록을 읽어 화면용 통계를 계산하는 query 성격의 기능으로 둔다.
+
+```text
+DashboardController
+        ↓
+DashboardService
+   ↙           ↘
+WorkoutRepository  BodyRecordRepository
+        ↓
+Volume / PR / 1RM / Body trend 계산
+```
+
+Dashboard 계산은 서버에서 수행하고, 진행 중 Workout은 통계에서 제외한다. 별도 Dashboard 테이블이나 캐시는 현재 사용자 규모에서는 두지 않는다.
+
 Exercise는 공용 기본 카탈로그와 사용자 커스텀 정의를 분리한다.
 
 ```text
@@ -124,7 +138,8 @@ Next.js PWA가 다음을 담당한다.
 - 완료 Workout 재오픈 후 수정 / 재완료
 - 완료 Workout 기록 상세 토글
 - 입력 의미에 맞는 text / numeric / date 제약
-- Dashboard 시각화
+- Dashboard 기본 진입 화면과 SVG 기반 추이 시각화
+- 최근 7/30일 Workout/Volume, Body 변화, 종목별 PR/1RM 표시
 - API 호출 및 사용자 피드백
 - PWA 설치와 기본 캐싱
 - AI 채팅 화면
@@ -158,7 +173,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 1. Workout: 운동/세트 기록과 이전 기록 조회 — 완료
 2. Routine: 반복 운동 템플릿 — 완료
 3. BodyRecord: 체중/체지방/골격근 — 완료
-4. Dashboard: 운동량과 신체 변화 시각화
+4. Dashboard: 운동량과 신체 변화 시각화 — 완료
 5. Nutrition: 음식/식단/탄단지
 6. Local AI Coach: Ollama 기반 질의/분석/식단 후보 제안
 7. 이후 확장: 사진, 알림, AI Insight, RAG

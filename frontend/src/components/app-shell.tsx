@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import BodyScreen from "@/components/body/body-screen";
+import DashboardScreen from "@/components/dashboard/dashboard-screen";
 import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
 import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
 
-type View = "workout" | "routine" | "body";
+type View = "dashboard" | "workout" | "routine" | "body";
 
 export default function AppShell() {
-  const [view, setView] = useState<View>("workout");
+  const [view, setView] = useState<View>("dashboard");
   const [workoutDate, setWorkoutDate] = useState(todayString);
   const [startedWorkout, setStartedWorkout] =
     useState<RoutineWorkoutStart | null>(null);
@@ -30,7 +31,12 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950">
       <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-3 gap-1.5 px-4 py-3 sm:px-6">
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-4 gap-1.5 px-4 py-3 sm:px-6">
+          <NavButton
+            active={view === "dashboard"}
+            label="Dashboard"
+            onClick={() => setView("dashboard")}
+          />
           <NavButton
             active={view === "workout"}
             label="Workout"
@@ -49,7 +55,9 @@ export default function AppShell() {
         </div>
       </nav>
 
-      {view === "workout" ? (
+      {view === "dashboard" ? (
+        <DashboardScreen />
+      ) : view === "workout" ? (
         <WorkoutScreen
           key={
             (startedWorkout?.workout.id ?? "workout") +

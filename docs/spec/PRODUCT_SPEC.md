@@ -160,6 +160,8 @@ Spring Boot build
 
 ### Phase 4. Dashboard
 
+> 구현 상태: 완료
+
 목표: 기록된 데이터를 숫자와 차트로 빠르게 이해할 수 있게 한다.
 
 필수 지표:
@@ -186,6 +188,21 @@ estimated 1RM = weight × (1 + reps / 30)
 ```
 
 통계와 수치 계산은 서버에서 수행하며 LLM에게 산술 계산을 위임하지 않는다.
+
+구현 기준:
+- 운동 횟수와 Volume 비교는 최근 7일 / 직전 7일, 최근 30일 / 직전 30일 rolling period를 사용한다.
+- Dashboard 운동 통계에는 COMPLETED Workout만 포함한다.
+- 최근 30일 일별 Volume을 차트로 제공한다.
+- Body는 최근 90일 기록의 최신값 / 이전 측정 대비 변화 / 추이를 제공한다.
+- 종목 PR은 완료된 전체 Workout을 기준으로 최고 중량과 Epley 추정 1RM을 계산한다.
+- 종목별 최근 8회 수행의 최고 중량 / 추정 1RM / Volume 추이를 제공한다.
+- 이전 기간 Volume이 0이면 증감률은 null로 제공해 무한대 표현을 피한다.
+- Dashboard는 앱의 기본 진입 화면으로 사용한다.
+
+완료 기준:
+- Workout과 BodyRecord 데이터만으로 핵심 변화와 종목 PR을 한 화면에서 확인할 수 있다.
+- 통계 계산은 Spring Boot에서 수행되고 프론트는 결과를 시각화한다.
+
 ### Phase 5. Nutrition
 
 목표: 자주 먹는 음식을 재사용하면서 하루 식단과 영양 섭취량을 기록한다.

@@ -10,4 +10,6 @@ public interface BodyRecordRepository extends JpaRepository<BodyRecord, Long> {
             Long userId,
             Instant from,
             Instant to);
+
+    List<BodyRecord> findAllByUserIdOrderByMeasuredAtDesc(Long userId);
 }
