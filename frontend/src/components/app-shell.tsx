@@ -3,12 +3,18 @@
 import { useState } from "react";
 import BodyScreen from "@/components/body/body-screen";
 import DashboardScreen from "@/components/dashboard/dashboard-screen";
+import NutritionScreen from "@/components/nutrition/nutrition-screen";
 import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
 import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
 
-type View = "dashboard" | "workout" | "routine" | "body";
+type View =
+  | "dashboard"
+  | "workout"
+  | "routine"
+  | "body"
+  | "nutrition";
 
 export default function AppShell() {
   const [view, setView] = useState<View>("dashboard");
@@ -31,7 +37,7 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950">
       <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-3xl grid-cols-4 gap-1.5 px-4 py-3 sm:px-6">
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-5 gap-1 px-3 py-3 sm:px-6">
           <NavButton
             active={view === "dashboard"}
             label="Dashboard"
@@ -51,6 +57,11 @@ export default function AppShell() {
             active={view === "body"}
             label="Body"
             onClick={() => setView("body")}
+          />
+          <NavButton
+            active={view === "nutrition"}
+            label="Nutrition"
+            onClick={() => setView("nutrition")}
           />
         </div>
       </nav>
@@ -73,8 +84,10 @@ export default function AppShell() {
         />
       ) : view === "routine" ? (
         <RoutineScreen onWorkoutStarted={handleWorkoutStarted} />
-      ) : (
+      ) : view === "body" ? (
         <BodyScreen />
+      ) : (
+        <NutritionScreen />
       )}
     </div>
   );

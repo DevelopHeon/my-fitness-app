@@ -143,6 +143,9 @@ Next.js PWA가 다음을 담당한다.
 - Dashboard 기본 진입 화면과 SVG 기반 추이 시각화
 - 최근 7/30일 Workout/Volume, Body 변화, 종목별 PR/1RM 표시
 - Volume 차트 전체/운동 카테고리 필터 및 실제 기록 날짜 기준 추이 정렬
+- Nutrition 날짜별 칼로리/탄단지 목표 대비 현황
+- 아침/점심/저녁/간식 기록과 최근/자주 먹는 음식 재사용
+- 사용자 음식 등록/수정/삭제와 MealFood 영양 스냅샷 표시
 - API 호출 및 사용자 피드백
 - PWA 설치와 기본 캐싱
 - AI 채팅 화면
@@ -177,7 +180,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 2. Routine: 반복 운동 템플릿 — 완료
 3. BodyRecord: 체중/체지방/골격근 — 완료
 4. Dashboard: 운동량과 신체 변화 시각화 — 완료
-5. Nutrition: 음식/식단/탄단지
+5. Nutrition: 음식/식단/탄단지 — 완료
 6. Local AI Coach: Ollama 기반 질의/분석/식단 후보 제안
 7. 이후 확장: 사진, 알림, AI Insight, RAG
 
