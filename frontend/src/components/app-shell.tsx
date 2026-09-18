@@ -1,67 +1,113 @@
 "use client";
 
 import { useState } from "react";
+import BodyScreen from "@/components/body/body-screen";
+import WorkoutCalendarScreen from "@/components/calendar/workout-calendar-screen";
 import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
+import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
 
-type View = "workout" | "routine";
+type View = "workout" | "calendar" | "routine" | "body";
 
 export default function AppShell() {
   const [view, setView] = useState<View>("workout");
+  const [workoutDate, setWorkoutDate] = useState(todayString);
   const [startedWorkout, setStartedWorkout] =
     useState<RoutineWorkoutStart | null>(null);
 
-  function openWorkout() {
+  function openWorkout(date = todayString()) {
     setStartedWorkout(null);
+    setWorkoutDate(date);
     setView("workout");
   }
 
   function handleWorkoutStarted(result: RoutineWorkoutStart) {
     setStartedWorkout(result);
+    setWorkoutDate(result.workout.workoutDate);
     setView("workout");
+  }
+
+  function handleCalendarDateSelected(date: string) {
+    openWorkout(date);
   }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950">
       <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-2xl gap-2 px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            onClick={openWorkout}
-            className={
-              "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold " +
-              (view === "workout"
-                ? "bg-zinc-950 text-white"
-                : "text-zinc-500 hover:bg-zinc-100")
-            }
-          >
-            Workout
-          </button>
-          <button
-            type="button"
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-4 gap-1.5 px-4 py-3 sm:px-6">
+          <NavButton
+            active={view === "workout"}
+            label="Workout"
+            onClick={() => openWorkout()}
+          />
+          <NavButton
+            active={view === "calendar"}
+            label="Calendar"
+            onClick={() => setView("calendar")}
+          />
+          <NavButton
+            active={view === "routine"}
+            label="Routine"
             onClick={() => setView("routine")}
-            className={
-              "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold " +
-              (view === "routine"
-                ? "bg-zinc-950 text-white"
-                : "text-zinc-500 hover:bg-zinc-100")
-            }
-          >
-            Routine
-          </button>
+          />
+          <NavButton
+            active={view === "body"}
+            label="Body"
+            onClick={() => setView("body")}
+          />
         </div>
       </nav>
 
       {view === "workout" ? (
         <WorkoutScreen
-          key={startedWorkout?.workout.id ?? "workout"}
+          key={
+            (startedWorkout?.workout.id ?? "workout") +
+            "-" +
+            workoutDate
+          }
+          selectedDate={workoutDate}
+          onSelectedDateChange={openWorkout}
           initialWorkout={startedWorkout?.workout ?? null}
-          initialPreviousRecords={startedWorkout?.previousRecords ?? []}
+          initialPreviousRecords={
+            startedWorkout?.previousRecords
+          }
         />
-      ) : (
+      ) : view === "calendar" ? (
+        <WorkoutCalendarScreen
+          selectedDate={workoutDate}
+          onSelectDate={handleCalendarDateSelected}
+        />
+      ) : view === "routine" ? (
         <RoutineScreen onWorkoutStarted={handleWorkoutStarted} />
+      ) : (
+        <BodyScreen />
       )}
     </div>
+  );
+}
+
+function NavButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "rounded-xl px-2 py-2.5 text-xs font-semibold sm:text-sm " +
+        (active
+          ? "bg-zinc-950 text-white"
+          : "text-zinc-500 hover:bg-zinc-100")
+      }
+    >
+      {label}
+    </button>
   );
 }

@@ -1,5 +1,8 @@
 package com.myfitness.common.exception;
 
+import com.myfitness.body.exception.BodyRecordAccessException;
+import com.myfitness.body.exception.BodyRecordNotFoundException;
+import com.myfitness.body.exception.BodyRecordRuleException;
 import com.myfitness.routine.exception.RoutineAccessException;
 import com.myfitness.routine.exception.RoutineNotFoundException;
 import com.myfitness.routine.exception.RoutineRuleException;
@@ -27,6 +30,12 @@ public class GlobalExceptionHandler {
         return ApiErrorResponse.of("NOT_FOUND", exception.getMessage());
     }
 
+    @ExceptionHandler(BodyRecordNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleBodyRecordNotFound(BodyRecordNotFoundException exception) {
+        return ApiErrorResponse.of("NOT_FOUND", exception.getMessage());
+    }
+
     @ExceptionHandler(WorkoutAccessException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiErrorResponse handleAccess(WorkoutAccessException exception) {
@@ -36,6 +45,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RoutineAccessException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiErrorResponse handleRoutineAccess(RoutineAccessException exception) {
+        return ApiErrorResponse.of("FORBIDDEN", exception.getMessage());
+    }
+
+    @ExceptionHandler(BodyRecordAccessException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiErrorResponse handleBodyRecordAccess(BodyRecordAccessException exception) {
         return ApiErrorResponse.of("FORBIDDEN", exception.getMessage());
     }
 
@@ -49,6 +64,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse handleRoutineRule(RoutineRuleException exception) {
         return ApiErrorResponse.of("ROUTINE_RULE_VIOLATION", exception.getMessage());
+    }
+
+    @ExceptionHandler(BodyRecordRuleException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse handleBodyRecordRule(BodyRecordRuleException exception) {
+        return ApiErrorResponse.of("BODY_RECORD_RULE_VIOLATION", exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

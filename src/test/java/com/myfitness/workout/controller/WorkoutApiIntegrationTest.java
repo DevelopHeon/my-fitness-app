@@ -200,6 +200,66 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.exercises").isEmpty());
     }
 
+    @Test
+    @DisplayName("세트 수만큼 여러 세트를 한 번에 저장하고 월간 캘린더 요약으로 조회한다")
+    void addsMultipleSetsAndReturnsMonthlyCalendarSummary() throws Exception {
+        long exerciseId = findDefaultExerciseId("벤치프레스");
+
+        MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"workoutDate":"2026-09-12"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long workoutId = json(workoutCreated).path("id").asLong();
+
+        MvcResult exerciseAdded = mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises", workoutId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"exerciseType":"DEFAULT","exerciseId":%d}
+                                """.formatted(exerciseId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        long workoutExerciseId =
+                json(exerciseAdded).path("exercises").get(0).path("id").asLong();
+
+        mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/batch",
+                        workoutId, workoutExerciseId)
+                        .header("X-User-Id", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sets":[
+                                    {"weightKg":60,"reps":10,"completed":true},
+                                    {"weightKg":65,"reps":8,"completed":true},
+                                    {"weightKg":70,"reps":6,"completed":true}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].sets.length()").value(3))
+                .andExpect(jsonPath("$.exercises[0].sets[2].setNumber").value(3))
+                .andExpect(jsonPath("$.exercises[0].sets[2].weightKg").value(70));
+
+        mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/workouts/calendar")
+                        .header("X-User-Id", 1L)
+                        .param("month", "2026-09"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].date").value("2026-09-12"))
+                .andExpect(jsonPath("$[0].workoutCount").value(1))
+                .andExpect(jsonPath("$[0].completedCount").value(1))
+                .andExpect(jsonPath("$[0].exerciseNames[0]").value("벤치프레스"));
+    }
+
     private long findDefaultExerciseId(String name) throws Exception {
         JsonNode exercises = json(mockMvc.perform(get("/api/exercises")
                         .header("X-User-Id", 1L))

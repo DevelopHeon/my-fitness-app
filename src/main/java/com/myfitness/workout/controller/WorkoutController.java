@@ -2,11 +2,14 @@ package com.myfitness.workout.controller;
 
 import com.myfitness.workout.dto.request.AddWorkoutExerciseRequest;
 import com.myfitness.workout.dto.request.StartWorkoutRequest;
+import com.myfitness.workout.dto.request.WorkoutSetBatchRequest;
 import com.myfitness.workout.dto.request.WorkoutSetRequest;
+import com.myfitness.workout.dto.response.WorkoutCalendarDayResponse;
 import com.myfitness.workout.dto.response.WorkoutResponse;
 import com.myfitness.workout.service.WorkoutApplicationService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +47,14 @@ public class WorkoutController {
         return workoutApplicationService.getWorkouts(userId, from, to);
     }
 
+    @GetMapping("/calendar")
+    public List<WorkoutCalendarDayResponse> calendar(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestParam String month) {
+        return workoutApplicationService.getCalendar(
+                userId, YearMonth.parse(month));
+    }
+
     @PostMapping("/{workoutId}/exercises")
     public WorkoutResponse addExercise(
             @RequestHeader("X-User-Id") Long userId,
@@ -67,6 +78,16 @@ public class WorkoutController {
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetRequest request) {
         return workoutApplicationService.addSet(userId, workoutId, workoutExerciseId, request);
+    }
+
+    @PostMapping("/{workoutId}/exercises/{workoutExerciseId}/sets/batch")
+    public WorkoutResponse addSets(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long workoutId,
+            @PathVariable Long workoutExerciseId,
+            @Valid @RequestBody WorkoutSetBatchRequest request) {
+        return workoutApplicationService.addSets(
+                userId, workoutId, workoutExerciseId, request);
     }
 
     @PatchMapping("/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}")

@@ -1,6 +1,7 @@
 package com.myfitness.workout.service;
 
 import com.myfitness.workout.domain.*;
+import com.myfitness.workout.dto.request.WorkoutSetRequest;
 import com.myfitness.workout.exception.WorkoutAccessException;
 import com.myfitness.workout.exception.WorkoutNotFoundException;
 import com.myfitness.workout.repository.WorkoutExerciseRepository;
@@ -87,6 +88,19 @@ public class WorkoutService {
             boolean completed) {
         WorkoutExercise entry = requireWorkoutExercise(workout, workoutExerciseId);
         entry.addSet(weightKg, reps, durationSeconds, completed);
+        return workoutRepository.saveAndFlush(workout);
+    }
+
+    public Workout addSets(
+            Workout workout,
+            Long workoutExerciseId,
+            List<WorkoutSetRequest> requests) {
+        WorkoutExercise entry = requireWorkoutExercise(workout, workoutExerciseId);
+        requests.forEach(request -> entry.addSet(
+                request.weightKg(),
+                request.reps(),
+                request.durationSeconds(),
+                request.completed()));
         return workoutRepository.saveAndFlush(workout);
     }
 

@@ -4,7 +4,12 @@ import com.myfitness.workout.domain.*;
 import com.myfitness.workout.dto.request.*;
 import com.myfitness.workout.dto.response.*;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +69,40 @@ public class WorkoutApplicationService {
                 .toList();
     }
 
+    public List<WorkoutCalendarDayResponse> getCalendar(
+            Long userId,
+            YearMonth month) {
+        LocalDate from = month.atDay(1);
+        LocalDate to = month.atEndOfMonth();
+
+        Map<LocalDate, List<Workout>> byDate = workoutService.list(userId, from, to)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Workout::getWorkoutDate,
+                        TreeMap::new,
+                        Collectors.toList()));
+
+        return byDate.entrySet().stream()
+                .map(entry -> {
+                    LinkedHashSet<String> exerciseNames = new LinkedHashSet<>();
+                    int completedCount = 0;
+                    for (Workout workout : entry.getValue()) {
+                        if (workout.getStatus() == WorkoutStatus.COMPLETED) {
+                            completedCount++;
+                        }
+                        workout.getExercises().stream()
+                                .map(WorkoutExercise::getExerciseName)
+                                .forEach(exerciseNames::add);
+                    }
+                    return new WorkoutCalendarDayResponse(
+                            entry.getKey(),
+                            entry.getValue().size(),
+                            completedCount,
+                            List.copyOf(exerciseNames));
+                })
+                .toList();
+    }
+
     @Transactional
     public WorkoutResponse addExercise(
             Long userId,
@@ -100,6 +139,19 @@ public class WorkoutApplicationService {
                 request.reps(),
                 request.durationSeconds(),
                 request.completed()));
+    }
+
+    @Transactional
+    public WorkoutResponse addSets(
+            Long userId,
+            Long workoutId,
+            Long workoutExerciseId,
+            WorkoutSetBatchRequest request) {
+        Workout workout = workoutService.getOwned(userId, workoutId);
+        return WorkoutResponse.from(workoutService.addSets(
+                workout,
+                workoutExerciseId,
+                request.sets()));
     }
 
     @Transactional

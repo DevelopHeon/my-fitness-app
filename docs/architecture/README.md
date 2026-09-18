@@ -115,7 +115,9 @@ Next.js PWA가 다음을 담당한다.
 
 - 모바일 우선 UI
 - 카테고리 선택 → 운동 종목 선택 흐름
-- 운동 중 빠른 세트 입력
+- 총 세트 수 지정 후 중량/횟수 일괄 입력
+- 선택 날짜의 Workout만 조회하는 일 단위 기록 화면
+- 월간 Workout Calendar 탐색
 - 완료 Workout 기록 상세 토글
 - 입력 의미에 맞는 text / numeric / date 제약
 - Dashboard 시각화
@@ -151,7 +153,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 
 1. Workout: 운동/세트 기록과 이전 기록 조회 — 완료
 2. Routine: 반복 운동 템플릿 — 완료
-3. BodyRecord: 체중/체지방/골격근
+3. BodyRecord: 체중/체지방/골격근 — 완료
 4. Dashboard: 운동량과 신체 변화 시각화
 5. Nutrition: 음식/식단/탄단지
 6. Local AI Coach: Ollama 기반 질의/분석/식단 후보 제안

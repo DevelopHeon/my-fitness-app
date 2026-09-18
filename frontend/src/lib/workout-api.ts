@@ -56,6 +56,19 @@ export type PreviousExerciseRecord = {
   sets: WorkoutSet[];
 };
 
+export type WorkoutCalendarDay = {
+  date: string;
+  workoutCount: number;
+  completedCount: number;
+  exerciseNames: string[];
+};
+
+export type WorkoutSetInput = {
+  weightKg: number;
+  reps: number;
+  durationSeconds?: number | null;
+};
+
 export const exerciseCategories: { value: ExerciseCategory; label: string }[] = [
   { value: "CHEST", label: "가슴" },
   { value: "SHOULDER", label: "어깨" },
@@ -84,7 +97,17 @@ export const workoutApi = {
     request<PreviousExerciseRecord | null>(
       "/api/exercises/" + exerciseType + "/" + exerciseId + "/previous-record",
     ),
-  getWorkouts: () => request<Workout[]>("/api/workouts"),
+  getWorkouts: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+    return request<Workout[]>("/api/workouts" + (query ? "?" + query : ""));
+  },
+  getCalendar: (month: string) =>
+    request<WorkoutCalendarDay[]>(
+      "/api/workouts/calendar?month=" + encodeURIComponent(month),
+    ),
   startWorkout: (workoutDate: string, memo?: string) =>
     request<Workout>("/api/workouts", {
       method: "POST",
@@ -120,6 +143,25 @@ export const workoutApi = {
           reps,
           durationSeconds,
           completed: true,
+        }),
+      },
+    ),
+  addSets: (
+    workoutId: number,
+    workoutExerciseId: number,
+    sets: WorkoutSetInput[],
+  ) =>
+    request<Workout>(
+      "/api/workouts/" + workoutId + "/exercises/" + workoutExerciseId + "/sets/batch",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          sets: sets.map((set) => ({
+            weightKg: set.weightKg,
+            reps: set.reps,
+            durationSeconds: set.durationSeconds ?? null,
+            completed: true,
+          })),
         }),
       },
     ),
