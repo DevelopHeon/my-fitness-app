@@ -1,19 +1,19 @@
 package com.myfitness.workout.dto.response;
 
-import com.myfitness.workout.domain.Exercise;
-import java.time.Instant;
+import com.myfitness.workout.domain.ExerciseReference;
+import com.myfitness.workout.domain.ExerciseType;
 
 public record ExerciseResponse(
         Long id,
+        ExerciseType type,
         String name,
-        String category,
-        Instant createdAt
+        String category
 ) {
-    public static ExerciseResponse from(Exercise exercise) {
+    public static ExerciseResponse from(ExerciseReference exercise) {
         return new ExerciseResponse(
-                exercise.getId(),
-                exercise.getName(),
-                exercise.getCategory(),
-                exercise.getCreatedAt());
+                exercise.id(),
+                exercise.type(),
+                exercise.name(),
+                exercise.category().name());
     }
 }

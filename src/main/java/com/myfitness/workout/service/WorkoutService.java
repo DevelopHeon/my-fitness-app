@@ -1,10 +1,6 @@
 package com.myfitness.workout.service;
 
-import com.myfitness.workout.domain.Exercise;
-import com.myfitness.workout.domain.Workout;
-import com.myfitness.workout.domain.WorkoutExercise;
-import com.myfitness.workout.domain.WorkoutSet;
-import com.myfitness.workout.domain.WorkoutStatus;
+import com.myfitness.workout.domain.*;
 import com.myfitness.workout.exception.WorkoutAccessException;
 import com.myfitness.workout.exception.WorkoutNotFoundException;
 import com.myfitness.workout.repository.WorkoutExerciseRepository;
@@ -18,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class WorkoutService {
-
     private final WorkoutRepository workoutRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final Clock clock;
@@ -47,7 +42,7 @@ public class WorkoutService {
             Long userId,
             LocalDate workoutDate,
             String memo,
-            List<Exercise> exercises) {
+            List<ExerciseReference> exercises) {
         LocalDate date = workoutDate == null ? LocalDate.now(clock) : workoutDate;
         Workout workout = Workout.start(userId, date, memo, clock.instant());
         exercises.forEach(exercise -> workout.addExercise(exercise, null));
@@ -70,7 +65,10 @@ public class WorkoutService {
                 userId, start, end);
     }
 
-    public Workout addExercise(Workout workout, Exercise exercise, String memo) {
+    public Workout addExercise(
+            Workout workout,
+            ExerciseReference exercise,
+            String memo) {
         workout.addExercise(exercise, memo);
         return workoutRepository.saveAndFlush(workout);
     }
@@ -120,14 +118,19 @@ public class WorkoutService {
         return workoutRepository.saveAndFlush(workout);
     }
 
-    public WorkoutExercise getPreviousCompletedExercise(Long userId, Long exerciseId) {
+    public WorkoutExercise getPreviousCompletedExercise(
+            Long userId,
+            ExerciseType exerciseType,
+            Long exerciseId) {
         return workoutExerciseRepository
-                .findFirstByWorkout_UserIdAndExercise_IdAndWorkout_StatusOrderByWorkout_CompletedAtDesc(
-                        userId, exerciseId, WorkoutStatus.COMPLETED)
+                .findFirstByWorkout_UserIdAndExerciseTypeAndExerciseIdAndWorkout_StatusOrderByWorkout_CompletedAtDesc(
+                        userId, exerciseType, exerciseId, WorkoutStatus.COMPLETED)
                 .orElse(null);
     }
 
-    private static WorkoutExercise requireWorkoutExercise(Workout workout, Long workoutExerciseId) {
+    private static WorkoutExercise requireWorkoutExercise(
+            Workout workout,
+            Long workoutExerciseId) {
         return workout.getExercises().stream()
                 .filter(entry -> entry.getId().equals(workoutExerciseId))
                 .findFirst()

@@ -1,34 +1,66 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import CustomExerciseForm from "@/components/exercise/custom-exercise-form";
+import ExercisePicker from "@/components/exercise/exercise-picker";
+import {
+  sanitizeText,
+  todayString,
+} from "@/lib/input-utils";
 import {
   Routine,
+  RoutineExerciseRequest,
   RoutineWorkoutStart,
   routineApi,
 } from "@/lib/routine-api";
-import { Exercise, workoutApi } from "@/lib/workout-api";
+import {
+  categoryLabel,
+  Exercise,
+  ExerciseCategory,
+  exerciseKey,
+  workoutApi,
+} from "@/lib/workout-api";
 
 type Props = {
   onWorkoutStarted: (result: RoutineWorkoutStart) => void;
 };
 
-export default function RoutineScreen({ onWorkoutStarted }: Props) {
+export default function RoutineScreen({
+  onWorkoutStarted,
+}: Props) {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [name, setName] = useState("");
-  const [exerciseIds, setExerciseIds] = useState<number[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
-  const [newExerciseName, setNewExerciseName] = useState("");
-  const [editingRoutineId, setEditingRoutineId] = useState<number | null>(null);
+  const [selectedExercises, setSelectedExercises] =
+    useState<RoutineExerciseRequest[]>([]);
+  const [editingRoutineId, setEditingRoutineId] =
+    useState<number | null>(null);
+  const [workoutDate, setWorkoutDate] = useState(todayString);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const exerciseById = useMemo(
-    () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
+  const exerciseByKey = useMemo(
+    () =>
+      new Map(
+        exercises.map((exercise) => [
+          exerciseKey(exercise.type, exercise.id),
+          exercise,
+        ]),
+      ),
     [exercises],
   );
-  const availableExercises = exercises.filter(
-    (exercise) => !exerciseIds.includes(exercise.id),
+
+  const excludedKeys = useMemo(
+    () =>
+      new Set(
+        selectedExercises.map((exercise) =>
+          exerciseKey(
+            exercise.exerciseType,
+            exercise.exerciseId,
+          ),
+        ),
+      ),
+    [selectedExercises],
   );
 
   useEffect(() => {
@@ -38,10 +70,11 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
       setBusy(true);
       setError(null);
       try {
-        const [routineList, exerciseList] = await Promise.all([
-          routineApi.getRoutines(),
-          workoutApi.getExercises(),
-        ]);
+        const [routineList, exerciseList] =
+          await Promise.all([
+            routineApi.getRoutines(),
+            workoutApi.getExercises(),
+          ]);
         if (cancelled) return;
         setRoutines(routineList);
         setExercises(exerciseList);
@@ -83,57 +116,98 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
 
   function resetEditor() {
     setName("");
-    setExerciseIds([]);
-    setSelectedExerciseId(null);
+    setSelectedExercises([]);
     setEditingRoutineId(null);
   }
 
-  function addExercise() {
-    if (!selectedExerciseId || exerciseIds.includes(selectedExerciseId)) return;
-    setExerciseIds((current) => [...current, selectedExerciseId]);
-    setSelectedExerciseId(null);
+  function handleSelectExercise(exercise: Exercise) {
+    const key = exerciseKey(exercise.type, exercise.id);
+    if (excludedKeys.has(key)) return;
+
+    setSelectedExercises((current) => [
+      ...current,
+      {
+        exerciseType: exercise.type,
+        exerciseId: exercise.id,
+      },
+    ]);
   }
 
-  function moveExercise(index: number, offset: -1 | 1) {
+  async function handleCreateCustomExercise(
+    exerciseName: string,
+    category: ExerciseCategory,
+  ) {
+    const exercise = await run(() =>
+      workoutApi.createExercise(exerciseName, category),
+    );
+    if (!exercise) return false;
+
+    setExercises((current) => [...current, exercise]);
+    setSelectedExercises((current) => [
+      ...current,
+      {
+        exerciseType: exercise.type,
+        exerciseId: exercise.id,
+      },
+    ]);
+    return true;
+  }
+
+  function moveExercise(
+    index: number,
+    offset: -1 | 1,
+  ) {
     const target = index + offset;
-    if (target < 0 || target >= exerciseIds.length) return;
-    setExerciseIds((current) => {
+    if (
+      target < 0 ||
+      target >= selectedExercises.length
+    ) {
+      return;
+    }
+
+    setSelectedExercises((current) => {
       const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
+      [next[index], next[target]] = [
+        next[target],
+        next[index],
+      ];
       return next;
     });
   }
 
-  async function handleCreateExercise(event: FormEvent) {
-    event.preventDefault();
-    const exerciseName = newExerciseName.trim();
-    if (!exerciseName) return;
-
-    const exercise = await run(() => workoutApi.createExercise(exerciseName));
-    if (!exercise) return;
-
-    setExercises((current) => [...current, exercise]);
-    setExerciseIds((current) => [...current, exercise.id]);
-    setNewExerciseName("");
-  }
-
   async function handleSave(event: FormEvent) {
     event.preventDefault();
-    if (!name.trim() || exerciseIds.length === 0) {
-      setError("루틴 이름과 하나 이상의 운동 종목이 필요합니다.");
+    const trimmedName = name.trim();
+
+    if (
+      !trimmedName ||
+      selectedExercises.length === 0
+    ) {
+      setError(
+        "루틴 이름과 하나 이상의 운동 종목이 필요합니다.",
+      );
       return;
     }
 
     const routine = await run(() =>
       editingRoutineId
-        ? routineApi.updateRoutine(editingRoutineId, name.trim(), exerciseIds)
-        : routineApi.createRoutine(name.trim(), exerciseIds),
+        ? routineApi.updateRoutine(
+            editingRoutineId,
+            trimmedName,
+            selectedExercises,
+          )
+        : routineApi.createRoutine(
+            trimmedName,
+            selectedExercises,
+          ),
     );
     if (!routine) return;
 
     setRoutines((current) =>
       editingRoutineId
-        ? current.map((item) => (item.id === routine.id ? routine : item))
+        ? current.map((item) =>
+            item.id === routine.id ? routine : item,
+          )
         : [routine, ...current],
     );
     resetEditor();
@@ -142,11 +216,20 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
   function handleEdit(routine: Routine) {
     setEditingRoutineId(routine.id);
     setName(routine.name);
-    setExerciseIds(routine.exercises.map((entry) => entry.exerciseId));
+    setSelectedExercises(
+      routine.exercises.map((entry) => ({
+        exerciseType: entry.exerciseType,
+        exerciseId: entry.exerciseId,
+      })),
+    );
+
     requestAnimationFrame(() => {
       document
         .getElementById("routine-editor")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     });
   }
 
@@ -158,13 +241,27 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
     if (!result) return;
 
     setRoutines((current) =>
-      current.filter((routine) => routine.id !== routineId),
+      current.filter(
+        (routine) => routine.id !== routineId,
+      ),
     );
-    if (editingRoutineId === routineId) resetEditor();
+    if (editingRoutineId === routineId) {
+      resetEditor();
+    }
   }
 
   async function handleStart(routineId: number) {
-    const result = await run(() => routineApi.startWorkout(routineId));
+    if (!workoutDate) {
+      setError("운동 날짜를 선택해주세요.");
+      return;
+    }
+
+    const result = await run(() =>
+      routineApi.startWorkout(
+        routineId,
+        workoutDate,
+      ),
+    );
     if (result) onWorkoutStarted(result);
   }
 
@@ -180,7 +277,7 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
               Routine
             </h1>
             <p className="mt-2 text-sm leading-6 text-zinc-500">
-              자주 하는 운동 조합과 순서를 저장하고 바로 Workout을 시작하세요.
+              카테고리별 운동을 골라 자주 쓰는 조합과 순서를 저장하세요.
             </p>
           </div>
           <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
@@ -201,7 +298,9 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
       >
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">
-            {editingRoutineId ? "루틴 수정" : "새 루틴"}
+            {editingRoutineId
+              ? "루틴 수정"
+              : "새 루틴"}
           </h2>
           {editingRoutineId && (
             <button
@@ -214,128 +313,168 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
           )}
         </div>
 
-        <form onSubmit={handleSave} className="mt-4 space-y-4">
+        <form
+          onSubmit={handleSave}
+          className="mt-4 space-y-4"
+        >
           <input
+            type="text"
+            inputMode="text"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) =>
+              setName(
+                sanitizeText(
+                  event.target.value,
+                  100,
+                ),
+              )
+            }
             placeholder="루틴 이름 (예: Push, Pull, Legs)"
+            maxLength={100}
             className="w-full rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
           />
 
-          <div className="flex gap-2">
-            <select
-              value={selectedExerciseId ?? ""}
-              onChange={(event) =>
-                setSelectedExerciseId(
-                  event.target.value ? Number(event.target.value) : null,
-                )
-              }
-              className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none focus:border-zinc-500"
-            >
-              <option value="">운동 종목 선택</option>
-              {availableExercises.map((exercise) => (
-                <option key={exercise.id} value={exercise.id}>
-                  {exercise.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={!selectedExerciseId || busy}
-              onClick={addExercise}
-              className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-            >
-              추가
-            </button>
-          </div>
+          <ExercisePicker
+            exercises={exercises}
+            excludedKeys={excludedKeys}
+            busy={busy}
+            onSelect={handleSelectExercise}
+          />
 
           <div className="space-y-2">
-            {exerciseIds.length === 0 ? (
+            {selectedExercises.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-200 px-3 py-5 text-center text-sm text-zinc-400">
-                운동 종목을 순서대로 추가하세요.
+                카테고리를 선택하고 운동 종목을 순서대로 추가하세요.
               </div>
             ) : (
-              exerciseIds.map((exerciseId, index) => {
-                const exercise = exerciseById.get(exerciseId);
-                return (
-                  <div
-                    key={exerciseId}
-                    className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5"
-                  >
-                    <span className="w-6 text-xs font-semibold text-zinc-400">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {exercise?.name ?? "Exercise " + exerciseId}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => moveExercise(index, -1)}
-                      className="px-1 text-sm text-zinc-400 disabled:opacity-20"
-                      aria-label="위로 이동"
+              selectedExercises.map(
+                (selected, index) => {
+                  const key = exerciseKey(
+                    selected.exerciseType,
+                    selected.exerciseId,
+                  );
+                  const exercise =
+                    exerciseByKey.get(key);
+
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5"
                     >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === exerciseIds.length - 1}
-                      onClick={() => moveExercise(index, 1)}
-                      className="px-1 text-sm text-zinc-400 disabled:opacity-20"
-                      aria-label="아래로 이동"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExerciseIds((current) =>
-                          current.filter((id) => id !== exerciseId),
-                        )
-                      }
-                      className="ml-1 text-xs font-medium text-zinc-400 hover:text-zinc-900"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                );
-              })
+                      <span className="w-6 text-xs font-semibold text-zinc-400">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {exercise?.name ??
+                            "운동 종목"}
+                        </p>
+                        {exercise && (
+                          <p className="mt-0.5 text-[11px] text-zinc-400">
+                            {categoryLabel(
+                              exercise.category,
+                            )}
+                            {exercise.type ===
+                            "CUSTOM"
+                              ? " · 내 운동"
+                              : ""}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() =>
+                          moveExercise(index, -1)
+                        }
+                        className="px-1 text-sm text-zinc-400 disabled:opacity-20"
+                        aria-label="위로 이동"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          index ===
+                          selectedExercises.length - 1
+                        }
+                        onClick={() =>
+                          moveExercise(index, 1)
+                        }
+                        className="px-1 text-sm text-zinc-400 disabled:opacity-20"
+                        aria-label="아래로 이동"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedExercises(
+                            (current) =>
+                              current.filter(
+                                (item) =>
+                                  exerciseKey(
+                                    item.exerciseType,
+                                    item.exerciseId,
+                                  ) !== key,
+                              ),
+                          )
+                        }
+                        className="ml-1 text-xs font-medium text-zinc-400 hover:text-zinc-900"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  );
+                },
+              )
             )}
           </div>
 
           <button
             type="submit"
-            disabled={busy || !name.trim() || exerciseIds.length === 0}
+            disabled={
+              busy ||
+              !name.trim() ||
+              selectedExercises.length === 0
+            }
             className="w-full rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
-            {editingRoutineId ? "루틴 저장" : "루틴 만들기"}
+            {editingRoutineId
+              ? "루틴 저장"
+              : "루틴 만들기"}
           </button>
         </form>
 
-        <form
-          onSubmit={handleCreateExercise}
-          className="mt-4 flex gap-2 border-t border-zinc-100 pt-4"
-        >
-          <input
-            value={newExerciseName}
-            onChange={(event) => setNewExerciseName(event.target.value)}
-            placeholder="새 운동 종목 등록"
-            className="min-w-0 flex-1 rounded-xl bg-zinc-100 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
-          />
-          <button
-            type="submit"
-            disabled={busy || !newExerciseName.trim()}
-            className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold disabled:opacity-40"
-          >
-            등록
-          </button>
-        </form>
+        <CustomExerciseForm
+          busy={busy}
+          onCreate={handleCreateCustomExercise}
+        />
       </section>
 
       <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">저장된 루틴</h2>
-          <span className="text-xs text-zinc-400">{routines.length}개</span>
+        <div className="mb-3 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="font-semibold">
+              저장된 루틴
+            </h2>
+            <span className="text-xs text-zinc-400">
+              {routines.length}개
+            </span>
+          </div>
+          <label className="text-xs font-medium text-zinc-500">
+            운동 날짜
+            <input
+              type="date"
+              value={workoutDate}
+              onChange={(event) =>
+                setWorkoutDate(
+                  event.target.value,
+                )
+              }
+              className="mt-1 block rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-500"
+            />
+          </label>
         </div>
 
         <div className="space-y-3">
@@ -351,7 +490,9 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold">{routine.name}</h3>
+                    <h3 className="text-lg font-semibold">
+                      {routine.name}
+                    </h3>
                     <p className="mt-1 text-xs text-zinc-400">
                       {routine.exercises.length}개 종목
                     </p>
@@ -359,7 +500,9 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
                   <div className="flex gap-3 text-xs font-medium">
                     <button
                       type="button"
-                      onClick={() => handleEdit(routine)}
+                      onClick={() =>
+                        handleEdit(routine)
+                      }
                       className="text-zinc-500 hover:text-zinc-900"
                     >
                       수정
@@ -367,7 +510,9 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => handleDelete(routine.id)}
+                      onClick={() =>
+                        handleDelete(routine.id)
+                      }
                       className="text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
                     >
                       삭제
@@ -376,20 +521,25 @@ export default function RoutineScreen({ onWorkoutStarted }: Props) {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {routine.exercises.map((entry) => (
-                    <span
-                      key={entry.id}
-                      className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600"
-                    >
-                      {entry.orderIndex}. {entry.exerciseName}
-                    </span>
-                  ))}
+                  {routine.exercises.map(
+                    (entry) => (
+                      <span
+                        key={entry.id}
+                        className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600"
+                      >
+                        {entry.orderIndex}.{" "}
+                        {entry.exerciseName}
+                      </span>
+                    ),
+                  )}
                 </div>
 
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => handleStart(routine.id)}
+                  disabled={busy || !workoutDate}
+                  onClick={() =>
+                    handleStart(routine.id)
+                  }
                   className="mt-5 w-full rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
                 >
                   이 루틴으로 운동 시작

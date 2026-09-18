@@ -15,35 +15,41 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 class PreviousRecordRepositoryTest {
-
-    @Autowired ExerciseRepository exerciseRepository;
     @Autowired WorkoutRepository workoutRepository;
     @Autowired WorkoutExerciseRepository workoutExerciseRepository;
 
     @Test
-    @DisplayName("동일 종목의 가장 최근 완료 Workout 기록을 조회한다")
+    @DisplayName("운동 출처와 ID가 같은 동일 종목의 가장 최근 완료 Workout 기록을 조회한다")
     void findsMostRecentCompletedWorkoutRecord() {
-        Exercise exercise = exerciseRepository.save(
-                Exercise.create(1L, "벤치프레스", "CHEST", Instant.parse("2026-09-01T00:00:00Z")));
+        ExerciseReference exercise = new ExerciseReference(
+                ExerciseType.DEFAULT, 10L, "벤치프레스", ExerciseCategory.CHEST, null);
 
-        saveCompletedWorkout(exercise, LocalDate.of(2026, 9, 10), "60", 10,
+        saveCompletedWorkout(
+                exercise, LocalDate.of(2026, 9, 10), "60", 10,
                 Instant.parse("2026-09-10T01:00:00Z"));
-        Workout latest = saveCompletedWorkout(exercise, LocalDate.of(2026, 9, 17), "70", 8,
+        Workout latest = saveCompletedWorkout(
+                exercise, LocalDate.of(2026, 9, 17), "70", 8,
                 Instant.parse("2026-09-17T01:00:00Z"));
 
         WorkoutExercise result = workoutExerciseRepository
-                .findFirstByWorkout_UserIdAndExercise_IdAndWorkout_StatusOrderByWorkout_CompletedAtDesc(
-                        1L, exercise.getId(), WorkoutStatus.COMPLETED)
+                .findFirstByWorkout_UserIdAndExerciseTypeAndExerciseIdAndWorkout_StatusOrderByWorkout_CompletedAtDesc(
+                        1L, ExerciseType.DEFAULT, 10L, WorkoutStatus.COMPLETED)
                 .orElseThrow();
 
         assertThat(result.getWorkout().getId()).isEqualTo(latest.getId());
-        assertThat(result.getSets().getFirst().getWeightKg()).isEqualByComparingTo("70");
+        assertThat(result.getSets().getFirst().getWeightKg())
+                .isEqualByComparingTo("70");
         assertThat(result.getSets().getFirst().getReps()).isEqualTo(8);
     }
 
     private Workout saveCompletedWorkout(
-            Exercise exercise, LocalDate date, String weight, int reps, Instant completedAt) {
-        Workout workout = Workout.start(1L, date, null, completedAt.minusSeconds(3600));
+            ExerciseReference exercise,
+            LocalDate date,
+            String weight,
+            int reps,
+            Instant completedAt) {
+        Workout workout = Workout.start(
+                1L, date, null, completedAt.minusSeconds(3600));
         WorkoutExercise entry = workout.addExercise(exercise, null);
         entry.addSet(new BigDecimal(weight), reps, null, true);
         workout.complete(completedAt);

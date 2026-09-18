@@ -3,9 +3,10 @@ package com.myfitness.routine.service;
 import com.myfitness.routine.domain.Routine;
 import com.myfitness.routine.dto.request.*;
 import com.myfitness.routine.dto.response.*;
-import com.myfitness.workout.domain.Exercise;
+import com.myfitness.workout.domain.ExerciseReference;
 import com.myfitness.workout.domain.Workout;
 import com.myfitness.workout.domain.WorkoutExercise;
+import com.myfitness.workout.dto.request.ExerciseReferenceRequest;
 import com.myfitness.workout.dto.response.PreviousExerciseRecordResponse;
 import com.myfitness.workout.dto.response.WorkoutResponse;
 import com.myfitness.workout.service.ExerciseService;
@@ -32,12 +33,16 @@ public class RoutineApplicationService {
 
     @Transactional
     public RoutineResponse create(Long userId, RoutineUpsertRequest request) {
-        List<Exercise> exercises = getOwnedExercises(userId, request.exerciseIds());
-        return RoutineResponse.from(routineService.create(userId, request.name(), exercises));
+        List<ExerciseReference> exercises =
+                resolveExercises(userId, request.exercises());
+        return RoutineResponse.from(
+                routineService.create(userId, request.name(), exercises));
     }
 
     public List<RoutineResponse> list(Long userId) {
-        return routineService.list(userId).stream().map(RoutineResponse::from).toList();
+        return routineService.list(userId).stream()
+                .map(RoutineResponse::from)
+                .toList();
     }
 
     public RoutineResponse get(Long userId, Long routineId) {
@@ -45,10 +50,15 @@ public class RoutineApplicationService {
     }
 
     @Transactional
-    public RoutineResponse update(Long userId, Long routineId, RoutineUpsertRequest request) {
+    public RoutineResponse update(
+            Long userId,
+            Long routineId,
+            RoutineUpsertRequest request) {
         Routine routine = routineService.getOwned(userId, routineId);
-        List<Exercise> exercises = getOwnedExercises(userId, request.exerciseIds());
-        return RoutineResponse.from(routineService.update(routine, request.name(), exercises));
+        List<ExerciseReference> exercises =
+                resolveExercises(userId, request.exercises());
+        return RoutineResponse.from(
+                routineService.update(routine, request.name(), exercises));
     }
 
     @Transactional
@@ -58,28 +68,39 @@ public class RoutineApplicationService {
 
     @Transactional
     public RoutineWorkoutStartResponse startWorkout(
-            Long userId, Long routineId, StartRoutineWorkoutRequest request) {
+            Long userId,
+            Long routineId,
+            StartRoutineWorkoutRequest request) {
         Routine routine = routineService.getOwned(userId, routineId);
-        List<Exercise> exercises = routine.getExercises().stream()
-                .map(entry -> entry.getExercise())
+        List<ExerciseReference> exercises = routine.getExercises().stream()
+                .map(entry -> entry.toReference())
                 .toList();
 
         Workout workout = workoutService.startWithExercises(
                 userId, request.workoutDate(), request.memo(), exercises);
 
-        List<PreviousExerciseRecordResponse> previousRecords = workout.getExercises().stream()
-                .map(WorkoutExercise::getExercise)
-                .map(exercise -> workoutService.getPreviousCompletedExercise(userId, exercise.getId()))
-                .filter(previous -> previous != null)
-                .map(PreviousExerciseRecordResponse::from)
-                .toList();
+        List<PreviousExerciseRecordResponse> previousRecords =
+                workout.getExercises().stream()
+                        .map(entry -> workoutService.getPreviousCompletedExercise(
+                                userId,
+                                entry.getExerciseType(),
+                                entry.getExerciseId()))
+                        .filter(previous -> previous != null)
+                        .map(PreviousExerciseRecordResponse::from)
+                        .toList();
 
-        return new RoutineWorkoutStartResponse(WorkoutResponse.from(workout), previousRecords);
+        return new RoutineWorkoutStartResponse(
+                WorkoutResponse.from(workout), previousRecords);
     }
 
-    private List<Exercise> getOwnedExercises(Long userId, List<Long> exerciseIds) {
-        return exerciseIds.stream()
-                .map(exerciseId -> exerciseService.getOwned(userId, exerciseId))
+    private List<ExerciseReference> resolveExercises(
+            Long userId,
+            List<ExerciseReferenceRequest> requests) {
+        return requests.stream()
+                .map(request -> exerciseService.getAvailable(
+                        userId,
+                        request.exerciseType(),
+                        request.exerciseId()))
                 .toList();
     }
 }

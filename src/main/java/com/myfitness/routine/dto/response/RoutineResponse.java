@@ -2,6 +2,7 @@ package com.myfitness.routine.dto.response;
 
 import com.myfitness.routine.domain.Routine;
 import com.myfitness.routine.domain.RoutineExercise;
+import com.myfitness.workout.domain.ExerciseType;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,6 +24,7 @@ public record RoutineResponse(
 
     public record ExerciseEntry(
             Long id,
+            ExerciseType exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,
@@ -31,9 +33,10 @@ public record RoutineResponse(
         static ExerciseEntry from(RoutineExercise entry) {
             return new ExerciseEntry(
                     entry.getId(),
-                    entry.getExercise().getId(),
-                    entry.getExercise().getName(),
-                    entry.getExercise().getCategory(),
+                    entry.getExerciseType(),
+                    entry.getExerciseId(),
+                    entry.getExerciseName(),
+                    entry.getCategory().name(),
                     entry.getOrderIndex());
         }
     }

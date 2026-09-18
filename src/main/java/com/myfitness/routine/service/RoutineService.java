@@ -3,7 +3,7 @@ package com.myfitness.routine.service;
 import com.myfitness.routine.domain.Routine;
 import com.myfitness.routine.exception.*;
 import com.myfitness.routine.repository.RoutineRepository;
-import com.myfitness.workout.domain.Exercise;
+import com.myfitness.workout.domain.ExerciseReference;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,14 +24,21 @@ public class RoutineService {
         this.clock = clock;
     }
 
-    public Routine create(Long userId, String name, List<Exercise> exercises) {
+    public Routine create(
+            Long userId,
+            String name,
+            List<ExerciseReference> exercises) {
         if (routineRepository.existsByUserIdAndNameIgnoreCase(userId, name)) {
             throw new RoutineRuleException("이미 등록된 루틴 이름입니다.");
         }
-        return routineRepository.saveAndFlush(Routine.create(userId, name, exercises, clock.instant()));
+        return routineRepository.saveAndFlush(
+                Routine.create(userId, name, exercises, clock.instant()));
     }
 
-    public Routine update(Routine routine, String name, List<Exercise> exercises) {
+    public Routine update(
+            Routine routine,
+            String name,
+            List<ExerciseReference> exercises) {
         if (routineRepository.existsByUserIdAndNameIgnoreCaseAndIdNot(
                 routine.getUserId(), name, routine.getId())) {
             throw new RoutineRuleException("이미 등록된 루틴 이름입니다.");
@@ -43,7 +50,9 @@ public class RoutineService {
     public Routine getOwned(Long userId, Long routineId) {
         Routine routine = routineRepository.findById(routineId)
                 .orElseThrow(RoutineNotFoundException::new);
-        if (!routine.belongsTo(userId)) throw new RoutineAccessException();
+        if (!routine.belongsTo(userId)) {
+            throw new RoutineAccessException();
+        }
         return routine;
     }
 

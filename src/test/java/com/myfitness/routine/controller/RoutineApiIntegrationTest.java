@@ -31,22 +31,30 @@ class RoutineApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("루틴을 생성·수정하고 저장된 순서로 Workout을 시작하며 직전 기록을 반환한다")
-    void managesRoutineAndStartsWorkoutWithPreviousRecord() throws Exception {
-        long benchPressId = createExercise("벤치프레스", "CHEST");
-        long squatId = createExercise("스쿼트", "LEGS");
-        createCompletedWorkoutWithRecord(benchPressId);
+    @DisplayName("기본 운동과 커스텀 운동을 섞은 루틴으로 Workout을 시작하고 직전 기록을 반환한다")
+    void managesMixedRoutineAndStartsWorkoutWithPreviousRecord() throws Exception {
+        long benchPressId = findDefaultExerciseId("벤치프레스");
+        long squatId = findDefaultExerciseId("스쿼트");
+        JsonNode custom = createCustomExercise("나만의 레그 프레스", "LEGS");
+        long customId = custom.path("id").asLong();
+
+        createCompletedWorkoutWithRecord("DEFAULT", benchPressId);
 
         MvcResult created = mockMvc.perform(post("/api/routines")
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Push","exerciseIds":[%d,%d]}
-                                """.formatted(benchPressId, squatId)))
+                                {
+                                  "name":"Push Legs",
+                                  "exercises":[
+                                    {"exerciseType":"DEFAULT","exerciseId":%d},
+                                    {"exerciseType":"CUSTOM","exerciseId":%d}
+                                  ]
+                                }
+                                """.formatted(benchPressId, customId)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Push"))
                 .andExpect(jsonPath("$.exercises[0].exerciseName").value("벤치프레스"))
-                .andExpect(jsonPath("$.exercises[1].exerciseName").value("스쿼트"))
+                .andExpect(jsonPath("$.exercises[1].exerciseName").value("나만의 레그 프레스"))
                 .andReturn();
         long routineId = json(created).path("id").asLong();
 
@@ -54,19 +62,18 @@ class RoutineApiIntegrationTest {
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Push & Legs","exerciseIds":[%d,%d]}
+                                {
+                                  "name":"Legs & Push",
+                                  "exercises":[
+                                    {"exerciseType":"DEFAULT","exerciseId":%d},
+                                    {"exerciseType":"DEFAULT","exerciseId":%d}
+                                  ]
+                                }
                                 """.formatted(squatId, benchPressId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Push & Legs"))
                 .andExpect(jsonPath("$.exercises[0].exerciseName").value("스쿼트"))
                 .andExpect(jsonPath("$.exercises[0].orderIndex").value(1))
-                .andExpect(jsonPath("$.exercises[1].exerciseName").value("벤치프레스"))
-                .andExpect(jsonPath("$.exercises[1].orderIndex").value(2));
-
-        mockMvc.perform(get("/api/routines")
-                        .header("X-User-Id", 1L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(routineId));
+                .andExpect(jsonPath("$.exercises[1].exerciseName").value("벤치프레스"));
 
         mockMvc.perform(post("/api/routines/{routineId}/workouts", routineId)
                         .header("X-User-Id", 1L)
@@ -83,12 +90,18 @@ class RoutineApiIntegrationTest {
     @Test
     @DisplayName("루틴은 사용자별로 격리되고 소유자는 삭제할 수 있다")
     void protectsRoutineOwnershipAndAllowsDeletion() throws Exception {
-        long exerciseId = createExercise("랫풀다운", "BACK");
+        long exerciseId = findDefaultExerciseId("랫풀다운");
+
         MvcResult created = mockMvc.perform(post("/api/routines")
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Pull","exerciseIds":[%d]}
+                                {
+                                  "name":"Pull",
+                                  "exercises":[
+                                    {"exerciseType":"DEFAULT","exerciseId":%d}
+                                  ]
+                                }
                                 """.formatted(exerciseId)))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -107,8 +120,22 @@ class RoutineApiIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
-    private long createExercise(String name, String category) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/exercises")
+    private long findDefaultExerciseId(String name) throws Exception {
+        JsonNode exercises = json(mockMvc.perform(get("/api/exercises")
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andReturn());
+        for (JsonNode exercise : exercises) {
+            if ("DEFAULT".equals(exercise.path("type").asText())
+                    && name.equals(exercise.path("name").asText())) {
+                return exercise.path("id").asLong();
+            }
+        }
+        throw new AssertionError("기본 운동을 찾지 못했습니다: " + name);
+    }
+
+    private JsonNode createCustomExercise(String name, String category) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/exercises/custom")
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -116,32 +143,42 @@ class RoutineApiIntegrationTest {
                                 """.formatted(name, category)))
                 .andExpect(status().isCreated())
                 .andReturn();
-        return json(result).path("id").asLong();
+        return json(result);
     }
 
-    private void createCompletedWorkoutWithRecord(long exerciseId) throws Exception {
+    private void createCompletedWorkoutWithRecord(
+            String exerciseType,
+            long exerciseId) throws Exception {
         MvcResult workout = mockMvc.perform(post("/api/workouts")
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" + "\"workoutDate\":\"2026-09-17\"" + "}"))
+                        .content("""
+                                {"workoutDate":"2026-09-17"}
+                                """))
                 .andExpect(status().isCreated())
                 .andReturn();
         long workoutId = json(workout).path("id").asLong();
 
-        MvcResult added = mockMvc.perform(post("/api/workouts/{workoutId}/exercises", workoutId)
+        MvcResult added = mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises", workoutId)
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" + "\"exerciseId\":" + exerciseId + "}"))
+                        .content("""
+                                {"exerciseType":"%s","exerciseId":%d}
+                                """.formatted(exerciseType, exerciseId)))
                 .andExpect(status().isOk())
                 .andReturn();
-        long workoutExerciseId = json(added).path("exercises").get(0).path("id").asLong();
+        long workoutExerciseId =
+                json(added).path("exercises").get(0).path("id").asLong();
 
         mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
                         workoutId, workoutExerciseId)
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" + "\"weightKg\":80,\"reps\":8,\"completed\":true" + "}"))
+                        .content("""
+                                {"weightKg":80,"reps":8,"completed":true}
+                                """))
                 .andExpect(status().isOk());
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)

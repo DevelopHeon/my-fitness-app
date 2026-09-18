@@ -1,7 +1,6 @@
 package com.myfitness.workout.domain;
 
 import com.myfitness.workout.exception.WorkoutRuleException;
-
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -11,7 +10,6 @@ import java.util.List;
 @Entity
 @Table(name = "workout_exercises")
 public class WorkoutExercise {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,9 +18,19 @@ public class WorkoutExercise {
     @JoinColumn(name = "workout_id", nullable = false)
     private Workout workout;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "exercise_id", nullable = false)
-    private Exercise exercise;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exercise_type", nullable = false, length = 20)
+    private ExerciseType exerciseType;
+
+    @Column(name = "exercise_id", nullable = false)
+    private Long exerciseId;
+
+    @Column(name = "exercise_name", nullable = false, length = 100)
+    private String exerciseName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ExerciseCategory category;
 
     @Column(name = "order_index", nullable = false)
     private int orderIndex;
@@ -34,28 +42,48 @@ public class WorkoutExercise {
     @OrderBy("setNumber asc")
     private List<WorkoutSet> sets = new ArrayList<>();
 
-    protected WorkoutExercise() {
-    }
+    protected WorkoutExercise() {}
 
-    private WorkoutExercise(Workout workout, Exercise exercise, int orderIndex, String memo) {
+    private WorkoutExercise(
+            Workout workout,
+            ExerciseReference exercise,
+            int orderIndex,
+            String memo) {
         this.workout = workout;
-        this.exercise = exercise;
+        this.exerciseType = exercise.type();
+        this.exerciseId = exercise.id();
+        this.exerciseName = exercise.name();
+        this.category = exercise.category();
         this.orderIndex = orderIndex;
         this.memo = memo == null || memo.isBlank() ? null : memo.trim();
     }
 
-    static WorkoutExercise create(Workout workout, Exercise exercise, int orderIndex, String memo) {
+    static WorkoutExercise create(
+            Workout workout,
+            ExerciseReference exercise,
+            int orderIndex,
+            String memo) {
         return new WorkoutExercise(workout, exercise, orderIndex, memo);
     }
 
-    public WorkoutSet addSet(BigDecimal weightKg, int reps, Integer durationSeconds, boolean completed) {
+    public WorkoutSet addSet(
+            BigDecimal weightKg,
+            int reps,
+            Integer durationSeconds,
+            boolean completed) {
         workout.ensureMutable();
-        WorkoutSet set = WorkoutSet.create(this, sets.size() + 1, weightKg, reps, durationSeconds, completed);
+        WorkoutSet set = WorkoutSet.create(
+                this, sets.size() + 1, weightKg, reps, durationSeconds, completed);
         sets.add(set);
         return set;
     }
 
-    public void updateSet(WorkoutSet set, BigDecimal weightKg, int reps, Integer durationSeconds, boolean completed) {
+    public void updateSet(
+            WorkoutSet set,
+            BigDecimal weightKg,
+            int reps,
+            Integer durationSeconds,
+            boolean completed) {
         workout.ensureMutable();
         ensureContains(set);
         set.update(weightKg, reps, durationSeconds, completed);
@@ -65,7 +93,9 @@ public class WorkoutExercise {
         workout.ensureMutable();
         ensureContains(set);
         sets.remove(set);
-        for (int i = 0; i < sets.size(); i++) sets.get(i).changeSetNumber(i + 1);
+        for (int i = 0; i < sets.size(); i++) {
+            sets.get(i).changeSetNumber(i + 1);
+        }
     }
 
     void changeOrder(int orderIndex) {
@@ -73,12 +103,17 @@ public class WorkoutExercise {
     }
 
     private void ensureContains(WorkoutSet set) {
-        if (!sets.contains(set)) throw new WorkoutRuleException("해당 세트가 운동 기록에 없습니다.");
+        if (!sets.contains(set)) {
+            throw new WorkoutRuleException("해당 세트가 운동 기록에 없습니다.");
+        }
     }
 
     public Long getId() { return id; }
     public Workout getWorkout() { return workout; }
-    public Exercise getExercise() { return exercise; }
+    public ExerciseType getExerciseType() { return exerciseType; }
+    public Long getExerciseId() { return exerciseId; }
+    public String getExerciseName() { return exerciseName; }
+    public ExerciseCategory getCategory() { return category; }
     public int getOrderIndex() { return orderIndex; }
     public String getMemo() { return memo; }
     public List<WorkoutSet> getSets() { return Collections.unmodifiableList(sets); }

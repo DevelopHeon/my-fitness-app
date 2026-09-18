@@ -11,13 +11,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class WorkoutTest {
-
     private final Instant startedAt = Instant.parse("2026-09-18T06:00:00Z");
 
     @Test
     @DisplayName("운동은 IN_PROGRESS 상태로 시작한다")
     void startsWithInProgressStatus() {
-        Workout workout = Workout.start(1L, LocalDate.of(2026, 9, 18), "가슴", startedAt);
+        Workout workout = Workout.start(
+                1L, LocalDate.of(2026, 9, 18), "가슴", startedAt);
 
         assertThat(workout.getStatus()).isEqualTo(WorkoutStatus.IN_PROGRESS);
         assertThat(workout.getStartedAt()).isEqualTo(startedAt);
@@ -25,25 +25,44 @@ class WorkoutTest {
     }
 
     @Test
-    @DisplayName("다른 사용자의 운동 종목은 Workout에 추가할 수 없다")
-    void rejectsExerciseOwnedByAnotherUser() {
+    @DisplayName("다른 사용자의 커스텀 운동 종목은 Workout에 추가할 수 없다")
+    void rejectsCustomExerciseOwnedByAnotherUser() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
-        Exercise otherUsersExercise = Exercise.create(2L, "벤치프레스", "CHEST", startedAt);
+        ExerciseReference otherUsersExercise = new ExerciseReference(
+                ExerciseType.CUSTOM, 1L, "내 운동", ExerciseCategory.CHEST, 2L);
 
         assertThatThrownBy(() -> workout.addExercise(otherUsersExercise, null))
                 .isInstanceOf(WorkoutRuleException.class)
-                .hasMessageContaining("소유");
+                .hasMessageContaining("사용 가능한");
+    }
+
+    @Test
+    @DisplayName("기본 운동 종목은 모든 사용자가 Workout에 추가할 수 있다")
+    void allowsDefaultExerciseForEveryUser() {
+        Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
+        ExerciseReference exercise = new ExerciseReference(
+                ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null);
+
+        workout.addExercise(exercise, null);
+
+        assertThat(workout.getExercises()).hasSize(1);
+        assertThat(workout.getExercises().getFirst().getExerciseType())
+                .isEqualTo(ExerciseType.DEFAULT);
     }
 
     @Test
     @DisplayName("완료된 운동은 수정하거나 다시 완료할 수 없다")
     void rejectsChangesAfterWorkoutIsCompleted() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
-        Exercise exercise = Exercise.create(1L, "벤치프레스", "CHEST", startedAt);
+        ExerciseReference exercise = new ExerciseReference(
+                ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null);
         workout.addExercise(exercise, null);
         workout.complete(startedAt.plusSeconds(3600));
 
-        assertThatThrownBy(() -> workout.addExercise(exercise, null))
+        assertThatThrownBy(() -> workout.addExercise(
+                new ExerciseReference(
+                        ExerciseType.DEFAULT, 2L, "딥스", ExerciseCategory.CHEST, null),
+                null))
                 .isInstanceOf(WorkoutRuleException.class);
         assertThatThrownBy(() -> workout.complete(startedAt.plusSeconds(7200)))
                 .isInstanceOf(WorkoutRuleException.class);
@@ -54,9 +73,12 @@ class WorkoutTest {
     void requiresRepsOrDurationForSet() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
         WorkoutExercise exercise = workout.addExercise(
-                Exercise.create(1L, "벤치프레스", "CHEST", startedAt), null);
+                new ExerciseReference(
+                        ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
+                null);
 
-        assertThatThrownBy(() -> exercise.addSet(BigDecimal.ZERO, 0, null, false))
+        assertThatThrownBy(() -> exercise.addSet(
+                BigDecimal.ZERO, 0, null, false))
                 .isInstanceOf(WorkoutRuleException.class);
     }
 
@@ -65,8 +87,11 @@ class WorkoutTest {
     void reordersSetNumbersAfterDeletion() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
         WorkoutExercise exercise = workout.addExercise(
-                Exercise.create(1L, "벤치프레스", "CHEST", startedAt), null);
-        WorkoutSet first = exercise.addSet(new BigDecimal("60"), 10, null, true);
+                new ExerciseReference(
+                        ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
+                null);
+        WorkoutSet first = exercise.addSet(
+                new BigDecimal("60"), 10, null, true);
         exercise.addSet(new BigDecimal("70"), 8, null, true);
 
         exercise.removeSet(first);

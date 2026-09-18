@@ -1,5 +1,6 @@
 package com.myfitness.workout.dto.response;
 
+import com.myfitness.workout.domain.ExerciseType;
 import com.myfitness.workout.domain.WorkoutExercise;
 import java.time.LocalDate;
 import java.util.List;
@@ -8,6 +9,7 @@ public record PreviousExerciseRecordResponse(
         Long workoutId,
         LocalDate workoutDate,
         Long workoutExerciseId,
+        ExerciseType exerciseType,
         Long exerciseId,
         String exerciseName,
         List<WorkoutResponse.SetEntry> sets
@@ -17,8 +19,9 @@ public record PreviousExerciseRecordResponse(
                 entry.getWorkout().getId(),
                 entry.getWorkout().getWorkoutDate(),
                 entry.getId(),
-                entry.getExercise().getId(),
-                entry.getExercise().getName(),
+                entry.getExerciseType(),
+                entry.getExerciseId(),
+                entry.getExerciseName(),
                 entry.getSets().stream().map(set -> new WorkoutResponse.SetEntry(
                         set.getId(),
                         set.getSetNumber(),

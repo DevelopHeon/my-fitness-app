@@ -1,10 +1,6 @@
 package com.myfitness.workout.dto.response;
 
-import com.myfitness.workout.domain.Exercise;
-import com.myfitness.workout.domain.Workout;
-import com.myfitness.workout.domain.WorkoutExercise;
-import com.myfitness.workout.domain.WorkoutSet;
-import com.myfitness.workout.domain.WorkoutStatus;
+import com.myfitness.workout.domain.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,6 +28,7 @@ public record WorkoutResponse(
 
     public record ExerciseEntry(
             Long id,
+            ExerciseType exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,
@@ -40,12 +37,12 @@ public record WorkoutResponse(
             List<SetEntry> sets
     ) {
         static ExerciseEntry from(WorkoutExercise entry) {
-            Exercise exercise = entry.getExercise();
             return new ExerciseEntry(
                     entry.getId(),
-                    exercise.getId(),
-                    exercise.getName(),
-                    exercise.getCategory(),
+                    entry.getExerciseType(),
+                    entry.getExerciseId(),
+                    entry.getExerciseName(),
+                    entry.getCategory().name(),
                     entry.getOrderIndex(),
                     entry.getMemo(),
                     entry.getSets().stream().map(SetEntry::from).toList());

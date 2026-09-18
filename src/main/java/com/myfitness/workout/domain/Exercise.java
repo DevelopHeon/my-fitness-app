@@ -1,55 +1,44 @@
 package com.myfitness.workout.domain;
 
-import com.myfitness.workout.exception.WorkoutRuleException;
-
 import jakarta.persistence.*;
-import java.time.Instant;
 
 @Entity
 @Table(name = "exercises", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_exercise_user_name", columnNames = {"user_id", "name"})
+        @UniqueConstraint(name = "uk_exercise_name", columnNames = "name")
 })
 public class Exercise {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ExerciseCategory category;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
 
-    protected Exercise() {
+    protected Exercise() {}
+
+    private Exercise(String name, ExerciseCategory category, int sortOrder) {
+        this.name = name;
+        this.category = category;
+        this.sortOrder = sortOrder;
     }
 
-    private Exercise(Long userId, String name, String category, Instant createdAt) {
-        if (userId == null || userId <= 0) throw new WorkoutRuleException("유효한 사용자 ID가 필요합니다.");
-        if (name == null || name.isBlank()) throw new WorkoutRuleException("운동 종목 이름은 필수입니다.");
-        this.userId = userId;
-        this.name = name.trim();
-        this.category = category == null || category.isBlank() ? null : category.trim();
-        this.createdAt = createdAt;
+    public static Exercise create(String name, ExerciseCategory category, int sortOrder) {
+        return new Exercise(name, category, sortOrder);
     }
 
-    public static Exercise create(Long userId, String name, String category, Instant createdAt) {
-        return new Exercise(userId, name, category, createdAt);
-    }
-
-    public boolean belongsTo(Long userId) {
-        return this.userId.equals(userId);
+    public ExerciseReference toReference() {
+        return new ExerciseReference(ExerciseType.DEFAULT, id, name, category, null);
     }
 
     public Long getId() { return id; }
-    public Long getUserId() { return userId; }
     public String getName() { return name; }
-    public String getCategory() { return category; }
-    public Instant getCreatedAt() { return createdAt; }
+    public ExerciseCategory getCategory() { return category; }
+    public int getSortOrder() { return sortOrder; }
 }

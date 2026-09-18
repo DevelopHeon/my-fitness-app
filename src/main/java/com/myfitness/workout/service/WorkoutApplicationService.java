@@ -1,15 +1,8 @@
 package com.myfitness.workout.service;
 
-import com.myfitness.workout.domain.Exercise;
-import com.myfitness.workout.domain.Workout;
-import com.myfitness.workout.domain.WorkoutExercise;
-import com.myfitness.workout.dto.request.AddWorkoutExerciseRequest;
-import com.myfitness.workout.dto.request.CreateExerciseRequest;
-import com.myfitness.workout.dto.request.StartWorkoutRequest;
-import com.myfitness.workout.dto.request.WorkoutSetRequest;
-import com.myfitness.workout.dto.response.ExerciseResponse;
-import com.myfitness.workout.dto.response.PreviousExerciseRecordResponse;
-import com.myfitness.workout.dto.response.WorkoutResponse;
+import com.myfitness.workout.domain.*;
+import com.myfitness.workout.dto.request.*;
+import com.myfitness.workout.dto.response.*;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -18,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class WorkoutApplicationService {
-
     private final WorkoutService workoutService;
     private final ExerciseService exerciseService;
 
@@ -30,9 +22,11 @@ public class WorkoutApplicationService {
     }
 
     @Transactional
-    public ExerciseResponse createExercise(Long userId, CreateExerciseRequest request) {
-        return ExerciseResponse.from(
-                exerciseService.create(userId, request.name(), request.category()));
+    public ExerciseResponse createCustomExercise(
+            Long userId,
+            CreateExerciseRequest request) {
+        return ExerciseResponse.from(exerciseService.createCustom(
+                userId, request.name(), request.category()));
     }
 
     public List<ExerciseResponse> getExercises(Long userId) {
@@ -41,9 +35,13 @@ public class WorkoutApplicationService {
                 .toList();
     }
 
-    public PreviousExerciseRecordResponse getPreviousExerciseRecord(Long userId, Long exerciseId) {
-        exerciseService.getOwned(userId, exerciseId);
-        WorkoutExercise previous = workoutService.getPreviousCompletedExercise(userId, exerciseId);
+    public PreviousExerciseRecordResponse getPreviousExerciseRecord(
+            Long userId,
+            ExerciseType exerciseType,
+            Long exerciseId) {
+        exerciseService.getAvailable(userId, exerciseType, exerciseId);
+        WorkoutExercise previous = workoutService.getPreviousCompletedExercise(
+                userId, exerciseType, exerciseId);
         return previous == null ? null : PreviousExerciseRecordResponse.from(previous);
     }
 
@@ -57,7 +55,10 @@ public class WorkoutApplicationService {
         return WorkoutResponse.from(workoutService.getOwned(userId, workoutId));
     }
 
-    public List<WorkoutResponse> getWorkouts(Long userId, LocalDate from, LocalDate to) {
+    public List<WorkoutResponse> getWorkouts(
+            Long userId,
+            LocalDate from,
+            LocalDate to) {
         return workoutService.list(userId, from, to).stream()
                 .map(WorkoutResponse::from)
                 .toList();
@@ -69,7 +70,8 @@ public class WorkoutApplicationService {
             Long workoutId,
             AddWorkoutExerciseRequest request) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        Exercise exercise = exerciseService.getOwned(userId, request.exerciseId());
+        ExerciseReference exercise = exerciseService.getAvailable(
+                userId, request.exerciseType(), request.exerciseId());
         return WorkoutResponse.from(
                 workoutService.addExercise(workout, exercise, request.memo()));
     }

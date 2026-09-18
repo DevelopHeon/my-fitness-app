@@ -10,7 +10,8 @@ MVP의 첫 기능인 Workout 기록을 구현하기 위한 데이터 모델과 A
 
 ## 2. 구현 범위
 
-- 운동 종목(Exercise) 조회 및 등록
+- 공용 기본 운동 종목(Exercise) 조회
+- 사용자 커스텀 운동 종목(CustomExercise) 등록/조회
 - Workout 생성/조회/완료
 - Workout 내 운동 종목 추가/삭제/순서 관리
 - 세트 기록 추가/수정/삭제
@@ -22,13 +23,26 @@ MVP의 첫 기능인 Workout 기록을 구현하기 위한 데이터 모델과 A
 ```text
 User 1 --- N Workout
 Workout 1 --- N WorkoutExercise
-Exercise 1 --- N WorkoutExercise
 WorkoutExercise 1 --- N WorkoutSet
+
+Exercise        # 공용 기본 운동
+CustomExercise  # 사용자별 커스텀 운동
+        ↓
+exerciseType + exerciseId
+        ↓
+WorkoutExercise snapshot
 ```
 
 ### Exercise
 - id
-- userId: 사용자 정의 종목일 때 소유자, 공통 종목은 null 허용 여부 추후 결정
+- name
+- category
+- sortOrder
+- userId 없음
+
+### CustomExercise
+- id
+- userId
 - name
 - category
 - createdAt
@@ -45,7 +59,10 @@ WorkoutExercise 1 --- N WorkoutSet
 ### WorkoutExercise
 - id
 - workoutId
+- exerciseType: DEFAULT / CUSTOM
 - exerciseId
+- exerciseName snapshot
+- category snapshot
 - orderIndex
 - memo
 
@@ -70,8 +87,8 @@ WorkoutExercise 1 --- N WorkoutSet
 - PATCH /api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}
 - DELETE /api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}
 - GET /api/exercises
-- POST /api/exercises
-- GET /api/exercises/{exerciseId}/previous-record
+- POST /api/exercises/custom
+- GET /api/exercises/{exerciseType}/{exerciseId}/previous-record
 
 ## 5. 테스트 요구사항
 
@@ -151,16 +168,19 @@ workout/
 HTTP 예외 변환은 도메인별 Handler가 아니라 `common.exception.GlobalExceptionHandler`에서 일괄 처리한다.
 
 ### Frontend
-- 운동 시작
-- 사용자 운동 종목 등록 및 선택
-- 새 운동 종목 등록 시 현재 Workout에 즉시 추가
+- 날짜 선택 후 운동 시작
+- 가슴/어깨/등/팔/복근/하체 카테고리 선택 후 운동 종목 선택
+- 공용 기본 운동과 사용자 커스텀 운동 구분 표시
+- 커스텀 운동 등록 시 카테고리 지정 후 현재 Workout에 즉시 추가
 - Workout에 운동 종목 추가/삭제
 - 종목 추가 직후 세트 기록 카드로 이동
 - 이전 완료 기록 표시
 - 세트 중량/횟수/운동 시간 입력
 - 세트 수정/삭제
 - 운동 완료
-- 최근 30일 Workout 간단 조회
+- 최근 30일 Workout 조회
+- 완료 Workout 클릭 시 수행 운동/세트 상세 토글
+- 텍스트/숫자/날짜 입력을 각 입력 의미에 맞게 제한
 - 모바일 우선의 단순하고 깔끔한 카드 UI
 
 ## 9. 자동 테스트 결과

@@ -319,6 +319,7 @@ ai
 
 - User
 - Exercise
+- CustomExercise
 - Workout
 - WorkoutExercise
 - WorkoutSet
@@ -351,7 +352,9 @@ Exercise
 
 설계 원칙:
 - 모든 사용자 데이터는 User 소유 관계를 명확히 가진다.
-- Exercise는 운동 종목의 정의이고 WorkoutExercise는 특정 운동 세션에서 수행된 운동 기록이다.
+- Exercise는 모든 사용자에게 제공되는 기본 운동 종목이며 userId를 가지지 않는다.
+- CustomExercise는 사용자가 직접 추가한 운동 종목이며 userId로 소유권을 구분한다.
+- WorkoutExercise와 RoutineExercise는 DEFAULT/CUSTOM + exerciseId로 원본을 식별하고, 기록 시점의 이름/카테고리를 스냅샷으로 보존한다.
 - Routine은 템플릿이며 실제 수행 결과는 Workout에 별도로 저장한다.
 - MealFood에는 기록 시점의 영양 정보를 스냅샷으로 저장해 이후 Food 수정으로 과거 기록이 변하지 않게 한다.
 - WorkoutSet 역시 당시 수행 값을 그대로 보존한다.

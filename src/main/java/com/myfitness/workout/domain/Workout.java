@@ -1,7 +1,6 @@
 package com.myfitness.workout.domain;
 
 import com.myfitness.workout.exception.WorkoutRuleException;
-
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,7 +11,6 @@ import java.util.List;
 @Entity
 @Table(name = "workouts")
 public class Workout {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,12 +38,15 @@ public class Workout {
     @OrderBy("orderIndex asc")
     private List<WorkoutExercise> exercises = new ArrayList<>();
 
-    protected Workout() {
-    }
+    protected Workout() {}
 
     private Workout(Long userId, LocalDate workoutDate, String memo, Instant startedAt) {
-        if (userId == null || userId <= 0) throw new WorkoutRuleException("유효한 사용자 ID가 필요합니다.");
-        if (workoutDate == null) throw new WorkoutRuleException("운동 날짜는 필수입니다.");
+        if (userId == null || userId <= 0) {
+            throw new WorkoutRuleException("유효한 사용자 ID가 필요합니다.");
+        }
+        if (workoutDate == null) {
+            throw new WorkoutRuleException("운동 날짜는 필수입니다.");
+        }
         this.userId = userId;
         this.workoutDate = workoutDate;
         this.memo = normalize(memo);
@@ -53,22 +54,39 @@ public class Workout {
         this.status = WorkoutStatus.IN_PROGRESS;
     }
 
-    public static Workout start(Long userId, LocalDate workoutDate, String memo, Instant startedAt) {
+    public static Workout start(
+            Long userId,
+            LocalDate workoutDate,
+            String memo,
+            Instant startedAt) {
         return new Workout(userId, workoutDate, memo, startedAt);
     }
 
-    public WorkoutExercise addExercise(Exercise exercise, String memo) {
+    public WorkoutExercise addExercise(ExerciseReference exercise, String memo) {
         ensureMutable();
-        if (!exercise.belongsTo(userId)) throw new WorkoutRuleException("본인 소유 운동 종목만 추가할 수 있습니다.");
-        int nextOrder = exercises.stream().mapToInt(WorkoutExercise::getOrderIndex).max().orElse(0) + 1;
-        WorkoutExercise workoutExercise = WorkoutExercise.create(this, exercise, nextOrder, memo);
+        if (!exercise.accessibleTo(userId)) {
+            throw new WorkoutRuleException("사용 가능한 운동 종목만 추가할 수 있습니다.");
+        }
+        boolean duplicated = exercises.stream().anyMatch(entry ->
+                entry.getExerciseType() == exercise.type()
+                        && entry.getExerciseId().equals(exercise.id()));
+        if (duplicated) {
+            throw new WorkoutRuleException("이미 Workout에 추가된 운동 종목입니다.");
+        }
+        int nextOrder = exercises.stream()
+                .mapToInt(WorkoutExercise::getOrderIndex)
+                .max().orElse(0) + 1;
+        WorkoutExercise workoutExercise =
+                WorkoutExercise.create(this, exercise, nextOrder, memo);
         exercises.add(workoutExercise);
         return workoutExercise;
     }
 
     public void removeExercise(WorkoutExercise workoutExercise) {
         ensureMutable();
-        if (!exercises.remove(workoutExercise)) throw new WorkoutRuleException("해당 운동 기록이 Workout에 없습니다.");
+        if (!exercises.remove(workoutExercise)) {
+            throw new WorkoutRuleException("해당 운동 기록이 Workout에 없습니다.");
+        }
         reorderExercises();
     }
 
@@ -79,11 +97,15 @@ public class Workout {
     }
 
     public void ensureMutable() {
-        if (status == WorkoutStatus.COMPLETED) throw new WorkoutRuleException("완료된 운동은 수정할 수 없습니다.");
+        if (status == WorkoutStatus.COMPLETED) {
+            throw new WorkoutRuleException("완료된 운동은 수정할 수 없습니다.");
+        }
     }
 
     private void reorderExercises() {
-        for (int i = 0; i < exercises.size(); i++) exercises.get(i).changeOrder(i + 1);
+        for (int i = 0; i < exercises.size(); i++) {
+            exercises.get(i).changeOrder(i + 1);
+        }
     }
 
     private static String normalize(String value) {
@@ -97,5 +119,7 @@ public class Workout {
     public String getMemo() { return memo; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getCompletedAt() { return completedAt; }
-    public List<WorkoutExercise> getExercises() { return Collections.unmodifiableList(exercises); }
+    public List<WorkoutExercise> getExercises() {
+        return Collections.unmodifiableList(exercises);
+    }
 }

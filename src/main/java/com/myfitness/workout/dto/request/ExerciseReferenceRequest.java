@@ -4,9 +4,8 @@ import com.myfitness.workout.domain.ExerciseType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-public record AddWorkoutExerciseRequest(
+public record ExerciseReferenceRequest(
         @NotNull ExerciseType exerciseType,
-        @NotNull @Positive Long exerciseId,
-        String memo
+        @NotNull @Positive Long exerciseId
 ) {
 }

@@ -1,8 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import CustomExerciseForm from "@/components/exercise/custom-exercise-form";
+import ExercisePicker from "@/components/exercise/exercise-picker";
 import {
+  sanitizeDecimal,
+  sanitizeInteger,
+  todayString,
+} from "@/lib/input-utils";
+import {
+  categoryLabel,
   Exercise,
+  ExerciseCategory,
+  exerciseKey,
+  ExerciseType,
   PreviousExerciseRecord,
   Workout,
   WorkoutSet,
@@ -26,30 +37,39 @@ export default function WorkoutScreen({
 }: Props) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
-  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(initialWorkout);
+  const [activeWorkout, setActiveWorkout] =
+    useState<Workout | null>(initialWorkout);
+  const [workoutDate, setWorkoutDate] = useState(todayString);
   const [previousRecords, setPreviousRecords] = useState<
-    Record<number, PreviousExerciseRecord | null>
+    Record<string, PreviousExerciseRecord | null>
   >(() =>
     Object.fromEntries(
-      initialPreviousRecords.map((record) => [record.exerciseId, record]),
+      initialPreviousRecords.map((record) => [
+        exerciseKey(record.exerciseType, record.exerciseId),
+        record,
+      ]),
     ),
   );
-  const [setDrafts, setSetDrafts] = useState<Record<number, SetDraft>>({});
+  const [setDrafts, setSetDrafts] =
+    useState<Record<number, SetDraft>>({});
   const [editingSet, setEditingSet] = useState<{
     workoutExerciseId: number;
     setId: number;
   } | null>(null);
-  const [newExerciseName, setNewExerciseName] = useState("");
-  const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
+  const [expandedWorkoutIds, setExpandedWorkoutIds] =
+    useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const availableExercises = useMemo(() => {
-    const selectedIds = new Set(
-      activeWorkout?.exercises.map((entry) => entry.exerciseId) ?? [],
-    );
-    return exercises.filter((exercise) => !selectedIds.has(exercise.id));
-  }, [activeWorkout, exercises]);
+  const excludedExerciseKeys = useMemo(
+    () =>
+      new Set(
+        activeWorkout?.exercises.map((entry) =>
+          exerciseKey(entry.exerciseType, entry.exerciseId),
+        ) ?? [],
+      ),
+    [activeWorkout],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +77,11 @@ export default function WorkoutScreen({
     async function load() {
       setBusy(true);
       setError(null);
-
       try {
         const [exerciseList, workouts] = await Promise.all([
           workoutApi.getExercises(),
           workoutApi.getWorkouts(),
         ]);
-
         if (cancelled) return;
 
         setExercises(exerciseList);
@@ -81,9 +99,12 @@ export default function WorkoutScreen({
         const entries = await Promise.all(
           inProgress.exercises.map(async (entry) => {
             const record = await workoutApi
-              .getPreviousRecord(entry.exerciseId)
+              .getPreviousRecord(entry.exerciseType, entry.exerciseId)
               .catch(() => null);
-            return [entry.exerciseId, record] as const;
+            return [
+              exerciseKey(entry.exerciseType, entry.exerciseId),
+              record,
+            ] as const;
           }),
         );
 
@@ -104,7 +125,6 @@ export default function WorkoutScreen({
     }
 
     void load();
-
     return () => {
       cancelled = true;
     };
@@ -117,7 +137,9 @@ export default function WorkoutScreen({
       return await action();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "요청 처리 중 오류가 발생했습니다.",
+        caught instanceof Error
+          ? caught.message
+          : "요청 처리 중 오류가 발생했습니다.",
       );
       return null;
     } finally {
@@ -126,77 +148,86 @@ export default function WorkoutScreen({
   }
 
   async function handleStartWorkout() {
-    const workout = await run(() => workoutApi.startWorkout());
+    const workout = await run(() =>
+      workoutApi.startWorkout(workoutDate),
+    );
     if (!workout) return;
 
     setActiveWorkout(workout);
     setRecentWorkouts((current) => [workout, ...current]);
   }
 
-  function scrollToExerciseCard(workout: Workout, exerciseId: number) {
+  function scrollToExerciseCard(
+    workout: Workout,
+    exerciseType: ExerciseType,
+    exerciseId: number,
+  ) {
     const entry = workout.exercises.find(
-      (workoutExercise) => workoutExercise.exerciseId === exerciseId,
+      (workoutExercise) =>
+        workoutExercise.exerciseType === exerciseType &&
+        workoutExercise.exerciseId === exerciseId,
     );
     if (!entry) return;
 
     requestAnimationFrame(() => {
       document
-        .getElementById(`workout-exercise-${entry.id}`)
+        .getElementById("workout-exercise-" + entry.id)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
-  async function handleCreateExercise(event: FormEvent) {
-    event.preventDefault();
-    const name = newExerciseName.trim();
-    if (!name) return;
-
-    const exercise = await run(() => workoutApi.createExercise(name));
-    if (!exercise) return;
+  async function handleCreateCustomExercise(
+    name: string,
+    category: ExerciseCategory,
+  ) {
+    const exercise = await run(() =>
+      workoutApi.createExercise(name, category),
+    );
+    if (!exercise) return false;
 
     setExercises((current) => [...current, exercise]);
-    setNewExerciseName("");
 
-    if (!activeWorkout) {
-      setSelectedExerciseId(exercise.id);
-      return;
-    }
+    if (!activeWorkout) return true;
 
     const workout = await run(() =>
-      workoutApi.addExercise(activeWorkout.id, exercise.id),
+      workoutApi.addExercise(
+        activeWorkout.id,
+        exercise.type,
+        exercise.id,
+      ),
     );
-    if (!workout) {
-      setSelectedExerciseId(exercise.id);
-      return;
-    }
+    if (!workout) return true;
 
     setActiveWorkout(workout);
     setPreviousRecords((current) => ({
       ...current,
-      [exercise.id]: null,
+      [exerciseKey(exercise.type, exercise.id)]: null,
     }));
-    setSelectedExerciseId(null);
-    scrollToExerciseCard(workout, exercise.id);
+    scrollToExerciseCard(workout, exercise.type, exercise.id);
+    return true;
   }
 
-  async function handleAddExercise() {
-    if (!activeWorkout || !selectedExerciseId) return;
+  async function handleAddExercise(exercise: Exercise) {
+    if (!activeWorkout) return;
 
     const workout = await run(() =>
-      workoutApi.addExercise(activeWorkout.id, selectedExerciseId),
+      workoutApi.addExercise(
+        activeWorkout.id,
+        exercise.type,
+        exercise.id,
+      ),
     );
     if (!workout) return;
 
     setActiveWorkout(workout);
     const previous = await workoutApi
-      .getPreviousRecord(selectedExerciseId)
+      .getPreviousRecord(exercise.type, exercise.id)
       .catch(() => null);
     setPreviousRecords((current) => ({
       ...current,
-      [selectedExerciseId]: previous,
+      [exerciseKey(exercise.type, exercise.id)]: previous,
     }));
-    setSelectedExerciseId(null);
-    scrollToExerciseCard(workout, selectedExerciseId);
+    scrollToExerciseCard(workout, exercise.type, exercise.id);
   }
 
   async function handleSaveSet(workoutExerciseId: number) {
@@ -207,30 +238,30 @@ export default function WorkoutScreen({
       reps: "",
       durationSeconds: "",
     };
-    const weightKg = draft.weightKg.trim() ? Number(draft.weightKg) : 0;
-    const reps = draft.reps.trim() ? Number(draft.reps) : 0;
-    const durationSeconds = draft.durationSeconds.trim()
+    const weightKg = draft.weightKg ? Number(draft.weightKg) : 0;
+    const reps = draft.reps ? Number(draft.reps) : 0;
+    const durationSeconds = draft.durationSeconds
       ? Number(draft.durationSeconds)
       : null;
 
-    const invalidDuration =
-      durationSeconds !== null &&
-      (!Number.isInteger(durationSeconds) || durationSeconds < 0);
     if (
       !Number.isFinite(weightKg) ||
       weightKg < 0 ||
       !Number.isInteger(reps) ||
       reps < 0 ||
-      invalidDuration ||
+      (durationSeconds !== null &&
+        (!Number.isInteger(durationSeconds) ||
+          durationSeconds < 0)) ||
       (reps === 0 && (!durationSeconds || durationSeconds === 0))
     ) {
       setError("중량, 반복 횟수 또는 운동 시간을 확인해주세요.");
       return;
     }
 
-    const target = editingSet?.workoutExerciseId === workoutExerciseId
-      ? editingSet
-      : null;
+    const target =
+      editingSet?.workoutExerciseId === workoutExerciseId
+        ? editingSet
+        : null;
     const workout = await run(() =>
       target
         ? workoutApi.updateSet(
@@ -263,7 +294,10 @@ export default function WorkoutScreen({
     }));
   }
 
-  function handleEditSet(workoutExerciseId: number, set: WorkoutSet) {
+  function handleEditSet(
+    workoutExerciseId: number,
+    set: WorkoutSet,
+  ) {
     setEditingSet({ workoutExerciseId, setId: set.id });
     setSetDrafts((current) => ({
       ...current,
@@ -278,11 +312,18 @@ export default function WorkoutScreen({
     }));
   }
 
-  async function handleRemoveSet(workoutExerciseId: number, setId: number) {
+  async function handleRemoveSet(
+    workoutExerciseId: number,
+    setId: number,
+  ) {
     if (!activeWorkout) return;
 
     const workout = await run(() =>
-      workoutApi.removeSet(activeWorkout.id, workoutExerciseId, setId),
+      workoutApi.removeSet(
+        activeWorkout.id,
+        workoutExerciseId,
+        setId,
+      ),
     );
     if (!workout) return;
 
@@ -300,11 +341,16 @@ export default function WorkoutScreen({
     }
   }
 
-  async function handleRemoveExercise(workoutExerciseId: number) {
+  async function handleRemoveExercise(
+    workoutExerciseId: number,
+  ) {
     if (!activeWorkout) return;
 
     const workout = await run(() =>
-      workoutApi.removeExercise(activeWorkout.id, workoutExerciseId),
+      workoutApi.removeExercise(
+        activeWorkout.id,
+        workoutExerciseId,
+      ),
     );
     if (!workout) return;
 
@@ -332,10 +378,27 @@ export default function WorkoutScreen({
         workout.id === completed.id ? completed : workout,
       ),
     );
+    setExpandedWorkoutIds((current) => {
+      const next = new Set(current);
+      next.add(completed.id);
+      return next;
+    });
     setActiveWorkout(null);
     setPreviousRecords({});
     setSetDrafts({});
     setEditingSet(null);
+  }
+
+  function toggleWorkout(workoutId: number) {
+    setExpandedWorkoutIds((current) => {
+      const next = new Set(current);
+      if (next.has(workoutId)) {
+        next.delete(workoutId);
+      } else {
+        next.add(workoutId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -349,7 +412,7 @@ export default function WorkoutScreen({
             Workout
           </h1>
           <p className="mt-2 text-sm leading-6 text-zinc-500">
-            이전 기록을 보면서 오늘의 중량과 반복 횟수를 빠르게 남겨보세요.
+            카테고리에서 운동을 고르고 이전 기록을 보며 세트를 입력하세요.
           </p>
         </div>
         <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
@@ -365,16 +428,28 @@ export default function WorkoutScreen({
 
       {!activeWorkout ? (
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-zinc-500">오늘 운동</p>
-          <h2 className="mt-2 text-xl font-semibold">새 운동을 시작할까요?</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">
-            운동을 시작한 뒤 종목을 추가하고 세트별 기록을 입력할 수 있습니다.
+          <p className="text-sm font-medium text-zinc-500">
+            오늘 운동
           </p>
+          <h2 className="mt-2 text-xl font-semibold">
+            새 운동을 시작할까요?
+          </h2>
+          <label className="mt-5 block text-xs font-medium text-zinc-500">
+            운동 날짜
+            <input
+              type="date"
+              value={workoutDate}
+              onChange={(event) =>
+                setWorkoutDate(event.target.value)
+              }
+              className="mt-2 w-full rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
+            />
+          </label>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !workoutDate}
             onClick={handleStartWorkout}
-            className="mt-6 w-full rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-4 w-full rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             운동 시작
           </button>
@@ -384,7 +459,9 @@ export default function WorkoutScreen({
           <section className="rounded-3xl bg-zinc-950 p-5 text-white shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-zinc-400">진행 중</p>
+                <p className="text-xs font-medium text-zinc-400">
+                  진행 중
+                </p>
                 <h2 className="mt-1 text-xl font-semibold">
                   {activeWorkout.workoutDate}
                 </h2>
@@ -397,54 +474,23 @@ export default function WorkoutScreen({
 
           <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold">운동 종목 추가</h2>
-            <div className="mt-4 flex gap-2">
-              <select
-                value={selectedExerciseId ?? ""}
-                onChange={(event) =>
-                  setSelectedExerciseId(
-                    event.target.value ? Number(event.target.value) : null,
-                  )
-                }
-                className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none focus:border-zinc-500"
-              >
-                <option value="">종목 선택</option>
-                {availableExercises.map((exercise) => (
-                  <option key={exercise.id} value={exercise.id}>
-                    {exercise.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={!selectedExerciseId || busy}
-                onClick={handleAddExercise}
-                className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-              >
-                추가
-              </button>
-            </div>
-
-            <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-400">
-              새 종목을 등록하면 현재 Workout에 바로 추가됩니다.
+            <p className="mt-1 text-xs text-zinc-400">
+              카테고리를 선택한 뒤 수행할 운동을 누르세요.
             </p>
-            <form
-              onSubmit={handleCreateExercise}
-              className="mt-2 flex gap-2"
-            >
-              <input
-                value={newExerciseName}
-                onChange={(event) => setNewExerciseName(event.target.value)}
-                placeholder="새 운동 종목"
-                className="min-w-0 flex-1 rounded-xl bg-zinc-100 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-zinc-300"
+            <div className="mt-4">
+              <ExercisePicker
+                exercises={exercises}
+                excludedKeys={excludedExerciseKeys}
+                busy={busy}
+                onSelect={(exercise) => {
+                  void handleAddExercise(exercise);
+                }}
               />
-              <button
-                type="submit"
-                disabled={!newExerciseName.trim() || busy}
-                className="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold disabled:opacity-40"
-              >
-                등록
-              </button>
-            </form>
+            </div>
+            <CustomExerciseForm
+              busy={busy}
+              onCreate={handleCreateCustomExercise}
+            />
           </section>
 
           {activeWorkout.exercises.length === 0 && (
@@ -454,24 +500,34 @@ export default function WorkoutScreen({
           )}
 
           {activeWorkout.exercises.map((entry) => {
-            const previous = previousRecords[entry.exerciseId];
+            const previous =
+              previousRecords[
+                exerciseKey(
+                  entry.exerciseType,
+                  entry.exerciseId,
+                )
+              ];
             const draft = setDrafts[entry.id] ?? {
               weightKg: "",
               reps: "",
               durationSeconds: "",
             };
-            const isEditingSet = editingSet?.workoutExerciseId === entry.id;
+            const isEditingSet =
+              editingSet?.workoutExerciseId === entry.id;
 
             return (
               <section
-                id={`workout-exercise-${entry.id}`}
+                id={"workout-exercise-" + entry.id}
                 key={entry.id}
-                className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-4"
+                className="scroll-mt-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium text-zinc-400">
-                      {entry.category ?? "EXERCISE"}
+                      {categoryLabel(entry.category)}
+                      {entry.exerciseType === "CUSTOM"
+                        ? " · 내 운동"
+                        : ""}
                     </p>
                     <h2 className="mt-1 text-lg font-semibold">
                       {entry.exerciseName}
@@ -488,10 +544,14 @@ export default function WorkoutScreen({
                           {previous.sets
                             .map((set) =>
                               [
-                                `${set.weightKg}kg`,
-                                set.reps > 0 ? `${set.reps}회` : null,
+                                set.weightKg > 0
+                                  ? set.weightKg + "kg"
+                                  : null,
+                                set.reps > 0
+                                  ? set.reps + "회"
+                                  : null,
                                 set.durationSeconds
-                                  ? `${set.durationSeconds}초`
+                                  ? set.durationSeconds + "초"
                                   : null,
                               ]
                                 .filter(Boolean)
@@ -504,7 +564,9 @@ export default function WorkoutScreen({
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => handleRemoveExercise(entry.id)}
+                      onClick={() =>
+                        handleRemoveExercise(entry.id)
+                      }
                       className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
                     >
                       종목 삭제
@@ -518,19 +580,29 @@ export default function WorkoutScreen({
                       key={set.id}
                       className="grid grid-cols-[36px_1fr_1fr_auto] items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5 text-sm"
                     >
-                      <span className="text-zinc-400">{set.setNumber}</span>
-                      <span className="font-medium">{set.weightKg} kg</span>
+                      <span className="text-zinc-400">
+                        {set.setNumber}
+                      </span>
                       <span className="font-medium">
-                        {set.reps > 0 ? `${set.reps} reps` : ""}
+                        {set.weightKg} kg
+                      </span>
+                      <span className="font-medium">
+                        {set.reps > 0
+                          ? set.reps + " reps"
+                          : ""}
                         {set.durationSeconds
-                          ? `${set.reps > 0 ? " · " : ""}${set.durationSeconds}s`
+                          ? (set.reps > 0 ? " · " : "") +
+                            set.durationSeconds +
+                            "s"
                           : ""}
                       </span>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => handleEditSet(entry.id, set)}
+                          onClick={() =>
+                            handleEditSet(entry.id, set)
+                          }
                           className="text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-40"
                         >
                           수정
@@ -538,7 +610,12 @@ export default function WorkoutScreen({
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => handleRemoveSet(entry.id, set.id)}
+                          onClick={() =>
+                            handleRemoveSet(
+                              entry.id,
+                              set.id,
+                            )
+                          }
                           className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
                         >
                           삭제
@@ -550,14 +627,18 @@ export default function WorkoutScreen({
 
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
                   <input
+                    type="text"
                     inputMode="decimal"
+                    pattern="[0-9]*[.]?[0-9]*"
                     value={draft.weightKg}
                     onChange={(event) =>
                       setSetDrafts((current) => ({
                         ...current,
                         [entry.id]: {
                           ...draft,
-                          weightKg: event.target.value,
+                          weightKg: sanitizeDecimal(
+                            event.target.value,
+                          ),
                         },
                       }))
                     }
@@ -566,14 +647,18 @@ export default function WorkoutScreen({
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
                   <input
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
                     value={draft.reps}
                     onChange={(event) =>
                       setSetDrafts((current) => ({
                         ...current,
                         [entry.id]: {
                           ...draft,
-                          reps: event.target.value,
+                          reps: sanitizeInteger(
+                            event.target.value,
+                          ),
                         },
                       }))
                     }
@@ -582,14 +667,19 @@ export default function WorkoutScreen({
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
                   <input
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
                     value={draft.durationSeconds}
                     onChange={(event) =>
                       setSetDrafts((current) => ({
                         ...current,
                         [entry.id]: {
                           ...draft,
-                          durationSeconds: event.target.value,
+                          durationSeconds:
+                            sanitizeInteger(
+                              event.target.value,
+                            ),
                         },
                       }))
                     }
@@ -600,12 +690,17 @@ export default function WorkoutScreen({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => handleSaveSet(entry.id)}
-                    className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40 sm:col-auto"
+                    onClick={() =>
+                      handleSaveSet(entry.id)
+                    }
+                    className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
                   >
-                    {isEditingSet ? "수정 저장" : "저장"}
+                    {isEditingSet
+                      ? "수정 저장"
+                      : "저장"}
                   </button>
                 </div>
+
                 {isEditingSet && (
                   <button
                     type="button"
@@ -613,7 +708,11 @@ export default function WorkoutScreen({
                       setEditingSet(null);
                       setSetDrafts((current) => ({
                         ...current,
-                        [entry.id]: { weightKg: "", reps: "", durationSeconds: "" },
+                        [entry.id]: {
+                          weightKg: "",
+                          reps: "",
+                          durationSeconds: "",
+                        },
                       }));
                     }}
                     className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-900"
@@ -639,36 +738,130 @@ export default function WorkoutScreen({
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-semibold">최근 운동</h2>
-          <span className="text-xs text-zinc-400">최근 30일</span>
+          <span className="text-xs text-zinc-400">
+            최근 30일
+          </span>
         </div>
+
         <div className="space-y-2">
           {recentWorkouts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-center text-sm text-zinc-400">
               아직 기록된 운동이 없습니다.
             </div>
           ) : (
-            recentWorkouts.slice(0, 5).map((workout) => (
-              <article
-                key={workout.id}
-                className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-semibold">{workout.workoutDate}</p>
-                  <p className="mt-1 text-xs text-zinc-400">
-                    {workout.exercises.length}개 종목
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    workout.status === "COMPLETED"
-                      ? "bg-zinc-100 text-zinc-600"
-                      : "bg-emerald-50 text-emerald-700"
-                  }`}
+            recentWorkouts.slice(0, 5).map((workout) => {
+              const expanded =
+                expandedWorkoutIds.has(workout.id);
+              const completed =
+                workout.status === "COMPLETED";
+
+              return (
+                <article
+                  key={workout.id}
+                  className="overflow-hidden rounded-2xl border border-zinc-200 bg-white"
                 >
-                  {workout.status === "COMPLETED" ? "완료" : "진행 중"}
-                </span>
-              </article>
-            ))
+                  <button
+                    type="button"
+                    disabled={!completed}
+                    aria-expanded={
+                      completed ? expanded : undefined
+                    }
+                    onClick={() =>
+                      completed &&
+                      toggleWorkout(workout.id)
+                    }
+                    className="flex w-full items-center justify-between px-4 py-3 text-left disabled:cursor-default"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {workout.workoutDate}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {workout.exercises.length}개 종목
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          "rounded-full px-2.5 py-1 text-xs font-medium " +
+                          (completed
+                            ? "bg-zinc-100 text-zinc-600"
+                            : "bg-emerald-50 text-emerald-700")
+                        }
+                      >
+                        {completed
+                          ? "완료"
+                          : "진행 중"}
+                      </span>
+                      {completed && (
+                        <span className="text-xs text-zinc-400">
+                          {expanded ? "접기" : "보기"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
+                  {completed && expanded && (
+                    <div className="border-t border-zinc-100 px-4 py-4">
+                      {workout.exercises.length === 0 ? (
+                        <p className="text-sm text-zinc-400">
+                          수행한 운동 종목이 없습니다.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          {workout.exercises.map(
+                            (entry) => (
+                              <div key={entry.id}>
+                                <div className="flex items-baseline justify-between gap-3">
+                                  <p className="text-sm font-semibold">
+                                    {entry.exerciseName}
+                                  </p>
+                                  <p className="text-xs text-zinc-400">
+                                    {categoryLabel(
+                                      entry.category,
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {entry.sets.length ===
+                                  0 ? (
+                                    <span className="text-xs text-zinc-400">
+                                      기록된 세트 없음
+                                    </span>
+                                  ) : (
+                                    entry.sets.map(
+                                      (set) => (
+                                        <span
+                                          key={set.id}
+                                          className="rounded-lg bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-600"
+                                        >
+                                          {set.setNumber}세트 ·{" "}
+                                          {set.weightKg}kg
+                                          {set.reps > 0
+                                            ? " × " +
+                                              set.reps +
+                                              "회"
+                                            : ""}
+                                          {set.durationSeconds
+                                            ? " · " +
+                                              set.durationSeconds +
+                                              "초"
+                                            : ""}
+                                        </span>
+                                      ),
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })
           )}
         </div>
       </section>

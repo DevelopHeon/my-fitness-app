@@ -12,7 +12,7 @@
 - Routine / RoutineExercise 도메인 및 JPA 매핑
 - Routine 생성/조회/수정/삭제
 - 운동 종목 순서 저장 및 수정
-- 사용자 소유 운동 종목만 Routine에 포함
+- 공용 기본 운동 및 현재 사용자의 커스텀 운동만 Routine에 포함
 - 동일 Routine 내 운동 종목 중복 방지
 - Routine으로 Workout 시작
 - Routine 순서대로 WorkoutExercise 생성
@@ -31,7 +31,8 @@
 - Workout / Routine 화면 전환
 - Routine 목록
 - Routine 생성/수정/삭제
-- 새 Exercise 등록 후 Routine에 즉시 추가
+- 카테고리 선택 후 운동 종목 추가
+- 커스텀 Exercise 등록 후 Routine에 즉시 추가
 - Routine 운동 종목 순서 위/아래 변경
 - Routine으로 Workout 시작
 - Workout 화면 전환 즉시 직전 기록 표시
