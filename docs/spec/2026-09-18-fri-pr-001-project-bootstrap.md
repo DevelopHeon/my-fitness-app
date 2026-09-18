@@ -2,7 +2,7 @@
 
 - 날짜: 2026-09-18
 - 요일: 금요일
-- 상태: 진행 (백엔드 기반 구성 완료)
+- 상태: 완료
 
 ## 1. 배경 및 목적
 
@@ -50,7 +50,15 @@ My Fitness MVP를 구현할 수 있도록 Spring Boot + Next.js + PWA 기반의 
 - 도메인 기준 최상위 패키지 골격 생성
 - `./gradlew test` 통과 확인
 
+### 완료 추가
+- Next.js 16.3.3 + TypeScript + Tailwind CSS 프로젝트 생성
+- 정적 export 기반 PWA 셸 구성
+- Web App Manifest / Service Worker / 기본 앱 아이콘 구성
+- Gradle에서 npm ci 및 Next.js build 연동
+- Next.js 정적 산출물을 Spring Boot JAR static 리소스에 포함
+- `./gradlew bootJar --warning-mode all` 성공 확인
+- 루트 README에 실행 및 빌드 절차 정리
+
 ### 후속
-- Next.js PWA 골격 생성
-- 프론트 정적 빌드와 Spring Boot 패키징 연결
-- 루트 README 개발 실행 절차 정리
+- Phase 1 Workout 기록 구현
+- Workout 구현 완료 시 관련 spec / architecture 문서 갱신

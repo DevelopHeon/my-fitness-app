@@ -36,3 +36,30 @@ dependencies {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+val frontendDir = layout.projectDirectory.dir("frontend")
+val frontendOutputDir = frontendDir.dir("out")
+
+val frontendInstall = tasks.register<Exec>("frontendInstall") {
+	workingDir(frontendDir.asFile)
+	commandLine("npm", "ci")
+	inputs.files(frontendDir.file("package.json"), frontendDir.file("package-lock.json"))
+	outputs.file(frontendDir.file("node_modules/.package-lock.json"))
+}
+
+val frontendBuild = tasks.register<Exec>("frontendBuild") {
+	dependsOn(frontendInstall)
+	workingDir(frontendDir.asFile)
+	commandLine("npm", "run", "build")
+	inputs.file(frontendDir.file("next.config.ts"))
+	inputs.dir(frontendDir.dir("src"))
+	inputs.dir(frontendDir.dir("public"))
+	outputs.dir(frontendOutputDir)
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+	dependsOn(frontendBuild)
+	from(frontendOutputDir) {
+		into("BOOT-INF/classes/static")
+	}
+}
