@@ -28,7 +28,15 @@
                        Ollama
 ```
 
-## 2. 배포 단위
+## 2. 현재 기술 기준
+
+- Java: 21 타깃
+- Spring Boot: 4.1.1
+- Database: PostgreSQL 17
+- Frontend: Next.js + TypeScript + PWA
+- AI: Spring AI 2.0.x + Ollama (Phase 6에서 연결)
+
+## 3. 배포 단위
 
 - Git 저장소는 하나만 사용한다.
 - Next.js는 정적 export가 가능한 클라이언트 애플리케이션으로 운영한다.
@@ -36,7 +44,7 @@
 - 최종 서비스 진입점은 Spring Boot 하나를 우선한다.
 - PostgreSQL과 Ollama는 별도 프로세스/컨테이너로 운영한다.
 
-## 3. 백엔드 책임
+## 4. 백엔드 책임
 
 Spring Boot가 다음을 담당한다.
 
@@ -49,7 +57,7 @@ Spring Boot가 다음을 담당한다.
 
 기능 패키지는 도메인 기준으로 나누고, 서비스 분리는 하지 않는다.
 
-## 4. 프론트엔드 책임
+## 5. 프론트엔드 책임
 
 Next.js PWA가 다음을 담당한다.
 
@@ -62,7 +70,7 @@ Next.js PWA가 다음을 담당한다.
 
 Next.js 서버 기능에 의존하지 않고 Spring REST API를 기준으로 한다.
 
-## 5. 데이터 흐름
+## 6. 데이터 흐름
 
 일반 기능:
 
@@ -84,7 +92,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 
 수치 계산은 Java에서 수행하고 LLM은 해석과 자연어 응답에 집중한다.
 
-## 6. 단계별 확장
+## 7. 단계별 확장
 
 1. Workout: 운동/세트 기록과 이전 기록 조회
 2. Routine: 반복 운동 템플릿
@@ -94,7 +102,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 6. Local AI Coach: Ollama 기반 질의/분석/식단 후보 제안
 7. 이후 확장: 사진, 알림, AI Insight, RAG
 
-## 7. 변경 원칙
+## 8. 변경 원칙
 
 - 구조가 바뀌면 코드보다 먼저 또는 같은 PR에서 이 문서를 갱신한다.
 - 클래스/메서드 수준 설명은 넣지 않는다.

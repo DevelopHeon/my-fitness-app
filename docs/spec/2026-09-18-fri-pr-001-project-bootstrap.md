@@ -2,7 +2,7 @@
 
 - 날짜: 2026-09-18
 - 요일: 금요일
-- 상태: 진행
+- 상태: 진행 (백엔드 기반 구성 완료)
 
 ## 1. 배경 및 목적
 
@@ -42,4 +42,15 @@ My Fitness MVP를 구현할 수 있도록 Spring Boot + Next.js + PWA 기반의 
 
 ## 6. 구현 결과 및 후속 과제
 
-구현 완료 시 본 섹션을 갱신한다.
+### 완료
+- Spring Boot 4.1.1 / Java 21 타깃 기반 프로젝트 생성
+- PostgreSQL/JPA/Security/Validation/Actuator 구성
+- 테스트용 H2 프로필 구성
+- PostgreSQL Docker Compose 구성
+- 도메인 기준 최상위 패키지 골격 생성
+- `./gradlew test` 통과 확인
+
+### 후속
+- Next.js PWA 골격 생성
+- 프론트 정적 빌드와 Spring Boot 패키징 연결
+- 루트 README 개발 실행 절차 정리
