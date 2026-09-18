@@ -118,6 +118,19 @@ export default function WorkoutScreen() {
     setRecentWorkouts((current) => [workout, ...current]);
   }
 
+  function scrollToExerciseCard(workout: Workout, exerciseId: number) {
+    const entry = workout.exercises.find(
+      (workoutExercise) => workoutExercise.exerciseId === exerciseId,
+    );
+    if (!entry) return;
+
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`workout-exercise-${entry.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   async function handleCreateExercise(event: FormEvent) {
     event.preventDefault();
     const name = newExerciseName.trim();
@@ -127,8 +140,28 @@ export default function WorkoutScreen() {
     if (!exercise) return;
 
     setExercises((current) => [...current, exercise]);
-    setSelectedExerciseId(exercise.id);
     setNewExerciseName("");
+
+    if (!activeWorkout) {
+      setSelectedExerciseId(exercise.id);
+      return;
+    }
+
+    const workout = await run(() =>
+      workoutApi.addExercise(activeWorkout.id, exercise.id),
+    );
+    if (!workout) {
+      setSelectedExerciseId(exercise.id);
+      return;
+    }
+
+    setActiveWorkout(workout);
+    setPreviousRecords((current) => ({
+      ...current,
+      [exercise.id]: null,
+    }));
+    setSelectedExerciseId(null);
+    scrollToExerciseCard(workout, exercise.id);
   }
 
   async function handleAddExercise() {
@@ -148,6 +181,7 @@ export default function WorkoutScreen() {
       [selectedExerciseId]: previous,
     }));
     setSelectedExerciseId(null);
+    scrollToExerciseCard(workout, selectedExerciseId);
   }
 
   async function handleSaveSet(workoutExerciseId: number) {
@@ -375,9 +409,12 @@ export default function WorkoutScreen() {
               </button>
             </div>
 
+            <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-400">
+              새 종목을 등록하면 현재 Workout에 바로 추가됩니다.
+            </p>
             <form
               onSubmit={handleCreateExercise}
-              className="mt-3 flex gap-2 border-t border-zinc-100 pt-3"
+              className="mt-2 flex gap-2"
             >
               <input
                 value={newExerciseName}
@@ -395,6 +432,12 @@ export default function WorkoutScreen() {
             </form>
           </section>
 
+          {activeWorkout.exercises.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-zinc-200 bg-white px-4 py-6 text-center text-sm text-zinc-400">
+              운동 종목을 추가하면 세트 기록 입력란이 여기에 표시됩니다.
+            </div>
+          )}
+
           {activeWorkout.exercises.map((entry) => {
             const previous = previousRecords[entry.exerciseId];
             const draft = setDrafts[entry.id] ?? {
@@ -406,8 +449,9 @@ export default function WorkoutScreen() {
 
             return (
               <section
+                id={`workout-exercise-${entry.id}`}
                 key={entry.id}
-                className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
+                className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm scroll-mt-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -417,6 +461,9 @@ export default function WorkoutScreen() {
                     <h2 className="mt-1 text-lg font-semibold">
                       {entry.exerciseName}
                     </h2>
+                    <p className="mt-1 text-xs font-medium text-zinc-400">
+                      세트 기록
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {previous && (
@@ -486,7 +533,7 @@ export default function WorkoutScreen() {
                   ))}
                 </div>
 
-                <div className="mt-4 grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
                   <input
                     inputMode="decimal"
                     value={draft.weightKg}
@@ -499,7 +546,8 @@ export default function WorkoutScreen() {
                         },
                       }))
                     }
-                    placeholder="kg"
+                    aria-label="중량 kg"
+                    placeholder="중량 kg"
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
                   <input
@@ -514,7 +562,8 @@ export default function WorkoutScreen() {
                         },
                       }))
                     }
-                    placeholder="reps"
+                    aria-label="반복 횟수"
+                    placeholder="횟수"
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
                   <input
@@ -529,14 +578,15 @@ export default function WorkoutScreen() {
                         },
                       }))
                     }
-                    placeholder="sec"
+                    aria-label="운동 시간 초"
+                    placeholder="시간(초)"
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => handleSaveSet(entry.id)}
-                    className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                    className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40 sm:col-auto"
                   >
                     {isEditingSet ? "수정 저장" : "저장"}
                   </button>
