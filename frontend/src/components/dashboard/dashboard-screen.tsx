@@ -7,7 +7,13 @@ import {
   DashboardExercise,
   dashboardApi,
 } from "@/lib/dashboard-api";
-import { categoryLabel, exerciseKey } from "@/lib/workout-api";
+import { localDateString } from "@/lib/input-utils";
+import {
+  ExerciseCategory,
+  categoryLabel,
+  exerciseCategories,
+  exerciseKey,
+} from "@/lib/workout-api";
 
 type ChartPoint = {
   label: string;
@@ -18,6 +24,8 @@ export default function DashboardScreen() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [selectedExerciseKey, setSelectedExerciseKey] =
     useState<string>("");
+  const [selectedVolumeCategory, setSelectedVolumeCategory] =
+    useState<"ALL" | ExerciseCategory>("ALL");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
 
@@ -106,11 +114,31 @@ export default function DashboardScreen() {
   const workout = dashboard.workout;
   const body = dashboard.body;
 
-  const volumePoints: ChartPoint[] =
-    workout.dailyVolumes.map((point) => ({
+  const selectedVolumeSeries =
+    selectedVolumeCategory === "ALL"
+      ? workout.dailyVolumes
+      : workout.categoryDailyVolumes.find(
+          (series) =>
+            series.category === selectedVolumeCategory,
+        )?.dailyVolumes ?? [];
+
+  const volumePoints: ChartPoint[] = [
+    ...selectedVolumeSeries,
+  ]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((point) => ({
       label: point.date.slice(5),
       value: point.volume,
     }));
+
+  const selectedVolumeTotal = selectedVolumeSeries.reduce(
+    (total, point) => total + point.volume,
+    0,
+  );
+  const selectedVolumeLabel =
+    selectedVolumeCategory === "ALL"
+      ? "전체"
+      : categoryLabel(selectedVolumeCategory);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-6 sm:px-6">
@@ -180,16 +208,55 @@ export default function DashboardScreen() {
             <div>
               <h3 className="font-semibold">최근 30일 Volume</h3>
               <p className="mt-1 text-xs text-zinc-400">
-                중량 × 반복 횟수의 일별 합계
+                선택한 카테고리의 중량 × 반복 횟수 일별 합계
               </p>
             </div>
-            <span className="text-xs font-medium text-zinc-400">
-              {formatVolume(workout.last30DaysVolume)}
+            <span className="text-right text-xs font-medium text-zinc-400">
+              {selectedVolumeLabel}
+              <br />
+              {formatVolume(selectedVolumeTotal)}
             </span>
           </div>
+
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => setSelectedVolumeCategory("ALL")}
+              className={
+                "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition " +
+                (selectedVolumeCategory === "ALL"
+                  ? "bg-zinc-950 text-white"
+                  : "bg-zinc-100 text-zinc-500")
+              }
+            >
+              전체
+            </button>
+            {exerciseCategories.map((category) => (
+              <button
+                key={category.value}
+                type="button"
+                onClick={() =>
+                  setSelectedVolumeCategory(category.value)
+                }
+                className={
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition " +
+                  (selectedVolumeCategory === category.value
+                    ? "bg-zinc-950 text-white"
+                    : "bg-zinc-100 text-zinc-500")
+                }
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+
           <LineChart
             points={volumePoints}
-            emptyText="최근 30일 완료된 운동 Volume이 없습니다."
+            emptyText={
+              "최근 30일 " +
+              selectedVolumeLabel +
+              " Volume 기록이 없습니다."
+            }
             valueFormatter={formatVolume}
           />
         </div>
@@ -347,13 +414,16 @@ function ExerciseDetail({
 }: {
   exercise: DashboardExercise;
 }) {
-  const maxWeightPoints = exercise.recentRecords.map(
+  const orderedRecords = [...exercise.recentRecords].sort(
+    (a, b) => a.workoutDate.localeCompare(b.workoutDate),
+  );
+  const maxWeightPoints = orderedRecords.map(
     (record) => ({
       label: record.workoutDate.slice(5),
       value: record.maxWeightKg,
     }),
   );
-  const oneRepMaxPoints = exercise.recentRecords.map(
+  const oneRepMaxPoints = orderedRecords.map(
     (record) => ({
       label: record.workoutDate.slice(5),
       value: record.maxEstimatedOneRepMax,
@@ -397,7 +467,7 @@ function ExerciseDetail({
           최근 기록
         </p>
         <div className="mt-2 space-y-2">
-          {[...exercise.recentRecords]
+          {[...orderedRecords]
             .reverse()
             .slice(0, 5)
             .map((record, index) => (
@@ -436,10 +506,18 @@ function BodyTrendCard({
   selector: (point: DashboardBodyPoint) => number;
   unit: string;
 }) {
-  const chartPoints = points.map((point) => ({
-    label: point.measuredAt.slice(5, 10),
-    value: selector(point),
-  }));
+  const chartPoints = [...points]
+    .sort(
+      (a, b) =>
+        new Date(a.measuredAt).getTime() -
+        new Date(b.measuredAt).getTime(),
+    )
+    .map((point) => ({
+      label: localDateString(
+        new Date(point.measuredAt),
+      ).slice(5),
+      value: selector(point),
+    }));
 
   return (
     <ChartCard

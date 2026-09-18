@@ -192,7 +192,9 @@ estimated 1RM = weight × (1 + reps / 30)
 구현 기준:
 - 운동 횟수와 Volume 비교는 최근 7일 / 직전 7일, 최근 30일 / 직전 30일 rolling period를 사용한다.
 - Dashboard 운동 통계에는 COMPLETED Workout만 포함한다.
-- 최근 30일 일별 Volume을 차트로 제공한다.
+- 최근 30일 일별 Volume을 차트로 제공하고 전체 또는 운동 카테고리별로 필터링한다.
+- 그래프 데이터는 등록 순서가 아니라 실제 measuredAt / workoutDate 기준으로 오름차순 정렬한다.
+- Body의 Instant 날짜는 프론트에서 로컬 날짜로 변환해 입력 날짜와 일치시킨다.
 - Body는 최근 90일 기록의 최신값 / 이전 측정 대비 변화 / 추이를 제공한다.
 - 종목 PR은 완료된 전체 Workout을 기준으로 최고 중량과 Epley 추정 1RM을 계산한다.
 - 종목별 최근 8회 수행의 최고 중량 / 추정 1RM / Volume 추이를 제공한다.

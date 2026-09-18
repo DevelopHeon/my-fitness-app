@@ -78,6 +78,68 @@ class DashboardApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("나중에 등록한 과거 기록도 실제 측정일과 운동일 기준으로 오름차순 정렬한다")
+    void ordersDashboardHistoryByActualRecordDate() throws Exception {
+        LocalDate today = LocalDate.now();
+        long benchPressId = findDefaultExerciseId("벤치프레스");
+
+        createCompletedWorkout(today.minusDays(1), benchPressId, 100, 5, 1L);
+        createCompletedWorkout(today.minusDays(2), benchPressId, 80, 5, 1L);
+
+        Instant laterMeasuredAt = Instant.now().minusSeconds(86_400L);
+        Instant earlierMeasuredAt = Instant.now().minusSeconds(86_400L * 2);
+        createBodyRecord(
+                new BigDecimal("71.0"),
+                new BigDecimal("17.5"),
+                new BigDecimal("34.5"),
+                laterMeasuredAt,
+                1L);
+        createBodyRecord(
+                new BigDecimal("72.0"),
+                new BigDecimal("18.0"),
+                new BigDecimal("34.0"),
+                earlierMeasuredAt,
+                1L);
+
+        mockMvc.perform(get("/api/dashboard")
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.body.latest.measuredAt")
+                        .value(laterMeasuredAt.toString()))
+                .andExpect(jsonPath("$.body.history[0].measuredAt")
+                        .value(earlierMeasuredAt.toString()))
+                .andExpect(jsonPath("$.body.history[1].measuredAt")
+                        .value(laterMeasuredAt.toString()))
+                .andExpect(jsonPath("$.exercises[0].recentRecords[0].workoutDate")
+                        .value(today.minusDays(2).toString()))
+                .andExpect(jsonPath("$.exercises[0].recentRecords[1].workoutDate")
+                        .value(today.minusDays(1).toString()));
+    }
+
+    @Test
+    @DisplayName("최근 30일 Volume을 운동 카테고리별 일자 단위로 제공한다")
+    void returnsDailyVolumeByExerciseCategory() throws Exception {
+        LocalDate today = LocalDate.now();
+        long benchPressId = findDefaultExerciseId("벤치프레스");
+        long squatId = findDefaultExerciseId("스쿼트");
+
+        createCompletedWorkout(today.minusDays(1), benchPressId, 100, 10, 1L);
+        createCompletedWorkout(today.minusDays(1), squatId, 120, 5, 1L);
+
+        mockMvc.perform(get("/api/dashboard")
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workout.categoryDailyVolumes[0].category")
+                        .value("CHEST"))
+                .andExpect(jsonPath("$.workout.categoryDailyVolumes[0].dailyVolumes[28].volume")
+                        .value(1000))
+                .andExpect(jsonPath("$.workout.categoryDailyVolumes[5].category")
+                        .value("LEGS"))
+                .andExpect(jsonPath("$.workout.categoryDailyVolumes[5].dailyVolumes[28].volume")
+                        .value(600));
+    }
+
+    @Test
     @DisplayName("Dashboard 집계에는 진행 중 Workout과 다른 사용자의 기록이 포함되지 않는다")
     void excludesInProgressAndOtherUsersFromDashboard() throws Exception {
         LocalDate today = LocalDate.now();

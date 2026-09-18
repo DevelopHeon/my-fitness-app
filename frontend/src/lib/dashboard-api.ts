@@ -52,6 +52,10 @@ export type Dashboard = {
     previous30DaysVolume: number;
     last30DaysVolumeChangePercentage: number | null;
     dailyVolumes: DashboardDailyVolume[];
+    categoryDailyVolumes: {
+      category: ExerciseCategory;
+      dailyVolumes: DashboardDailyVolume[];
+    }[];
   };
   body: {
     latest: DashboardBodyPoint | null;

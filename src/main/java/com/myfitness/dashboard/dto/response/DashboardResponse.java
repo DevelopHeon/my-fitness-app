@@ -1,5 +1,6 @@
 package com.myfitness.dashboard.dto.response;
 
+import com.myfitness.workout.domain.ExerciseCategory;
 import com.myfitness.workout.domain.ExerciseType;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +22,12 @@ public record DashboardResponse(
             BigDecimal last30DaysVolume,
             BigDecimal previous30DaysVolume,
             BigDecimal last30DaysVolumeChangePercentage,
+            List<DailyVolume> dailyVolumes,
+            List<CategoryDailyVolume> categoryDailyVolumes
+    ) {}
+
+    public record CategoryDailyVolume(
+            ExerciseCategory category,
             List<DailyVolume> dailyVolumes
     ) {}
 

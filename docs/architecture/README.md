@@ -34,7 +34,8 @@
 - Spring Boot: 4.1.1
 - Database: PostgreSQL 17 + Flyway
 - Schema DDL: Flyway migration으로 이력과 배포 가능한 DDL을 관리
-- Development DDL: MVP 개발 완료 전까지 Hibernate `ddl-auto: create-drop` 유지
+- Main runtime DDL: Hibernate `ddl-auto: none`
+- Test DDL: 테스트 전용 H2 환경은 `create-drop` 사용
 - Frontend: Next.js + TypeScript + PWA
 - AI: Spring AI 2.0.x + Ollama (Phase 6에서 연결)
 
@@ -46,8 +47,8 @@
 - 최종 서비스 진입점은 Spring Boot 하나를 우선한다.
 - PostgreSQL과 Ollama는 별도 프로세스/컨테이너로 운영한다.
 - 테이블/인덱스/제약조건 및 기본 데이터 변경은 반드시 Flyway migration에 반영한다.
-- MVP 개발 중 `ddl-auto: create-drop`은 빠른 개발을 위한 로컬 스키마 재생성 용도로만 사용하며, Flyway DDL 관리를 대체하지 않는다.
-- `create-drop`이 Flyway seed 이후 스키마를 재생성하는 개발 환경에서는 기본 Exercise initializer가 공용 운동 카탈로그를 보충한다. MVP 이후 `ddl-auto`를 비활성화하면 Flyway migration만을 기준으로 운영한다.
+- 메인 실행 환경은 `ddl-auto: none`을 사용하며 스키마 변경은 Flyway migration만을 기준으로 한다.
+- 테스트 환경은 격리된 H2 DB에서만 `create-drop`을 사용한다.
 
 ## 4. 백엔드 책임
 
@@ -140,6 +141,7 @@ Next.js PWA가 다음을 담당한다.
 - 입력 의미에 맞는 text / numeric / date 제약
 - Dashboard 기본 진입 화면과 SVG 기반 추이 시각화
 - 최근 7/30일 Workout/Volume, Body 변화, 종목별 PR/1RM 표시
+- Volume 차트 전체/운동 카테고리 필터 및 실제 기록 날짜 기준 추이 정렬
 - API 호출 및 사용자 피드백
 - PWA 설치와 기본 캐싱
 - AI 채팅 화면

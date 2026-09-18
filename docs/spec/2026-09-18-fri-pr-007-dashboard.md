@@ -42,6 +42,7 @@ Dashboard API는 다음 값을 제공한다.
 - 직전 30일 Volume
 - 30일 Volume 증감률
 - 최근 30일 일별 Volume
+- 최근 30일 카테고리별 일별 Volume
 
 Volume 계산:
 
@@ -52,6 +53,18 @@ workout volume = Σ completed set volume
 
 이전 기간 Volume이 0이면 무한대 형태의 증감률을 만들지 않고
 증감률을 null로 응답한다.
+
+## 날짜 정렬 기준
+
+Dashboard의 모든 추이는 레코드 생성/등록 순서가 아니라 실제 기록 날짜를 사용한다.
+
+- BodyRecord: measuredAt 오름차순
+- Workout / 종목 기록: workoutDate 오름차순
+- 나중에 과거 날짜의 기록을 추가해도 차트는 실제 날짜 순서로 재정렬
+- BodyRecord의 measuredAt은 Instant이므로 프론트 라벨은 브라우저 로컬 날짜로 변환
+
+예를 들어 9월 17일 기록을 먼저 등록하고 이후 9월 16일 기록을 등록해도
+차트는 9/16 → 9/17 순서로 표시한다.
 
 ## Body 지표
 
@@ -111,6 +124,8 @@ Dashboard 전용 집계 결과 DTO를 사용하고 JPA Entity는 노출하지 �
 1. 최근 7일 / 30일 Workout 횟수
 2. 최근 7일 / 30일 Volume 및 이전 기간 대비 변화
 3. 최근 30일 일별 Volume 차트
+   - 전체 / 가슴 / 어깨 / 등 / 팔 / 복근 / 하체 필터
+   - 동일 카테고리 운동의 합산 Volume을 일자별로 표시
 4. 최신 Body 지표 및 이전 측정 대비 변화
 5. 최근 Body 추이 차트
 6. 운동 종목 선택
