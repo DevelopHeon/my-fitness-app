@@ -32,7 +32,7 @@
 
 - Java: 21 타깃
 - Spring Boot: 4.1.1
-- Database: PostgreSQL 17
+- Database: PostgreSQL 17 + Flyway
 - Frontend: Next.js + TypeScript + PWA
 - AI: Spring AI 2.0.x + Ollama (Phase 6에서 연결)
 
@@ -55,7 +55,38 @@ Spring Boot가 다음을 담당한다.
 - AI Tool Calling을 위한 정확한 데이터 조회와 계산
 - 정적 프론트엔드 제공
 
-기능 패키지는 도메인 기준으로 나누고, 서비스 분리는 하지 않는다.
+기능 패키지는 도메인 기준으로 나누되, 각 도메인 내부는 역할이 분명한 수준까지만 실용적으로 분리한다.
+
+Workout 기준 현재 패키지 구조:
+
+```text
+workout/
+├── controller
+├── dto/
+│   ├── request
+│   └── response
+├── service
+│   ├── WorkoutApplicationService
+│   ├── WorkoutService
+│   └── ExerciseService
+├── domain
+├── repository
+└── exception
+```
+
+Controller는 하위 서비스를 여러 개 직접 조합하지 않는다. 외부 요청은 `WorkoutApplicationService` 하나를 통해 들어오고, 애플리케이션 서비스가 필요한 Service와 Domain을 조합한다.
+
+```text
+Controller
+   ↓
+WorkoutApplicationService
+   ↓
+WorkoutService / ExerciseService
+   ↓
+Domain + Repository
+```
+
+예외 타입은 각 도메인의 `exception` 패키지에 두되, HTTP 상태와 공통 오류 응답 변환은 `common.exception.GlobalExceptionHandler`가 담당한다.
 
 ## 5. 프론트엔드 책임
 
@@ -96,7 +127,7 @@ PWA → /api/ai/chat → Spring AI → Ollama
 
 ## 7. 단계별 확장
 
-1. Workout: 운동/세트 기록과 이전 기록 조회
+1. Workout: 운동/세트 기록과 이전 기록 조회 — 완료
 2. Routine: 반복 운동 템플릿
 3. BodyRecord: 체중/체지방/골격근
 4. Dashboard: 운동량과 신체 변화 시각화

@@ -23,7 +23,7 @@ My Fitness는 운동 기록과 식단/신체 데이터를 한 곳에 축적하�
 프로젝트는 하나의 저장소와 하나의 Spring Boot 배포 단위를 사용한다.
 
 - Backend: Java + Spring Boot
-- Persistence: Spring Data JPA + PostgreSQL
+- Persistence: Spring Data JPA + PostgreSQL + Flyway
 - Frontend: Next.js + TypeScript
 - UI: Tailwind CSS
 - Client: PWA
@@ -268,25 +268,33 @@ Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
                             ▼
                           Ollama
 ```
-Spring Boot는 기능 단위 패키지를 기본으로 한다.
+Spring Boot는 기능 단위 패키지를 기본으로 하고, 각 기능 내부는 실용적인 역할 단위로 분리한다.
 
 ```text
 com.myfitness
 ├── user
 ├── workout
-│   ├── presentation
-│   ├── application
+│   ├── controller
+│   ├── dto
+│   │   ├── request
+│   │   └── response
+│   ├── service
 │   ├── domain
-│   └── infrastructure
+│   ├── repository
+│   └── exception
 ├── routine
 ├── body
 ├── nutrition
 ├── dashboard
 ├── ai
 └── common
+    ├── config
+    └── exception
 ```
 
-각 도메인은 필요 이상으로 계층을 세분화하지 않는다. 초기에는 단일 애플리케이션 내부의 명확한 책임 분리를 우선하며, 마이크로서비스 분리를 고려하지 않는다.
+Controller는 여러 하위 Service를 직접 조합하지 않고 해당 도메인의 Application Service를 단일 진입점으로 사용한다. Application Service가 필요한 Service와 Domain을 조합하고 트랜잭션 경계를 가진다.
+
+엄격한 헥사고날/DDD 계층을 그대로 적용하기보다, 패키지 책임이 명확하고 테스트하기 쉬운 정도로만 분리한다. 마이크로서비스 분리는 고려하지 않는다.
 
 AI 패키지는 다음 책임을 가진다.
 

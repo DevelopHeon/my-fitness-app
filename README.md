@@ -73,4 +73,15 @@ npm run dev
 6. GitHub push
 7. 작업 중단
 
-다음 작업은 Phase 1 Workout 기록 구현입니다.
+## 현재 진행 상태
+
+- [x] Phase 1 Workout 기록
+- [ ] Phase 2 Routine
+- [ ] Phase 3 BodyRecord
+- [ ] Phase 4 Dashboard
+- [ ] Phase 5 Nutrition
+- [ ] Phase 6 Local AI Coach
+
+Phase 1 개발 환경에서는 인증 구현 전까지 `X-User-Id: 1`을 임시 사용자 컨텍스트로 사용합니다.
+
+다음 작업은 Phase 2 Routine 구현입니다.
