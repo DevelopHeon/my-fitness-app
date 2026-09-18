@@ -119,6 +119,8 @@ Next.js PWA가 다음을 담당한다.
 - Workout 내부의 일별 조회 / 월간 Calendar 전환
 - 선택 날짜의 Workout만 조회하는 일 단위 기록 화면
 - 기록 중 이전 화면 이동 및 진행 중 기록 이어쓰기
+- Workout 종목 카드별 접기/펼치기
+- 저장 전 세트 묶음 입력의 브라우저 임시 저장 / 복원
 - 완료 Workout 재오픈 후 수정 / 재완료
 - 완료 Workout 기록 상세 토글
 - 입력 의미에 맞는 text / numeric / date 제약

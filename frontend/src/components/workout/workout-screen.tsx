@@ -78,6 +78,89 @@ function totalPlannedSets(plan: SetPlan) {
   );
 }
 
+function workoutDraftStorageKey(workoutId: number) {
+  return "my-fitness:workout-draft:" + workoutId;
+}
+
+function hasDraftInput(plan: SetPlan) {
+  return plan.drafts.some(
+    (draft) =>
+      draft.weightKg.trim() !== "" ||
+      draft.reps.trim() !== "" ||
+      draft.setCount.trim() !== "",
+  );
+}
+
+function restoreSetPlans(workout: Workout): Record<number, SetPlan> {
+  const fallback = Object.fromEntries(
+    workout.exercises.map((entry) => [entry.id, createPlan()]),
+  );
+  if (typeof window === "undefined") return fallback;
+
+  try {
+    const raw = window.localStorage.getItem(
+      workoutDraftStorageKey(workout.id),
+    );
+    if (!raw) return fallback;
+
+    const parsed = JSON.parse(raw) as {
+      setPlans?: Record<string, SetPlan>;
+    };
+    if (!parsed.setPlans) return fallback;
+
+    return Object.fromEntries(
+      workout.exercises.map((entry) => {
+        const stored = parsed.setPlans?.[String(entry.id)];
+        const drafts = stored?.drafts
+          ?.filter((draft) => draft && typeof draft === "object")
+          .map((draft) => ({
+            weightKg:
+              typeof draft.weightKg === "string"
+                ? draft.weightKg
+                : "",
+            reps:
+              typeof draft.reps === "string" ? draft.reps : "",
+            setCount:
+              typeof draft.setCount === "string"
+                ? draft.setCount
+                : "",
+          }));
+
+        return [
+          entry.id,
+          drafts && drafts.length > 0
+            ? { drafts }
+            : createPlan(),
+        ];
+      }),
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+function persistSetPlans(
+  workoutId: number,
+  setPlans: Record<number, SetPlan>,
+) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    workoutDraftStorageKey(workoutId),
+    JSON.stringify({
+      setPlans,
+      savedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+function clearStoredWorkoutDraft(workoutId: number) {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(
+    workoutDraftStorageKey(workoutId),
+  );
+}
+
 export default function WorkoutScreen({
   selectedDate,
   onSelectedDateChange,
@@ -104,8 +187,14 @@ export default function WorkoutScreen({
   );
   const [setPlans, setSetPlans] = useState<Record<number, SetPlan>>({});
   const [editingSet, setEditingSet] = useState<EditingSet | null>(null);
+  const [expandedExerciseIds, setExpandedExerciseIds] =
+    useState<Set<number>>(new Set());
   const [expandedWorkoutIds, setExpandedWorkoutIds] =
     useState<Set<number>>(new Set());
+  const [draftReadyWorkoutId, setDraftReadyWorkoutId] =
+    useState<number | null>(null);
+  const [draftSavedMessage, setDraftSavedMessage] =
+    useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -118,6 +207,17 @@ export default function WorkoutScreen({
       ),
     [activeWorkout],
   );
+
+  useEffect(() => {
+    if (
+      !activeWorkout ||
+      draftReadyWorkoutId !== activeWorkout.id
+    ) {
+      return;
+    }
+
+    persistSetPlans(activeWorkout.id, setPlans);
+  }, [activeWorkout, draftReadyWorkoutId, setPlans]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +260,9 @@ export default function WorkoutScreen({
         if (!inProgress) {
           setPreviousRecords({});
           setSetPlans({});
+          setExpandedExerciseIds(new Set());
+          setDraftReadyWorkoutId(null);
+          setDraftSavedMessage(null);
           return;
         }
 
@@ -187,14 +290,16 @@ export default function WorkoutScreen({
 
         const previousMap = Object.fromEntries(previousEntries);
         setPreviousRecords(previousMap);
-        setSetPlans(
-          Object.fromEntries(
-            inProgress.exercises.map((entry) => [
-              entry.id,
-              createPlan(),
-            ]),
+        setSetPlans(restoreSetPlans(inProgress));
+        setExpandedExerciseIds(
+          new Set(
+            inProgress.exercises
+              .slice(0, 1)
+              .map((entry) => entry.id),
           ),
         );
+        setDraftReadyWorkoutId(inProgress.id);
+        setDraftSavedMessage(null);
       } catch (caught) {
         if (!cancelled) {
           setError(
@@ -249,7 +354,35 @@ export default function WorkoutScreen({
     setPreviousRecords({});
     setSetPlans({});
     setEditingSet(null);
+    setExpandedExerciseIds(new Set());
+    setDraftReadyWorkoutId(null);
+    setDraftSavedMessage(null);
     setError(null);
+  }
+
+  function handleTemporarySave() {
+    if (!activeWorkout) return;
+
+    persistSetPlans(activeWorkout.id, setPlans);
+    setDraftSavedMessage(
+      "임시 저장됨 · " +
+        new Date().toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+    );
+  }
+
+  function toggleExercise(workoutExerciseId: number) {
+    setExpandedExerciseIds((current) => {
+      const next = new Set(current);
+      if (next.has(workoutExerciseId)) {
+        next.delete(workoutExerciseId);
+      } else {
+        next.add(workoutExerciseId);
+      }
+      return next;
+    });
   }
 
   async function openWorkoutForEditing(
@@ -285,22 +418,39 @@ export default function WorkoutScreen({
     });
     if (!prepared) return;
 
+    if (reopenCompleted) {
+      clearStoredWorkoutDraft(prepared.workout.id);
+    }
+    const plans = reopenCompleted
+      ? Object.fromEntries(
+          prepared.workout.exercises.map((entry) => [
+            entry.id,
+            createPlan(),
+          ]),
+        )
+      : restoreSetPlans(prepared.workout);
+
     replaceWorkout(prepared.workout);
     setActiveWorkout(prepared.workout);
     setPreviousRecords(prepared.previousMap);
-    setSetPlans(
-      Object.fromEntries(
-        prepared.workout.exercises.map((entry) => [
-          entry.id,
-          createPlan(),
-        ]),
+    setSetPlans(plans);
+    setExpandedExerciseIds(
+      new Set(
+        prepared.workout.exercises
+          .slice(0, 1)
+          .map((entry) => entry.id),
       ),
     );
+    setDraftReadyWorkoutId(prepared.workout.id);
+    setDraftSavedMessage(null);
     setEditingSet(null);
     setWorkoutView("daily");
   }
 
   function handleBackFromRecording() {
+    if (activeWorkout) {
+      persistSetPlans(activeWorkout.id, setPlans);
+    }
     setActiveWorkout(null);
     clearRecordingInputs();
     setWorkoutView("daily");
@@ -320,8 +470,10 @@ export default function WorkoutScreen({
     );
     if (!workout) return;
 
+    clearStoredWorkoutDraft(workout.id);
     clearRecordingInputs();
     setActiveWorkout(workout);
+    setDraftReadyWorkoutId(workout.id);
     replaceWorkout(workout);
   }
 
@@ -338,11 +490,13 @@ export default function WorkoutScreen({
       ]),
     );
 
+    clearStoredWorkoutDraft(result.workout.id);
     setActiveWorkout(result.workout);
     replaceWorkout(result.workout);
     setPreviousRecords(previousMap);
     setEditingSet(null);
     setError(null);
+    setDraftSavedMessage(null);
     setSetPlans(
       Object.fromEntries(
         result.workout.exercises.map((entry) => [
@@ -351,6 +505,14 @@ export default function WorkoutScreen({
         ]),
       ),
     );
+    setExpandedExerciseIds(
+      new Set(
+        result.workout.exercises
+          .slice(0, 1)
+          .map((entry) => entry.id),
+      ),
+    );
+    setDraftReadyWorkoutId(result.workout.id);
   }
 
   function scrollToExerciseCard(
@@ -409,6 +571,11 @@ export default function WorkoutScreen({
         ...current,
         [entry.id]: createPlan(),
       }));
+      setExpandedExerciseIds((current) => {
+        const next = new Set(current);
+        next.add(entry.id);
+        return next;
+      });
     }
 
     scrollToExerciseCard(
@@ -672,6 +839,11 @@ export default function WorkoutScreen({
       delete next[workoutExerciseId];
       return next;
     });
+    setExpandedExerciseIds((current) => {
+      const next = new Set(current);
+      next.delete(workoutExerciseId);
+      return next;
+    });
     if (
       editingSet?.workoutExerciseId === workoutExerciseId
     ) {
@@ -682,11 +854,22 @@ export default function WorkoutScreen({
   async function handleComplete() {
     if (!activeWorkout) return;
 
+    const hasUnsavedInput = Object.values(setPlans).some(
+      hasDraftInput,
+    );
+    if (hasUnsavedInput) {
+      setError(
+        "아직 저장하지 않은 세트 입력이 있습니다. 세트를 저장한 뒤 운동을 완료해주세요.",
+      );
+      return;
+    }
+
     const completed = await run(() =>
       workoutApi.completeWorkout(activeWorkout.id),
     );
     if (!completed) return;
 
+    clearStoredWorkoutDraft(completed.id);
     replaceWorkout(completed);
     setExpandedWorkoutIds((current) => {
       const next = new Set(current);
@@ -965,6 +1148,10 @@ export default function WorkoutScreen({
             const plan =
               setPlans[entry.id] ??
               createPlan();
+            const exerciseExpanded =
+              expandedExerciseIds.has(entry.id);
+            const pendingSetCount =
+              totalPlannedSets(plan);
 
             return (
               <section
@@ -973,7 +1160,12 @@ export default function WorkoutScreen({
                 className="scroll-mt-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <button
+                    type="button"
+                    aria-expanded={exerciseExpanded}
+                    onClick={() => toggleExercise(entry.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <p className="text-xs font-medium text-zinc-400">
                       {categoryLabel(entry.category)}
                       {entry.exerciseType === "CUSTOM"
@@ -983,19 +1175,36 @@ export default function WorkoutScreen({
                     <h2 className="mt-1 text-lg font-semibold">
                       {entry.exerciseName}
                     </h2>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      handleRemoveExercise(entry.id)
-                    }
-                    className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
-                  >
-                    종목 삭제
+                    <p className="mt-1 text-xs text-zinc-400">
+                      저장 {entry.sets.length}세트
+                      {pendingSetCount > 0
+                        ? " · 입력 중 " + pendingSetCount + "세트"
+                        : ""}
+                    </p>
                   </button>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleExercise(entry.id)}
+                      className="text-xs font-semibold text-zinc-500 hover:text-zinc-900"
+                    >
+                      {exerciseExpanded ? "접기 ↑" : "열기 ↓"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        handleRemoveExercise(entry.id)
+                      }
+                      className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                    >
+                      종목 삭제
+                    </button>
+                  </div>
                 </div>
 
+                {exerciseExpanded && (
+                  <>
                 {previous && (
                   <div className="mt-4 rounded-xl bg-zinc-50 px-3 py-3">
                     <p className="text-xs font-medium text-zinc-400">
@@ -1259,18 +1468,38 @@ export default function WorkoutScreen({
                     총 {totalPlannedSets(plan)}세트 저장
                   </button>
                 </div>
+                  </>
+                )}
               </section>
             );
           })}
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleComplete}
-            className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3.5 text-sm font-semibold text-zinc-900 disabled:opacity-50"
-          >
-            {selectedDate} 운동 완료
-          </button>
+          <section className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleTemporarySave}
+                className="rounded-2xl border border-zinc-300 bg-white px-4 py-3.5 text-sm font-semibold text-zinc-700 disabled:opacity-50"
+              >
+                임시 저장
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleComplete}
+                className="rounded-2xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                운동 완료
+              </button>
+            </div>
+            <p className="mt-2 text-center text-xs leading-5 text-zinc-400">
+              작성 중 입력값은 화면을 이동해도 자동 임시 저장됩니다.
+              {draftSavedMessage
+                ? " " + draftSavedMessage
+                : ""}
+            </p>
+          </section>
         </div>
       )}
 
