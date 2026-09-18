@@ -22,6 +22,10 @@ export default function WorkoutScreen() {
     Record<number, PreviousExerciseRecord | null>
   >({});
   const [setDrafts, setSetDrafts] = useState<Record<number, SetDraft>>({});
+  const [editingSet, setEditingSet] = useState<{
+    workoutExerciseId: number;
+    setId: number;
+  } | null>(null);
   const [newExerciseName, setNewExerciseName] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +149,7 @@ export default function WorkoutScreen() {
     setSelectedExerciseId(null);
   }
 
-  async function handleAddSet(workoutExerciseId: number) {
+  async function handleSaveSet(workoutExerciseId: number) {
     if (!activeWorkout) return;
 
     const draft = setDrafts[workoutExerciseId] ?? {
@@ -160,20 +164,43 @@ export default function WorkoutScreen() {
       return;
     }
 
+    const target = editingSet?.workoutExerciseId === workoutExerciseId
+      ? editingSet
+      : null;
     const workout = await run(() =>
-      workoutApi.addSet(
-        activeWorkout.id,
-        workoutExerciseId,
-        weightKg,
-        reps,
-      ),
+      target
+        ? workoutApi.updateSet(
+            activeWorkout.id,
+            workoutExerciseId,
+            target.setId,
+            weightKg,
+            reps,
+          )
+        : workoutApi.addSet(
+            activeWorkout.id,
+            workoutExerciseId,
+            weightKg,
+            reps,
+          ),
     );
     if (!workout) return;
 
     setActiveWorkout(workout);
+    setEditingSet(null);
     setSetDrafts((current) => ({
       ...current,
       [workoutExerciseId]: { weightKg: draft.weightKg, reps: "" },
+    }));
+  }
+
+  function handleEditSet(workoutExerciseId: number, set: WorkoutSet) {
+    setEditingSet({ workoutExerciseId, setId: set.id });
+    setSetDrafts((current) => ({
+      ...current,
+      [workoutExerciseId]: {
+        weightKg: String(set.weightKg),
+        reps: String(set.reps),
+      },
     }));
   }
 
@@ -183,7 +210,35 @@ export default function WorkoutScreen() {
     const workout = await run(() =>
       workoutApi.removeSet(activeWorkout.id, workoutExerciseId, setId),
     );
-    if (workout) setActiveWorkout(workout);
+    if (!workout) return;
+
+    setActiveWorkout(workout);
+    if (editingSet?.setId === setId) {
+      setEditingSet(null);
+      setSetDrafts((current) => ({
+        ...current,
+        [workoutExerciseId]: { weightKg: "", reps: "" },
+      }));
+    }
+  }
+
+  async function handleRemoveExercise(workoutExerciseId: number) {
+    if (!activeWorkout) return;
+
+    const workout = await run(() =>
+      workoutApi.removeExercise(activeWorkout.id, workoutExerciseId),
+    );
+    if (!workout) return;
+
+    setActiveWorkout(workout);
+    if (editingSet?.workoutExerciseId === workoutExerciseId) {
+      setEditingSet(null);
+    }
+    setSetDrafts((current) => {
+      const next = { ...current };
+      delete next[workoutExerciseId];
+      return next;
+    });
   }
 
   async function handleComplete() {
@@ -202,6 +257,7 @@ export default function WorkoutScreen() {
     setActiveWorkout(null);
     setPreviousRecords({});
     setSetDrafts({});
+    setEditingSet(null);
   }
 
   return (
@@ -316,6 +372,7 @@ export default function WorkoutScreen() {
               weightKg: "",
               reps: "",
             };
+            const isEditingSet = editingSet?.workoutExerciseId === entry.id;
 
             return (
               <section
@@ -331,34 +388,55 @@ export default function WorkoutScreen() {
                       {entry.exerciseName}
                     </h2>
                   </div>
-                  {previous && (
-                    <div className="text-right text-xs text-zinc-400">
-                      <p>이전 {previous.workoutDate}</p>
-                      <p className="mt-1 font-medium text-zinc-600">
-                        {previous.sets
-                          .map((set) => `${set.weightKg}kg × ${set.reps}`)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-end gap-2">
+                    {previous && (
+                      <div className="text-right text-xs text-zinc-400">
+                        <p>이전 {previous.workoutDate}</p>
+                        <p className="mt-1 font-medium text-zinc-600">
+                          {previous.sets
+                            .map((set) => `${set.weightKg}kg × ${set.reps}`)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => handleRemoveExercise(entry.id)}
+                      className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                    >
+                      종목 삭제
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-5 space-y-2">
                   {entry.sets.map((set) => (
                     <div
                       key={set.id}
-                      className="grid grid-cols-[36px_1fr_1fr_40px] items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5 text-sm"
+                      className="grid grid-cols-[36px_1fr_1fr_auto] items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5 text-sm"
                     >
                       <span className="text-zinc-400">{set.setNumber}</span>
                       <span className="font-medium">{set.weightKg} kg</span>
                       <span className="font-medium">{set.reps} reps</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSet(entry.id, set.id)}
-                        className="text-xs font-medium text-zinc-400 hover:text-zinc-900"
-                      >
-                        삭제
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleEditSet(entry.id, set)}
+                          className="text-xs font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-40"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleRemoveSet(entry.id, set.id)}
+                          className="text-xs font-medium text-zinc-400 hover:text-zinc-900 disabled:opacity-40"
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -397,12 +475,27 @@ export default function WorkoutScreen() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => handleAddSet(entry.id)}
+                    onClick={() => handleSaveSet(entry.id)}
                     className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
                   >
-                    저장
+                    {isEditingSet ? "수정 저장" : "저장"}
                   </button>
                 </div>
+                {isEditingSet && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingSet(null);
+                      setSetDrafts((current) => ({
+                        ...current,
+                        [entry.id]: { weightKg: "", reps: "" },
+                      }));
+                    }}
+                    className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-900"
+                  >
+                    수정 취소
+                  </button>
+                )}
               </section>
             );
           })}

@@ -153,10 +153,10 @@ HTTP 예외 변환은 도메인별 Handler가 아니라 `common.exception.Global
 ### Frontend
 - 운동 시작
 - 사용자 운동 종목 등록 및 선택
-- Workout에 운동 종목 추가
+- Workout에 운동 종목 추가/삭제
 - 이전 완료 기록 표시
 - 세트 중량/횟수 입력
-- 세트 삭제
+- 세트 수정/삭제
 - 운동 완료
 - 최근 30일 Workout 간단 조회
 - 모바일 우선의 단순하고 깔끔한 카드 UI
