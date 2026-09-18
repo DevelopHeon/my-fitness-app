@@ -155,7 +155,7 @@ HTTP 예외 변환은 도메인별 Handler가 아니라 `common.exception.Global
 - 사용자 운동 종목 등록 및 선택
 - Workout에 운동 종목 추가/삭제
 - 이전 완료 기록 표시
-- 세트 중량/횟수 입력
+- 세트 중량/횟수/운동 시간 입력
 - 세트 수정/삭제
 - 운동 완료
 - 최근 30일 Workout 간단 조회
@@ -168,7 +168,7 @@ Phase 1 완료 시 다음 테스트를 포함하고 전체 테스트 통과를 �
 - Domain: Workout 상태/소유권/완료 후 변경 제한/세트 유효성/세트 순서
 - Service: 다른 사용자 Workout 접근 제한
 - Repository: 가장 최근 완료 운동 기록 조회
-- API Integration: 운동 생성 → 종목 추가 → 세트 기록/수정 → 완료 → 이전 기록 조회 및 사용자 격리
+- API Integration: 운동 생성 → 종목 추가 → 세트 기록/수정/삭제 → 시간형 세트 → 완료 → 이전 기록 조회 및 사용자 격리
 
 검증 명령:
 - `./gradlew test --no-daemon`

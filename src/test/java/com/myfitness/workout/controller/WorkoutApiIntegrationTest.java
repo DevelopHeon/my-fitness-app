@@ -126,8 +126,9 @@ class WorkoutApiIntegrationTest {
                         workoutId, workoutExerciseId)
                         .header("X-User-Id", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"weightKg\":40,\"reps\":12,\"completed\":true}"))
+                        .content("{\"weightKg\":0,\"reps\":0,\"durationSeconds\":60,\"completed\":true}"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].sets[0].durationSeconds").value(60))
                 .andReturn();
         long setId = json(setAdded).path("exercises").get(0).path("sets").get(0).path("id").asLong();
 

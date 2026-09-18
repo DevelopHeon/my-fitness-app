@@ -12,6 +12,7 @@ import {
 type SetDraft = {
   weightKg: string;
   reps: string;
+  durationSeconds: string;
 };
 
 export default function WorkoutScreen() {
@@ -155,12 +156,26 @@ export default function WorkoutScreen() {
     const draft = setDrafts[workoutExerciseId] ?? {
       weightKg: "",
       reps: "",
+      durationSeconds: "",
     };
-    const weightKg = Number(draft.weightKg);
-    const reps = Number(draft.reps);
+    const weightKg = draft.weightKg.trim() ? Number(draft.weightKg) : 0;
+    const reps = draft.reps.trim() ? Number(draft.reps) : 0;
+    const durationSeconds = draft.durationSeconds.trim()
+      ? Number(draft.durationSeconds)
+      : null;
 
-    if (!Number.isFinite(weightKg) || !Number.isInteger(reps) || reps <= 0) {
-      setError("중량과 반복 횟수를 확인해주세요.");
+    const invalidDuration =
+      durationSeconds !== null &&
+      (!Number.isInteger(durationSeconds) || durationSeconds < 0);
+    if (
+      !Number.isFinite(weightKg) ||
+      weightKg < 0 ||
+      !Number.isInteger(reps) ||
+      reps < 0 ||
+      invalidDuration ||
+      (reps === 0 && (!durationSeconds || durationSeconds === 0))
+    ) {
+      setError("중량, 반복 횟수 또는 운동 시간을 확인해주세요.");
       return;
     }
 
@@ -175,12 +190,14 @@ export default function WorkoutScreen() {
             target.setId,
             weightKg,
             reps,
+            durationSeconds,
           )
         : workoutApi.addSet(
             activeWorkout.id,
             workoutExerciseId,
             weightKg,
             reps,
+            durationSeconds,
           ),
     );
     if (!workout) return;
@@ -189,7 +206,11 @@ export default function WorkoutScreen() {
     setEditingSet(null);
     setSetDrafts((current) => ({
       ...current,
-      [workoutExerciseId]: { weightKg: draft.weightKg, reps: "" },
+      [workoutExerciseId]: {
+        weightKg: draft.weightKg,
+        reps: "",
+        durationSeconds: "",
+      },
     }));
   }
 
@@ -199,7 +220,11 @@ export default function WorkoutScreen() {
       ...current,
       [workoutExerciseId]: {
         weightKg: String(set.weightKg),
-        reps: String(set.reps),
+        reps: set.reps > 0 ? String(set.reps) : "",
+        durationSeconds:
+          set.durationSeconds && set.durationSeconds > 0
+            ? String(set.durationSeconds)
+            : "",
       },
     }));
   }
@@ -217,7 +242,11 @@ export default function WorkoutScreen() {
       setEditingSet(null);
       setSetDrafts((current) => ({
         ...current,
-        [workoutExerciseId]: { weightKg: "", reps: "" },
+        [workoutExerciseId]: {
+          weightKg: "",
+          reps: "",
+          durationSeconds: "",
+        },
       }));
     }
   }
@@ -371,6 +400,7 @@ export default function WorkoutScreen() {
             const draft = setDrafts[entry.id] ?? {
               weightKg: "",
               reps: "",
+              durationSeconds: "",
             };
             const isEditingSet = editingSet?.workoutExerciseId === entry.id;
 
@@ -394,7 +424,17 @@ export default function WorkoutScreen() {
                         <p>이전 {previous.workoutDate}</p>
                         <p className="mt-1 font-medium text-zinc-600">
                           {previous.sets
-                            .map((set) => `${set.weightKg}kg × ${set.reps}`)
+                            .map((set) =>
+                              [
+                                `${set.weightKg}kg`,
+                                set.reps > 0 ? `${set.reps}회` : null,
+                                set.durationSeconds
+                                  ? `${set.durationSeconds}초`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" × "),
+                            )
                             .join(" · ")}
                         </p>
                       </div>
@@ -418,7 +458,12 @@ export default function WorkoutScreen() {
                     >
                       <span className="text-zinc-400">{set.setNumber}</span>
                       <span className="font-medium">{set.weightKg} kg</span>
-                      <span className="font-medium">{set.reps} reps</span>
+                      <span className="font-medium">
+                        {set.reps > 0 ? `${set.reps} reps` : ""}
+                        {set.durationSeconds
+                          ? `${set.reps > 0 ? " · " : ""}${set.durationSeconds}s`
+                          : ""}
+                      </span>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -441,7 +486,7 @@ export default function WorkoutScreen() {
                   ))}
                 </div>
 
-                <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
+                <div className="mt-4 grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
                   <input
                     inputMode="decimal"
                     value={draft.weightKg}
@@ -472,6 +517,21 @@ export default function WorkoutScreen() {
                     placeholder="reps"
                     className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
                   />
+                  <input
+                    inputMode="numeric"
+                    value={draft.durationSeconds}
+                    onChange={(event) =>
+                      setSetDrafts((current) => ({
+                        ...current,
+                        [entry.id]: {
+                          ...draft,
+                          durationSeconds: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="sec"
+                    className="min-w-0 rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
+                  />
                   <button
                     type="button"
                     disabled={busy}
@@ -488,7 +548,7 @@ export default function WorkoutScreen() {
                       setEditingSet(null);
                       setSetDrafts((current) => ({
                         ...current,
-                        [entry.id]: { weightKg: "", reps: "" },
+                        [entry.id]: { weightKg: "", reps: "", durationSeconds: "" },
                       }));
                     }}
                     className="mt-2 text-xs font-medium text-zinc-400 hover:text-zinc-900"

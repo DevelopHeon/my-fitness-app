@@ -106,6 +106,7 @@ export const workoutApi = {
     workoutExerciseId: number,
     weightKg: number,
     reps: number,
+    durationSeconds: number | null,
   ) =>
     request<Workout>(
       `/api/workouts/${workoutId}/exercises/${workoutExerciseId}/sets`,
@@ -114,6 +115,7 @@ export const workoutApi = {
         body: JSON.stringify({
           weightKg,
           reps,
+          durationSeconds,
           completed: true,
         }),
       },
@@ -124,12 +126,13 @@ export const workoutApi = {
     setId: number,
     weightKg: number,
     reps: number,
+    durationSeconds: number | null,
   ) =>
     request<Workout>(
       `/api/workouts/${workoutId}/exercises/${workoutExerciseId}/sets/${setId}`,
       {
         method: "PATCH",
-        body: JSON.stringify({ weightKg, reps, completed: true }),
+        body: JSON.stringify({ weightKg, reps, durationSeconds, completed: true }),
       },
     ),
   removeSet: (
