@@ -33,7 +33,7 @@
 예:
 - Workout 생성 → 운동 추가 → 세트 기록 → 완료 흐름
 - Routine으로 Workout 생성
-- BodyRecord 조회 기준
+- BodyRecord 동일 measuredAt 중복 방지와 measuredAt/id 결정적 정렬 기준
 - Nutrition 일별 집계
 
 ### 3순위: Repository 통합 테스트

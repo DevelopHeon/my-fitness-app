@@ -7,9 +7,24 @@ import java.util.Optional;
 
 public interface BodyRecordRepositoryPort {
     BodyRecord save(BodyRecord record);
+
     Optional<BodyRecord> findById(Long id);
+
     List<BodyRecord> findByUserIdAndMeasuredAtBetween(
-            Long userId, Instant from, Instant to);
+            Long userId,
+            Instant from,
+            Instant to);
+
     List<BodyRecord> findAllByUserId(Long userId);
+
+    boolean existsByUserIdAndMeasuredAt(
+            Long userId,
+            Instant measuredAt);
+
+    boolean existsByUserIdAndMeasuredAtAndIdNot(
+            Long userId,
+            Instant measuredAt,
+            Long excludedId);
+
     void delete(BodyRecord record);
 }

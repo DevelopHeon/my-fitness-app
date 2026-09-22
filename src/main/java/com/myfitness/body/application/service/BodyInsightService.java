@@ -19,6 +19,7 @@ public class BodyInsightService implements BodyInsightQuery {
     public List<BodyInsight> findAll(Long userId) {
         return bodyRecordRepositoryPort.findAllByUserId(userId).stream()
                 .map(record -> new BodyInsight(
+                        record.getId(),
                         record.getMeasuredAt(),
                         record.getWeightKg(),
                         record.getBodyFatPercentage(),

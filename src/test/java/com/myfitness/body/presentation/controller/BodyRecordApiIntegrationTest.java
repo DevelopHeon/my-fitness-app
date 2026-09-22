@@ -69,6 +69,111 @@ class BodyRecordApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("같은 사용자는 동일한 측정 일시를 중복 등록할 수 없고 다른 사용자는 등록할 수 있다")
+    void rejectsDuplicateMeasurementTimePerUser() throws Exception {
+        String measuredAt = "2026-09-18T00:00:00Z";
+
+        createRecord(
+                11L,
+                "64.00",
+                "15.00",
+                "31.00",
+                measuredAt,
+                null);
+
+        mockMvc.perform(post("/api/body-records")
+                        .header("X-User-Id", 11L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "weightKg":65.00,
+                                  "bodyFatPercentage":18.00,
+                                  "skeletalMuscleKg":32.00,
+                                  "measuredAt":"%s",
+                                  "memo":null
+                                }
+                                """.formatted(measuredAt)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code")
+                        .value("BODY_RECORD_RULE_VIOLATION"))
+                .andExpect(jsonPath("$.message")
+                        .value("동일한 측정 일시의 신체 기록이 이미 존재합니다."));
+
+        createRecord(
+                12L,
+                "65.00",
+                "18.00",
+                "32.00",
+                measuredAt,
+                null);
+    }
+
+    @Test
+    @DisplayName("신체 기록은 자기 자신의 측정 일시를 유지한 채 값을 수정할 수 있다")
+    void allowsUpdateKeepingOwnMeasurementTime() throws Exception {
+        MvcResult created = createRecord(
+                20L,
+                "64.00",
+                "15.00",
+                "31.00",
+                "2026-09-18T00:00:00Z",
+                null);
+        long recordId = json(created).path("id").asLong();
+
+        mockMvc.perform(put("/api/body-records/{bodyRecordId}", recordId)
+                        .header("X-User-Id", 20L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "weightKg":65.00,
+                                  "bodyFatPercentage":18.00,
+                                  "skeletalMuscleKg":32.00,
+                                  "measuredAt":"2026-09-18T00:00:00Z",
+                                  "memo":"같은 시각 수정"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightKg").value(65))
+                .andExpect(jsonPath("$.memo").value("같은 시각 수정"));
+    }
+
+    @Test
+    @DisplayName("신체 기록 수정 시 다른 기록과 동일한 측정 일시로 변경할 수 없다")
+    void rejectsDuplicateMeasurementTimeOnUpdate() throws Exception {
+        createRecord(
+                21L,
+                "64.00",
+                "15.00",
+                "31.00",
+                "2026-09-18T00:00:00Z",
+                null);
+        MvcResult second = createRecord(
+                21L,
+                "65.00",
+                "18.00",
+                "32.00",
+                "2026-09-18T01:00:00Z",
+                null);
+        long secondId = json(second).path("id").asLong();
+
+        mockMvc.perform(put("/api/body-records/{bodyRecordId}", secondId)
+                        .header("X-User-Id", 21L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "weightKg":65.00,
+                                  "bodyFatPercentage":18.00,
+                                  "skeletalMuscleKg":32.00,
+                                  "measuredAt":"2026-09-18T00:00:00Z",
+                                  "memo":null
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code")
+                        .value("BODY_RECORD_RULE_VIOLATION"));
+    }
+
+    @Test
     @DisplayName("신체 기록을 수정 및 삭제하고 다른 사용자의 접근을 차단한다")
     void updatesDeletesAndProtectsBodyRecordOwnership() throws Exception {
         MvcResult created = createRecord(

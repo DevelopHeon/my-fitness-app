@@ -78,11 +78,16 @@ public interface DashboardDataPort {
     }
 
     record BodyData(
+            Long id,
             Instant measuredAt,
             BigDecimal weightKg,
             BigDecimal bodyFatPercentage,
             BigDecimal skeletalMuscleKg
     ) {
+        public Long getId() {
+            return id;
+        }
+
         public Instant getMeasuredAt() {
             return measuredAt;
         }

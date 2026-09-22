@@ -6,7 +6,21 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface SpringDataBodyRecordRepository extends JpaRepository<BodyRecord, Long> {
-    List<BodyRecord> findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-            Long userId, Instant from, Instant to);
-    List<BodyRecord> findAllByUserIdOrderByMeasuredAtDesc(Long userId);
+    List<BodyRecord>
+            findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDescIdDesc(
+                    Long userId,
+                    Instant from,
+                    Instant to);
+
+    List<BodyRecord> findAllByUserIdOrderByMeasuredAtDescIdDesc(
+            Long userId);
+
+    boolean existsByUserIdAndMeasuredAt(
+            Long userId,
+            Instant measuredAt);
+
+    boolean existsByUserIdAndMeasuredAtAndIdNot(
+            Long userId,
+            Instant measuredAt,
+            Long excludedId);
 }

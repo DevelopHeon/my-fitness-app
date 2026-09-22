@@ -6,7 +6,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
-@Table(name = "body_records")
+@Table(
+        name = "body_records",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_body_records_user_measured_at",
+                columnNames = {"user_id", "measured_at"}))
 public class BodyRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -279,7 +279,7 @@ export default function BodyScreen() {
               {editingId ? "신체 기록 수정" : "신체 기록 추가"}
             </h2>
             <p className="mt-1 text-xs text-zinc-400">
-              같은 날 여러 번 측정해도 각각 저장됩니다.
+              같은 날 여러 번 기록할 수 있지만 동일한 측정 일시는 중복 저장할 수 없습니다.
             </p>
           </div>
           {editingId && (

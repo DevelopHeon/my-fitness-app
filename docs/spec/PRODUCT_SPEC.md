@@ -152,8 +152,10 @@ Spring Boot build
 - 기록 일시
 - 선택 메모
 추가 원칙:
-- 하루 여러 번 기록할 수 있도록 데이터 모델은 제한하지 않는다.
-- Dashboard에서는 최신 기록 또는 일 단위 대표값을 사용한다.
+- 같은 날이라도 측정 시각이 다르면 여러 번 기록할 수 있다.
+- 동일 사용자 + 동일 measuredAt은 중복 저장하지 않는다.
+- 최신 판단은 measuredAt DESC를 기본으로 하고 동일 시각 방어 정렬은 id DESC를 사용한다.
+- Dashboard와 AI는 같은 Body 최신/직전 순서 규칙을 사용한다.
 - 측정 단위는 초기에는 kg / %로 고정한다.
 
 완료 기준:
@@ -194,7 +196,7 @@ estimated 1RM = weight × (1 + reps / 30)
 - 운동 횟수와 Volume 비교는 최근 7일 / 직전 7일, 최근 30일 / 직전 30일 rolling period를 사용한다.
 - Dashboard 운동 통계에는 COMPLETED Workout만 포함한다.
 - 최근 30일 일별 Volume을 차트로 제공하고 전체 또는 운동 카테고리별로 필터링한다.
-- 그래프 데이터는 등록 순서가 아니라 실제 measuredAt / workoutDate 기준으로 오름차순 정렬한다.
+- 그래프 데이터는 등록 순서가 아니라 실제 measuredAt / workoutDate 기준으로 오름차순 정렬한다. Body measuredAt이 같을 경우 id ASC를 방어 tie-breaker로 사용한다.
 - Body의 Instant 날짜는 프론트에서 로컬 날짜로 변환해 입력 날짜와 일치시킨다.
 - Body는 최근 90일 기록의 최신값 / 이전 측정 대비 변화 / 추이를 제공한다.
 - 종목 PR은 완료된 전체 Workout을 기준으로 최고 중량과 Epley 추정 1RM을 계산한다.

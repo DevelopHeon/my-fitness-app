@@ -506,13 +506,7 @@ function BodyTrendCard({
   selector: (point: DashboardBodyPoint) => number;
   unit: string;
 }) {
-  const chartPoints = [...points]
-    .sort(
-      (a, b) =>
-        new Date(a.measuredAt).getTime() -
-        new Date(b.measuredAt).getTime(),
-    )
-    .map((point) => ({
+  const chartPoints = points.map((point) => ({
       label: localDateString(
         new Date(point.measuredAt),
       ).slice(5),

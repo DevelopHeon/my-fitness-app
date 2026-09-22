@@ -1,5 +1,6 @@
 package com.myfitness.body.application.service;
 
+import com.myfitness.body.domain.exception.BodyRecordRuleException;
 import com.myfitness.body.domain.model.BodyRecord;
 import com.myfitness.body.application.exception.BodyRecordAccessException;
 import com.myfitness.body.application.exception.BodyRecordNotFoundException;
@@ -35,6 +36,7 @@ public class BodyRecordService {
             Instant measuredAt,
             String memo) {
         Instant now = clock.instant();
+        validateMeasuredAtAvailable(userId, measuredAt, null);
         return bodyRecordRepository.save(BodyRecord.create(
                 userId,
                 weightKg,
@@ -52,6 +54,10 @@ public class BodyRecordService {
             BigDecimal skeletalMuscleKg,
             Instant measuredAt,
             String memo) {
+        validateMeasuredAtAvailable(
+                record.getUserId(),
+                measuredAt,
+                record.getId());
         record.update(
                 weightKg,
                 bodyFatPercentage,
@@ -88,6 +94,24 @@ public class BodyRecordService {
         return bodyRecordRepository
                 .findByUserIdAndMeasuredAtBetween(
                         userId, start, end);
+    }
+
+
+    private void validateMeasuredAtAvailable(
+            Long userId,
+            Instant measuredAt,
+            Long excludedId) {
+        boolean exists = excludedId == null
+                ? bodyRecordRepository.existsByUserIdAndMeasuredAt(
+                        userId, measuredAt)
+                : bodyRecordRepository
+                        .existsByUserIdAndMeasuredAtAndIdNot(
+                                userId, measuredAt, excludedId);
+
+        if (exists) {
+            throw new BodyRecordRuleException(
+                    "동일한 측정 일시의 신체 기록이 이미 존재합니다.");
+        }
     }
 
     public void delete(BodyRecord record) {

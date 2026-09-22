@@ -58,7 +58,8 @@ workout volume = Σ completed set volume
 
 Dashboard의 모든 추이는 레코드 생성/등록 순서가 아니라 실제 기록 날짜를 사용한다.
 
-- BodyRecord: measuredAt 오름차순
+- BodyRecord: measuredAt 오름차순, 동일 시각이면 id 오름차순
+- 최신 Body 판단은 measuredAt 내림차순, 동일 시각이면 id 내림차순
 - Workout / 종목 기록: workoutDate 오름차순
 - 나중에 과거 날짜의 기록을 추가해도 차트는 실제 날짜 순서로 재정렬
 - BodyRecord의 measuredAt은 Instant이므로 프론트 라벨은 브라우저 로컬 날짜로 변환

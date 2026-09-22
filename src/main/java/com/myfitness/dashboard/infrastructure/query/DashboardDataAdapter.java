@@ -40,6 +40,7 @@ public class DashboardDataAdapter implements DashboardDataPort {
                         .toList(),
                 bodyInsightQuery.findAll(userId).stream()
                         .map(body -> new BodyData(
+                                body.id(),
                                 body.measuredAt(),
                                 body.weightKg(),
                                 body.bodyFatPercentage(),

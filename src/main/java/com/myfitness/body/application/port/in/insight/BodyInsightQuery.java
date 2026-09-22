@@ -8,11 +8,16 @@ public interface BodyInsightQuery {
     List<BodyInsight> findAll(Long userId);
 
     record BodyInsight(
+            Long id,
             Instant measuredAt,
             BigDecimal weightKg,
             BigDecimal bodyFatPercentage,
             BigDecimal skeletalMuscleKg
     ) {
+        public Long getId() {
+            return id;
+        }
+
         public Instant getMeasuredAt() {
             return measuredAt;
         }

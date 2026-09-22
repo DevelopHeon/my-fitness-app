@@ -36,11 +36,13 @@ class AiContextBuilderPersonalContextTest {
 
         when(body.findAll(1L)).thenReturn(List.of(
                 new BodyInsight(
+                        2L,
                         Instant.parse("2026-09-21T03:00:00Z"),
                         new BigDecimal("71.0"),
                         new BigDecimal("17.5"),
                         new BigDecimal("34.5")),
                 new BodyInsight(
+                        1L,
                         Instant.parse("2026-09-16T03:00:00Z"),
                         new BigDecimal("72.0"),
                         new BigDecimal("18.0"),
@@ -69,6 +71,50 @@ class AiContextBuilderPersonalContextTest {
                 .contains("골격근량 +0.5kg");
         assertThat(context.types())
                 .containsExactly(AiContextType.BODY_TREND);
+    }
+
+    @Test
+    @DisplayName("Body Context는 동일 측정 일시면 높은 ID를 더 최신 기록으로 판단한다")
+    void prefersHigherIdWhenBodyMeasurementTimeIsEqual() {
+        WorkoutInsightQuery workout = mock(WorkoutInsightQuery.class);
+        BodyInsightQuery body = mock(BodyInsightQuery.class);
+        NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
+        Instant measuredAt = Instant.parse("2026-09-21T03:00:00Z");
+
+        when(body.findAll(1L)).thenReturn(List.of(
+                new BodyInsight(
+                        1L,
+                        measuredAt,
+                        new BigDecimal("64.0"),
+                        new BigDecimal("15.0"),
+                        new BigDecimal("31.0")),
+                new BodyInsight(
+                        2L,
+                        measuredAt,
+                        new BigDecimal("65.0"),
+                        new BigDecimal("18.0"),
+                        new BigDecimal("32.0"))));
+
+        AiContextBuilder builder = new AiContextBuilder(
+                workout,
+                body,
+                nutrition,
+                new AiContextSelector(),
+                CLOCK);
+
+        AiContextBundle context = builder.build(
+                1L,
+                AiQueryType.BODY,
+                new AiClientContext("BODY", null, null),
+                "최근 신체 변화 알려줘");
+
+        assertThat(context.text())
+                .contains("체중: 65kg")
+                .contains("체지방률: 18%")
+                .contains("골격근량: 32kg")
+                .contains("직전 기록 대비: 체중 +1kg")
+                .contains("체지방률 +3%")
+                .contains("골격근량 +1kg");
     }
 
     @Test

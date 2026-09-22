@@ -225,6 +225,7 @@ public class AiContextBuilder {
         List<BodyInsight> records = bodyInsightQuery.findAll(userId).stream()
                 .sorted(Comparator
                         .comparing(BodyInsight::measuredAt)
+                        .thenComparing(BodyInsight::id)
                         .reversed())
                 .toList();
 

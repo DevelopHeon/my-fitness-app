@@ -68,6 +68,7 @@ public class DashboardService implements DashboardQueryUseCase {
                 source.bodyRecords().stream()
                         .sorted(Comparator
                                 .comparing(BodyData::getMeasuredAt)
+                                .thenComparing(BodyData::getId)
                                 .reversed())
                         .toList();
 
@@ -177,6 +178,7 @@ public class DashboardService implements DashboardQueryUseCase {
         List<BodyData> orderedByMeasuredAtDesc = records.stream()
                 .sorted(Comparator
                         .comparing(BodyData::getMeasuredAt)
+                        .thenComparing(BodyData::getId)
                         .reversed())
                 .toList();
 
@@ -196,7 +198,9 @@ public class DashboardService implements DashboardQueryUseCase {
         List<BodyPoint> history = orderedByMeasuredAtDesc.stream()
                 .filter(record ->
                         !record.getMeasuredAt().isBefore(historyStart))
-                .sorted(Comparator.comparing(BodyData::getMeasuredAt))
+                .sorted(Comparator
+                        .comparing(BodyData::getMeasuredAt)
+                        .thenComparing(BodyData::getId))
                 .map(DashboardService::bodyPoint)
                 .toList();
 
