@@ -6,6 +6,7 @@ import com.myfitness.routine.application.port.in.RoutineUseCase;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.RoutineWorkoutView;
 import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
+import com.myfitness.routine.application.result.RoutineResult;
 import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
 import com.myfitness.routine.domain.model.Routine;
 import java.time.LocalDate;
@@ -30,25 +31,29 @@ public class RoutineApplicationService implements RoutineUseCase {
     }
 
     @Transactional
-    public Routine create(
+    public RoutineResult create(
             Long userId,
             String name,
             List<ExerciseSelection> selections) {
         List<ExerciseReference> exercises =
                 resolveExercises(userId, selections);
-        return routineService.create(userId, name, exercises);
+        return RoutineResult.from(
+                routineService.create(userId, name, exercises));
     }
 
-    public List<Routine> list(Long userId) {
-        return routineService.list(userId);
+    public List<RoutineResult> list(Long userId) {
+        return routineService.list(userId).stream()
+                .map(RoutineResult::from)
+                .toList();
     }
 
-    public Routine get(Long userId, Long routineId) {
-        return routineService.getOwned(userId, routineId);
+    public RoutineResult get(Long userId, Long routineId) {
+        return RoutineResult.from(
+                routineService.getOwned(userId, routineId));
     }
 
     @Transactional
-    public Routine update(
+    public RoutineResult update(
             Long userId,
             Long routineId,
             String name,
@@ -56,7 +61,8 @@ public class RoutineApplicationService implements RoutineUseCase {
         Routine routine = routineService.getOwned(userId, routineId);
         List<ExerciseReference> exercises =
                 resolveExercises(userId, selections);
-        return routineService.update(routine, name, exercises);
+        return RoutineResult.from(
+                routineService.update(routine, name, exercises));
     }
 
     @Transactional

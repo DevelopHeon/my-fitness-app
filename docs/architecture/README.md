@@ -156,6 +156,8 @@ WorkoutUseCase
 
 Presentation은 Infrastructure를 직접 참조하지 않는다.
 
+JPA LAZY 연관관계를 가진 Domain Entity를 Presentation까지 그대로 반환하지 않는다. 응답에 연관 데이터가 필요한 경우 Application Service의 트랜잭션 안에서 Application Result projection으로 변환한 뒤 Presentation에서 Response DTO로 매핑한다. 이를 통해 `open-in-view: false`에서도 응답 직렬화가 Persistence Session에 의존하지 않도록 한다.
+
 ---
 
 ## 6. Application

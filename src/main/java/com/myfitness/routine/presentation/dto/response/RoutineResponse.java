@@ -1,8 +1,7 @@
 package com.myfitness.routine.presentation.dto.response;
 
-import com.myfitness.routine.domain.model.Routine;
-import com.myfitness.routine.domain.model.RoutineExercise;
 import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.routine.application.result.RoutineResult;
 import java.time.Instant;
 import java.util.List;
 
@@ -13,13 +12,15 @@ public record RoutineResponse(
         Instant updatedAt,
         List<ExerciseEntry> exercises
 ) {
-    public static RoutineResponse from(Routine routine) {
+    public static RoutineResponse from(RoutineResult result) {
         return new RoutineResponse(
-                routine.getId(),
-                routine.getName(),
-                routine.getCreatedAt(),
-                routine.getUpdatedAt(),
-                routine.getExercises().stream().map(ExerciseEntry::from).toList());
+                result.id(),
+                result.name(),
+                result.createdAt(),
+                result.updatedAt(),
+                result.exercises().stream()
+                        .map(ExerciseEntry::from)
+                        .toList());
     }
 
     public record ExerciseEntry(
@@ -30,14 +31,14 @@ public record RoutineResponse(
             String category,
             int orderIndex
     ) {
-        static ExerciseEntry from(RoutineExercise entry) {
+        static ExerciseEntry from(RoutineResult.ExerciseResult exercise) {
             return new ExerciseEntry(
-                    entry.getId(),
-                    entry.getExerciseType(),
-                    entry.getExerciseId(),
-                    entry.getExerciseName(),
-                    entry.getCategory().name(),
-                    entry.getOrderIndex());
+                    exercise.id(),
+                    exercise.exerciseType(),
+                    exercise.exerciseId(),
+                    exercise.exerciseName(),
+                    exercise.category(),
+                    exercise.orderIndex());
         }
     }
 }
