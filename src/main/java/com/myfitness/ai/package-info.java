@@ -1,9 +1,13 @@
 /**
  * 피트니스 기록을 기반으로 설명과 추천을 제공할 AI 기능의 경계다.
  *
- * <p>AI provider, Spring AI, 외부 모델 SDK는 Infrastructure에 격리하고 Application은 Port를 통해서만 호출한다.</p>
+ * <p>Phase 6 구현 전에는 외부 기능 모듈 의존을 허용하지 않으며 구현 시 필요한 공개 API만 명시적으로 추가한다.</p>
  *
- * <p>모듈 내부는 presentation → application → domain 방향을 기본으로 하며,
- * infrastructure는 application/domain의 port를 구현하는 adapter 역할을 한다.</p>
+ * <p>Spring Modulith의 closed application module로 선언하며,
+ * allowedDependencies와 Named Interface를 통해 모듈 간 접근 범위를 검증한다.</p>
  */
+@org.springframework.modulith.ApplicationModule(
+    displayName = "AI Coach",
+    allowedDependencies = {}
+)
 package com.myfitness.ai;

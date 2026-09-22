@@ -17,7 +17,14 @@ repositories {
 	mavenCentral()
 }
 
+dependencyManagement {
+	imports {
+		mavenBom("org.springframework.modulith:spring-modulith-bom:2.1.1")
+	}
+}
+
 dependencies {
+	implementation("org.springframework.modulith:spring-modulith-api")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")
@@ -32,7 +39,8 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.2")
+	testImplementation("org.springframework.modulith:spring-modulith-core")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

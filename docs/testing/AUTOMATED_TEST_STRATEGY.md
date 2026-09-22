@@ -43,18 +43,29 @@
 핵심 사용자 흐름과 사용자 데이터 격리가 HTTP 경계에서도 유지되는지 검증한다.
 
 ### 5순위: Architecture 테스트
-ArchUnit으로 다음 의존성 규칙을 자동 검증한다.
 
+Spring Modulith와 ArchUnit의 책임을 분리한다.
+
+Spring Modulith `ModulithArchitectureTest`:
+- 모든 최상위 application module이 감지되는지 검증한다.
+- `ApplicationModules.verify()`로 모듈 순환 의존성을 검증한다.
+- 다른 모듈의 내부 패키지 접근을 금지하고 Named Interface만 공개한다.
+- 최상위 `package-info.java`의 `allowedDependencies` 이외의 모듈 의존을 금지한다.
+- 허용 의존성 목록과 Named Interface 이름 자체를 기대값으로 검증해 경계가 무심코 넓어지는 것을 막는다.
+
+ArchUnit `LayerArchitectureTest`:
 - Domain은 Application / Presentation / Infrastructure에 의존하지 않는다.
 - Application은 Presentation / Infrastructure에 의존하지 않는다.
 - Presentation은 Infrastructure에 직접 의존하지 않는다.
 - Spring Data JpaRepository는 Infrastructure에만 존재한다.
 - Domain Repository Port는 Spring Data에 의존하지 않으며 interface로 선언한다.
 - JPA Entity / Spring Service / REST Controller / Repository Adapter는 각 지정 계층에만 둔다.
-- 기능 모듈 간 순환 의존을 허용하지 않는다.
 - 다른 기능 모듈의 Presentation/Infrastructure를 직접 참조하지 않는다.
 - Exercise 기반 모듈은 다른 기능 모듈에 역으로 의존하지 않는다.
-- `PackageDocumentationTest`로 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
+
+`PackageDocumentationTest`:
+- 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
+- package-info Javadoc은 개발자가 책임과 규칙을 코드 가까이에서 확인하기 위한 문서다.
 
 ### 6순위: AI Tool 테스트
 LLM 자연어 문장 자체가 아니라 Tool 선택, Tool 입력/출력, 데이터 근거를 검증한다.

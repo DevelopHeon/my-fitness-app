@@ -1,7 +1,24 @@
 /**
- * 여러 기능 모듈에서 공통으로 필요한 기술적 경계와 외부 표현 정책을 둔다.
+ * 여러 기능 모듈에서 공통으로 필요한 HTTP 오류 변환과 기술 설정을 제공하는 Common 모듈이다.
  *
- * <p>비즈니스 Domain 모델을 모으는 shared-kernel 용도로 사용하지 않는다.
- * 공통화가 실제로 필요한 Presentation/Infrastructure 책임만 최소한으로 유지한다.</p>
+ * <p>기능별 예외를 HTTP 응답으로 변환하기 위해 공개된 exception Named Interface에만 의존한다.</p>
+ *
+ * <p>Spring Modulith의 closed application module로 선언하며,
+ * allowedDependencies와 Named Interface를 통해 모듈 간 접근 범위를 검증한다.</p>
  */
+@org.springframework.modulith.ApplicationModule(
+    displayName = "Common",
+    allowedDependencies = {
+        "body::application-exception",
+        "body::domain-exception",
+        "exercise::application-exception",
+        "exercise::domain-exception",
+        "nutrition::application-exception",
+        "nutrition::domain-exception",
+        "routine::application-exception",
+        "routine::domain-exception",
+        "workout::application-exception",
+        "workout::domain-exception"
+    }
+)
 package com.myfitness.common;

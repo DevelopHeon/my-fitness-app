@@ -5,7 +5,7 @@
 
 ## 1. 전체 구조
 
-\`\`\`text
+```text
 ┌──────────────────────────────┐
 │       Next.js PWA            │
 │ workout / routine / body     │
@@ -36,7 +36,7 @@ AI Application Port
 AI Infrastructure Adapter
       │
 Spring AI / external model provider
-\`\`\`
+```
 
 ## 2. 현재 기술 기준
 
@@ -44,8 +44,8 @@ Spring AI / external model provider
 - Spring Boot: 4.1.1
 - Database: PostgreSQL 17 + Flyway
 - Persistence: Spring Data JPA
-- Main runtime DDL: Hibernate \`ddl-auto: none\`
-- Test DDL: 테스트 전용 H2 환경에서 \`create-drop\`
+- Main runtime DDL: Hibernate `ddl-auto: none`
+- Test DDL: 테스트 전용 H2 환경에서 `create-drop`
 - Frontend: Next.js 16 + TypeScript + PWA
 - Architecture test: ArchUnit
 - AI: Phase 6에서 Spring AI 기반 외부 provider adapter 연결 예정
@@ -68,7 +68,7 @@ Spring AI / external model provider
 
 기능 기준 최상위 모듈:
 
-\`\`\`text
+```text
 com.myfitness
 ├── exercise
 ├── workout
@@ -79,25 +79,25 @@ com.myfitness
 ├── user
 ├── ai
 └── common
-\`\`\`
+```
 
 Exercise는 Workout 내부 개념이 아니라 독립 도메인이다.
 
-\`\`\`text
+```text
 Workout ─────┐
              ├──> Exercise
 Routine ─────┘
 AI (future) ─┘
-\`\`\`
+```
 
 기본 운동과 사용자 커스텀 운동의 PK는 겹칠 수 있으므로
-운동 참조 키는 항상 \`ExerciseType + exerciseId\`를 함께 사용한다.
+운동 참조 키는 항상 `ExerciseType + exerciseId`를 함께 사용한다.
 
 ## 5. 도메인 내부 4계층
 
 각 기능 모듈은 아래 구조를 기준으로 한다.
 
-\`\`\`text
+```text
 <domain>/
 ├── presentation
 │   ├── controller
@@ -122,10 +122,10 @@ AI (future) ─┘
     ├── query
     ├── bootstrap
     └── external
-\`\`\`
+```
 
 도메인마다 필요하지 않은 하위 패키지는 만들지 않는다.
-예를 들어 Dashboard는 쓰기 Aggregate가 없으므로 \`domain.model\` 대신 계산 서비스와 Query Port 중심으로 구성한다.
+예를 들어 Dashboard는 쓰기 Aggregate가 없으므로 `domain.model` 대신 계산 서비스와 Query Port 중심으로 구성한다.
 
 ### Presentation
 
@@ -183,18 +183,18 @@ Infrastructure는 Application Port 또는 Domain Repository Port를 구현한다
 
 허용하는 기본 방향:
 
-\`\`\`text
+```text
 Presentation ───────► Application ───────► Domain
       │                                      ▲
       └──────────────────────────────────────┘
                                              │
 Infrastructure ─────► Application Port ──────┤
 Infrastructure ───────────────► Domain Port ─┘
-\`\`\`
+```
 
 금지:
 
-\`\`\`text
+```text
 Domain         -X-> Application
 Domain         -X-> Presentation
 Domain         -X-> Infrastructure
@@ -203,23 +203,50 @@ Application    -X-> Presentation
 Application    -X-> Infrastructure
 
 Presentation   -X-> Infrastructure
-\`\`\`
+```
 
-이 규칙은 \`LayerArchitectureTest\`의 ArchUnit 테스트로 검증한다.
+모듈 내부 4계층 규칙은 `LayerArchitectureTest`의 ArchUnit 테스트로 검증한다.
 
-각 기능 모듈은 최상위 \`package-info.java\`와 \`presentation/application/domain/infrastructure\` 계층별 \`package-info.java\`를 유지한다. 여기에는 해당 모듈과 계층의 책임, 허용 의존성, 금지 의존성을 명시한다. 아직 구현 전인 \`ai\`, \`user\`도 같은 경계를 문서화해 이후 기능 추가 시 구조가 흔들리지 않도록 한다.
+각 기능 모듈은 최상위 `package-info.java`와 `presentation/application/domain/infrastructure` 계층별 `package-info.java`를 유지한다. 계층별 파일에는 책임과 의존성 규칙을 Javadoc으로 남기고, 모듈 최상위 `package-info.java`에는 Spring Modulith `@ApplicationModule`의 `allowedDependencies`를 선언한다.
 
-추가 Architecture 테스트는 다음을 검증한다.
+모듈 간 공개 API는 필요한 하위 패키지의 `package-info.java`에 `@NamedInterface`로 선언한다. Spring Modulith는 closed module을 사용하므로 Named Interface로 노출하지 않은 하위 패키지는 다른 application module에서 직접 접근하지 않는다.
 
-- JPA \`@Entity\`는 \`domain.model\`에만 둔다.
-- Spring \`@Service\`는 \`application.service\`에만 둔다.
-- REST \`@RestController\`는 \`presentation.controller\`에만 둔다.
-- Spring \`@Repository\` adapter는 \`infrastructure\`에만 둔다.
+현재 허용 모듈 의존성:
+
+| Module | allowedDependencies |
+| --- | --- |
+| exercise | 없음 |
+| workout | exercise::application-service, exercise::domain-model |
+| routine | exercise::application-service, exercise::domain-model, workout::application-service, workout::domain-model |
+| body | 없음 |
+| nutrition | 없음 |
+| dashboard | body::domain-model, body::repository, exercise::domain-model, workout::domain-model, workout::repository |
+| ai | 없음 — Phase 6 구현 시 필요한 공개 API만 추가 |
+| user | 없음 |
+| common | 각 기능 모듈의 application-exception / domain-exception Named Interface |
+
+`ModulithArchitectureTest`는 `ApplicationModules.of(MyFitnessAppApplication.class).verify()`를 실행해 다음을 검증한다.
+
+- application module 간 순환 의존성
+- Named Interface가 아닌 내부 패키지로의 접근
+- `allowedDependencies`에 선언되지 않은 모듈 의존성
+- 감지되는 최상위 application module 목록
+- package-info에 선언한 허용 의존성 목록 자체
+- 공개 Named Interface 이름 자체
+
+즉 `package-info.java`의 Spring Modulith annotation은 단순 문서가 아니라 실제 테스트 입력으로 사용한다. 반면 Javadoc 설명은 사람을 위한 문서이며 `PackageDocumentationTest`는 이 문서 파일의 존재를 보장한다.
+
+추가 ArchUnit 테스트는 다음을 검증한다.
+
+- JPA `@Entity`는 `domain.model`에만 둔다.
+- Spring `@Service`는 `application.service`에만 둔다.
+- REST `@RestController`는 `presentation.controller`에만 둔다.
+- Spring `@Repository` adapter는 `infrastructure`에만 둔다.
 - Domain Repository Port는 interface여야 한다.
 - 기능 모듈 간 순환 의존을 금지한다.
 - 다른 기능 모듈의 Presentation/Infrastructure를 직접 재사용하지 않는다.
 - 기반 모듈인 Exercise는 다른 기능 모듈에 역으로 의존하지 않는다.
-- \`PackageDocumentationTest\`로 각 모듈의 \`package-info.java\` 문서 구조를 유지한다.
+- `PackageDocumentationTest`로 각 모듈의 `package-info.java` 문서 구조를 유지한다.
 
 ## 7. JPA와 Domain 모델
 
@@ -227,16 +254,16 @@ Presentation   -X-> Infrastructure
 
 예:
 
-\`\`\`java
+```java
 package com.myfitness.workout.domain.model;
 
 @Entity
 public class Workout {
     ...
 }
-\`\`\`
+```
 
-즉 Domain은 \`jakarta.persistence\` annotation 사용을 허용한다.
+즉 Domain은 `jakarta.persistence` annotation 사용을 허용한다.
 
 이 선택의 이유:
 
@@ -247,14 +274,14 @@ public class Workout {
 
 따라서 **Practical Clean Architecture**를 사용한다.
 
-Spring \`@Service\`, \`JpaRepository\`, Controller DTO 같은 외부 계층 요소는 Domain에서 금지하지만,
+Spring `@Service`, `JpaRepository`, Controller DTO 같은 외부 계층 요소는 Domain에서 금지하지만,
 JPA mapping annotation은 허용한다.
 
 ## 8. Repository Port / Adapter
 
 Domain Repository는 Spring Data를 알지 않는다.
 
-\`\`\`text
+```text
 application.service.WorkoutService
               │
               ▼
@@ -268,25 +295,25 @@ infrastructure.persistence.SpringDataWorkoutRepository
               │
               ▼
           PostgreSQL
-\`\`\`
+```
 
 예시:
 
-\`\`\`java
+```java
 public interface WorkoutRepository {
     Workout save(Workout workout);
     Optional<Workout> findById(Long id);
     List<Workout> findByUserIdAndDateRange(...);
 }
-\`\`\`
+```
 
-\`JpaRepository\`를 상속하는 인터페이스는 Infrastructure 안에만 둔다.
+`JpaRepository`를 상속하는 인터페이스는 Infrastructure 안에만 둔다.
 
 ## 9. 도메인별 구조
 
 ### Exercise
 
-\`\`\`text
+```text
 exercise
 ├── presentation
 │   └── ExerciseController
@@ -302,7 +329,7 @@ exercise
 └── infrastructure
     ├── persistence adapters
     └── default exercise bootstrap
-\`\`\`
+```
 
 공용 기본 Exercise와 사용자 CustomExercise를 함께 제공한다.
 
@@ -310,38 +337,38 @@ exercise
 
 Workout Aggregate:
 
-\`\`\`text
+```text
 Workout
   └── WorkoutExercise
         └── WorkoutSet
-\`\`\`
+```
 
 Workout은 Exercise 자체를 소유하지 않고
-\`ExerciseReference\`를 받아 기록 시점의 이름/카테고리를 snapshot으로 저장한다.
+`ExerciseReference`를 받아 기록 시점의 이름/카테고리를 snapshot으로 저장한다.
 
 HTTP DTO는 Presentation에만 있으며,
-Application은 \`WorkoutSetCommand\`, Domain 객체, \`WorkoutCalendarDayResult\`를 사용한다.
+Application은 `WorkoutSetCommand`, Domain 객체, `WorkoutCalendarDayResult`를 사용한다.
 
 ### Routine
 
 Routine Domain은 반복 운동 템플릿만 책임진다.
 Routine → Workout 시작은 Application orchestration이다.
 
-\`\`\`text
+```text
 RoutineController
        ↓
 RoutineApplicationService
   ├── RoutineService
   ├── ExerciseService
   └── WorkoutService
-\`\`\`
+```
 
 Routine Domain이 Workout Application/Infrastructure를 직접 참조하지 않는다.
 
 ### Body
 
 BodyRecord Domain은 측정값 규칙을 담당한다.
-Trend 조합은 \`BodyTrendResult\`를 만드는 Application 책임이다.
+Trend 조합은 `BodyTrendResult`를 만드는 Application 책임이다.
 
 ### Nutrition
 
@@ -355,7 +382,7 @@ Food / Meal / MealFood / NutritionGoal을 Domain에 둔다.
 
 Dashboard는 쓰기 Aggregate가 아니라 Read Model이다.
 
-\`\`\`text
+```text
 DashboardController
        ↓
 DashboardService
@@ -366,7 +393,7 @@ DashboardQueryPort
 DashboardQueryAdapter
   ├── WorkoutRepository Port
   └── BodyRecordRepository Port
-\`\`\`
+```
 
 Application이 다른 도메인의 Persistence 구현을 직접 참조하지 않는다.
 Volume, 1RM, 변화율 계산은 Dashboard Domain Service에서 수행한다.
@@ -377,7 +404,7 @@ Volume, 1RM, 변화율 계산은 Dashboard Domain Service에서 수행한다.
 
 Phase 6에서는 예를 들어:
 
-\`\`\`text
+```text
 ai.presentation
     ↓
 ai.application
@@ -387,7 +414,7 @@ ai.application
               │
 ai.infrastructure
     └── OpenAI/Spring AI Adapter
-\`\`\`
+```
 
 형태로 확장한다.
 
@@ -397,24 +424,24 @@ ai.infrastructure
 
 Domain 규칙 위반:
 
-\`\`\`text
+```text
 workout.domain.exception.WorkoutRuleException
 routine.domain.exception.RoutineRuleException
 nutrition.domain.exception.NutritionRuleException
-\`\`\`
+```
 
 Use Case 조회/권한 오류:
 
-\`\`\`text
+```text
 workout.application.exception.WorkoutNotFoundException
 workout.application.exception.WorkoutAccessException
-\`\`\`
+```
 
 HTTP 변환:
 
-\`\`\`text
+```text
 common.presentation.exception.GlobalExceptionHandler
-\`\`\`
+```
 
 ## 11. 프론트엔드 책임
 
@@ -436,7 +463,7 @@ Next.js 서버 기능에 의존하지 않고 Spring REST API를 runtime backend�
 
 일반 쓰기/조회:
 
-\`\`\`text
+```text
 PWA
  ↓
 Presentation
@@ -450,11 +477,11 @@ Infrastructure Adapter
 Spring Data JPA
  ↓
 PostgreSQL
-\`\`\`
+```
 
 Dashboard:
 
-\`\`\`text
+```text
 Presentation
  ↓
 Dashboard Application
@@ -464,11 +491,11 @@ DashboardQueryPort
 Dashboard Infrastructure Adapter
  ↓
 Workout / Body Domain Repository Ports
-\`\`\`
+```
 
 Phase 6 AI:
 
-\`\`\`text
+```text
 PWA
  ↓
 AI Presentation
@@ -481,7 +508,7 @@ AI Application
    Infrastructure Adapter
           ↓
       AI Provider
-\`\`\`
+```
 
 수치 계산과 데이터 필터링은 Java에서 수행하고,
 LLM은 설명과 추천 문장 생성에 집중한다.
