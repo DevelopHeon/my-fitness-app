@@ -1,6 +1,6 @@
 package com.myfitness.body.presentation.dto.response;
 
-import com.myfitness.body.domain.model.BodyRecord;
+import com.myfitness.body.application.result.BodyRecordResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -14,15 +14,15 @@ public record BodyRecordResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static BodyRecordResponse from(BodyRecord record) {
+    public static BodyRecordResponse from(BodyRecordResult record) {
         return new BodyRecordResponse(
-                record.getId(),
-                record.getWeightKg(),
-                record.getBodyFatPercentage(),
-                record.getSkeletalMuscleKg(),
-                record.getMeasuredAt(),
-                record.getMemo(),
-                record.getCreatedAt(),
-                record.getUpdatedAt());
+                record.id(),
+                record.weightKg(),
+                record.bodyFatPercentage(),
+                record.skeletalMuscleKg(),
+                record.measuredAt(),
+                record.memo(),
+                record.createdAt(),
+                record.updatedAt());
     }
 }

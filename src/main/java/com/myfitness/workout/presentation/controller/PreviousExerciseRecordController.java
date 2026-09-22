@@ -2,7 +2,7 @@ package com.myfitness.workout.presentation.controller;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
-import com.myfitness.workout.domain.model.WorkoutExercise;
+import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
 import com.myfitness.workout.presentation.dto.response.PreviousExerciseRecordResponse;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +21,7 @@ public class PreviousExerciseRecordController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable ExerciseType exerciseType,
             @PathVariable Long exerciseId) {
-        WorkoutExercise previous =
+        PreviousExerciseRecordResult previous =
                 workoutUseCase.getPreviousExerciseRecord(
                         userId, exerciseType, exerciseId);
         return previous == null

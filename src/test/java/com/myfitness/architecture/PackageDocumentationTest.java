@@ -37,6 +37,14 @@ class PackageDocumentationTest {
             "dashboard",
             "ai");
 
+    private static final List<String> RESULT_MODULES = List.of(
+            "workout",
+            "routine",
+            "body",
+            "nutrition",
+            "dashboard",
+            "ai");
+
     @Test
     @DisplayName("모든 기능 모듈은 최상위 package-info로 책임과 경계를 문서화한다")
     void documentsEveryFeatureModuleBoundary() {
@@ -91,6 +99,22 @@ class PackageDocumentationTest {
                             .resolve("out")
                             .resolve("package-info.java")))
                     .as("%s application.port.out package-info.java", module)
+                    .isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("Application Result를 사용하는 모듈은 projection 경계를 package-info로 문서화한다")
+    void documentsApplicationResultBoundaries() {
+        for (String module : RESULT_MODULES) {
+            Path packageInfo = SOURCE_ROOT
+                    .resolve(module)
+                    .resolve("application")
+                    .resolve("result")
+                    .resolve("package-info.java");
+
+            assertThat(Files.isRegularFile(packageInfo))
+                    .as("%s application.result package-info.java", module)
                     .isTrue();
         }
     }

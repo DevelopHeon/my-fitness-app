@@ -1,7 +1,8 @@
 package com.myfitness.workout.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.domain.model.*;
+import com.myfitness.workout.application.result.WorkoutResult;
+import com.myfitness.workout.domain.model.WorkoutStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,15 +17,17 @@ public record WorkoutResponse(
         Instant completedAt,
         List<ExerciseEntry> exercises
 ) {
-    public static WorkoutResponse from(Workout workout) {
+    public static WorkoutResponse from(WorkoutResult result) {
         return new WorkoutResponse(
-                workout.getId(),
-                workout.getWorkoutDate(),
-                workout.getStatus(),
-                workout.getMemo(),
-                workout.getStartedAt(),
-                workout.getCompletedAt(),
-                workout.getExercises().stream().map(ExerciseEntry::from).toList());
+                result.id(),
+                result.workoutDate(),
+                result.status(),
+                result.memo(),
+                result.startedAt(),
+                result.completedAt(),
+                result.exercises().stream()
+                        .map(ExerciseEntry::from)
+                        .toList());
     }
 
     public record ExerciseEntry(
@@ -37,16 +40,18 @@ public record WorkoutResponse(
             String memo,
             List<SetEntry> sets
     ) {
-        static ExerciseEntry from(WorkoutExercise entry) {
+        static ExerciseEntry from(WorkoutResult.ExerciseResult exercise) {
             return new ExerciseEntry(
-                    entry.getId(),
-                    entry.getExerciseType(),
-                    entry.getExerciseId(),
-                    entry.getExerciseName(),
-                    entry.getCategory().name(),
-                    entry.getOrderIndex(),
-                    entry.getMemo(),
-                    entry.getSets().stream().map(SetEntry::from).toList());
+                    exercise.id(),
+                    exercise.exerciseType(),
+                    exercise.exerciseId(),
+                    exercise.exerciseName(),
+                    exercise.category(),
+                    exercise.orderIndex(),
+                    exercise.memo(),
+                    exercise.sets().stream()
+                            .map(SetEntry::from)
+                            .toList());
         }
     }
 
@@ -58,14 +63,14 @@ public record WorkoutResponse(
             Integer durationSeconds,
             boolean completed
     ) {
-        static SetEntry from(WorkoutSet set) {
+        static SetEntry from(WorkoutResult.SetResult set) {
             return new SetEntry(
-                    set.getId(),
-                    set.getSetNumber(),
-                    set.getWeightKg(),
-                    set.getReps(),
-                    set.getDurationSeconds(),
-                    set.isCompleted());
+                    set.id(),
+                    set.setNumber(),
+                    set.weightKg(),
+                    set.reps(),
+                    set.durationSeconds(),
+                    set.completed());
         }
     }
 }

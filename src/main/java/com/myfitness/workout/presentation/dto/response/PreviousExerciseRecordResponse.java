@@ -1,7 +1,7 @@
 package com.myfitness.workout.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.domain.model.WorkoutExercise;
+import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -14,20 +14,23 @@ public record PreviousExerciseRecordResponse(
         String exerciseName,
         List<WorkoutResponse.SetEntry> sets
 ) {
-    public static PreviousExerciseRecordResponse from(WorkoutExercise entry) {
+    public static PreviousExerciseRecordResponse from(
+            PreviousExerciseRecordResult result) {
         return new PreviousExerciseRecordResponse(
-                entry.getWorkout().getId(),
-                entry.getWorkout().getWorkoutDate(),
-                entry.getId(),
-                entry.getExerciseType(),
-                entry.getExerciseId(),
-                entry.getExerciseName(),
-                entry.getSets().stream().map(set -> new WorkoutResponse.SetEntry(
-                        set.getId(),
-                        set.getSetNumber(),
-                        set.getWeightKg(),
-                        set.getReps(),
-                        set.getDurationSeconds(),
-                        set.isCompleted())).toList());
+                result.workoutId(),
+                result.workoutDate(),
+                result.workoutExerciseId(),
+                result.exerciseType(),
+                result.exerciseId(),
+                result.exerciseName(),
+                result.sets().stream()
+                        .map(set -> new WorkoutResponse.SetEntry(
+                                set.id(),
+                                set.setNumber(),
+                                set.weightKg(),
+                                set.reps(),
+                                set.durationSeconds(),
+                                set.completed()))
+                        .toList());
     }
 }

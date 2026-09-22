@@ -1,20 +1,20 @@
 package com.myfitness.nutrition.application.port.in;
 
 import com.myfitness.nutrition.application.result.DailyNutritionResult;
+import com.myfitness.nutrition.application.result.FoodResult;
 import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
-import com.myfitness.nutrition.domain.model.Food;
-import com.myfitness.nutrition.domain.model.MealFood;
+import com.myfitness.nutrition.application.result.MealFoodResult;
+import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import com.myfitness.nutrition.domain.model.MealType;
-import com.myfitness.nutrition.domain.model.NutritionGoal;
 import com.myfitness.nutrition.domain.model.ServingUnit;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 public interface NutritionUseCase {
-    List<Food> listFoods(Long userId, String query);
+    List<FoodResult> listFoods(Long userId, String query);
 
-    Food createFood(
+    FoodResult createFood(
             Long userId,
             String name,
             BigDecimal servingAmount,
@@ -24,7 +24,7 @@ public interface NutritionUseCase {
             BigDecimal proteinGrams,
             BigDecimal fatGrams);
 
-    Food updateFood(
+    FoodResult updateFood(
             Long userId,
             Long foodId,
             String name,
@@ -39,14 +39,14 @@ public interface NutritionUseCase {
 
     FoodSuggestionsResult suggestions(Long userId);
 
-    MealFood addMealItem(
+    MealFoodResult addMealItem(
             Long userId,
             LocalDate mealDate,
             MealType mealType,
             Long foodId,
             BigDecimal servings);
 
-    MealFood updateMealItem(
+    MealFoodResult updateMealItem(
             Long userId,
             Long itemId,
             BigDecimal servings);
@@ -55,9 +55,9 @@ public interface NutritionUseCase {
 
     DailyNutritionResult daily(Long userId, LocalDate date);
 
-    NutritionGoal currentGoal(Long userId);
+    NutritionGoalResult currentGoal(Long userId);
 
-    NutritionGoal upsertGoal(
+    NutritionGoalResult upsertGoal(
             Long userId,
             BigDecimal calories,
             BigDecimal carbohydrateGrams,

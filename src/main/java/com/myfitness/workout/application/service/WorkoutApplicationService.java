@@ -11,7 +11,9 @@ import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.R
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.SetView;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.WorkoutView;
 import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
+import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
 import com.myfitness.workout.application.result.WorkoutCalendarDayResult;
+import com.myfitness.workout.application.result.WorkoutResult;
 import com.myfitness.workout.domain.model.Workout;
 import com.myfitness.workout.domain.model.WorkoutExercise;
 import com.myfitness.workout.domain.model.WorkoutStatus;
@@ -39,32 +41,37 @@ public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutine
         this.exerciseCatalogQuery = exerciseCatalogQuery;
     }
 
-    public WorkoutExercise getPreviousExerciseRecord(
+    public PreviousExerciseRecordResult getPreviousExerciseRecord(
             Long userId,
             ExerciseType exerciseType,
             Long exerciseId) {
         exerciseCatalogQuery.getAvailable(userId, exerciseType, exerciseId);
-        return workoutService.getPreviousCompletedExercise(
-                userId, exerciseType, exerciseId);
+        return PreviousExerciseRecordResult.from(
+                workoutService.getPreviousCompletedExercise(
+                        userId, exerciseType, exerciseId));
     }
 
     @Transactional
-    public Workout startWorkout(
+    public WorkoutResult startWorkout(
             Long userId,
             LocalDate workoutDate,
             String memo) {
-        return workoutService.start(userId, workoutDate, memo);
+        return WorkoutResult.from(
+                workoutService.start(userId, workoutDate, memo));
     }
 
-    public Workout getWorkout(Long userId, Long workoutId) {
-        return workoutService.getOwned(userId, workoutId);
+    public WorkoutResult getWorkout(Long userId, Long workoutId) {
+        return WorkoutResult.from(
+                workoutService.getOwned(userId, workoutId));
     }
 
-    public List<Workout> getWorkouts(
+    public List<WorkoutResult> getWorkouts(
             Long userId,
             LocalDate from,
             LocalDate to) {
-        return workoutService.list(userId, from, to);
+        return workoutService.list(userId, from, to).stream()
+                .map(WorkoutResult::from)
+                .toList();
     }
 
     public List<WorkoutCalendarDayResult> getCalendar(
@@ -103,7 +110,7 @@ public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutine
     }
 
     @Transactional
-    public Workout addExercise(
+    public WorkoutResult addExercise(
             Long userId,
             Long workoutId,
             ExerciseType exerciseType,
@@ -112,20 +119,22 @@ public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutine
         Workout workout = workoutService.getOwned(userId, workoutId);
         ExerciseReference exercise = exerciseCatalogQuery.getAvailable(
                 userId, exerciseType, exerciseId);
-        return workoutService.addExercise(workout, exercise, memo);
+        return WorkoutResult.from(
+                workoutService.addExercise(workout, exercise, memo));
     }
 
     @Transactional
-    public Workout removeExercise(
+    public WorkoutResult removeExercise(
             Long userId,
             Long workoutId,
             Long workoutExerciseId) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        return workoutService.removeExercise(workout, workoutExerciseId);
+        return WorkoutResult.from(
+                workoutService.removeExercise(workout, workoutExerciseId));
     }
 
     @Transactional
-    public Workout addSet(
+    public WorkoutResult addSet(
             Long userId,
             Long workoutId,
             Long workoutExerciseId,
@@ -134,30 +143,32 @@ public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutine
             Integer durationSeconds,
             boolean completed) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        return workoutService.addSet(
-                workout,
-                workoutExerciseId,
-                weightKg,
-                reps,
-                durationSeconds,
-                completed);
+        return WorkoutResult.from(
+                workoutService.addSet(
+                        workout,
+                        workoutExerciseId,
+                        weightKg,
+                        reps,
+                        durationSeconds,
+                        completed));
     }
 
     @Transactional
-    public Workout addSets(
+    public WorkoutResult addSets(
             Long userId,
             Long workoutId,
             Long workoutExerciseId,
             List<WorkoutSetCommand> commands) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        return workoutService.addSets(
-                workout,
-                workoutExerciseId,
-                commands);
+        return WorkoutResult.from(
+                workoutService.addSets(
+                        workout,
+                        workoutExerciseId,
+                        commands));
     }
 
     @Transactional
-    public Workout updateSet(
+    public WorkoutResult updateSet(
             Long userId,
             Long workoutId,
             Long workoutExerciseId,
@@ -167,37 +178,41 @@ public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutine
             Integer durationSeconds,
             boolean completed) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        return workoutService.updateSet(
-                workout,
-                workoutExerciseId,
-                setId,
-                weightKg,
-                reps,
-                durationSeconds,
-                completed);
+        return WorkoutResult.from(
+                workoutService.updateSet(
+                        workout,
+                        workoutExerciseId,
+                        setId,
+                        weightKg,
+                        reps,
+                        durationSeconds,
+                        completed));
     }
 
     @Transactional
-    public Workout removeSet(
+    public WorkoutResult removeSet(
             Long userId,
             Long workoutId,
             Long workoutExerciseId,
             Long setId) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        return workoutService.removeSet(
-                workout, workoutExerciseId, setId);
+        return WorkoutResult.from(
+                workoutService.removeSet(
+                        workout, workoutExerciseId, setId));
     }
 
     @Transactional
-    public Workout completeWorkout(Long userId, Long workoutId) {
-        return workoutService.complete(
-                workoutService.getOwned(userId, workoutId));
+    public WorkoutResult completeWorkout(Long userId, Long workoutId) {
+        return WorkoutResult.from(
+                workoutService.complete(
+                        workoutService.getOwned(userId, workoutId)));
     }
 
     @Transactional
-    public Workout reopenWorkout(Long userId, Long workoutId) {
-        return workoutService.reopen(
-                workoutService.getOwned(userId, workoutId));
+    public WorkoutResult reopenWorkout(Long userId, Long workoutId) {
+        return WorkoutResult.from(
+                workoutService.reopen(
+                        workoutService.getOwned(userId, workoutId)));
     }
 
     @Override

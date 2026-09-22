@@ -2,7 +2,10 @@ package com.myfitness.nutrition.application.service;
 
 import com.myfitness.nutrition.application.result.DailyNutritionResult;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
+import com.myfitness.nutrition.application.result.FoodResult;
 import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.result.MealFoodResult;
+import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import com.myfitness.nutrition.application.result.MealSectionResult;
 import com.myfitness.nutrition.application.result.NutritionTotals;
 import com.myfitness.nutrition.domain.model.Food;
@@ -42,12 +45,14 @@ public class NutritionApplicationService implements NutritionUseCase {
         this.nutritionGoalService = nutritionGoalService;
     }
 
-    public List<Food> listFoods(Long userId, String query) {
-        return foodService.list(userId, query);
+    public List<FoodResult> listFoods(Long userId, String query) {
+        return foodService.list(userId, query).stream()
+                .map(FoodResult::from)
+                .toList();
     }
 
     @Transactional
-    public Food createFood(
+    public FoodResult createFood(
             Long userId,
             String name,
             BigDecimal servingAmount,
@@ -56,19 +61,20 @@ public class NutritionApplicationService implements NutritionUseCase {
             BigDecimal carbohydrateGrams,
             BigDecimal proteinGrams,
             BigDecimal fatGrams) {
-        return foodService.create(
-                userId,
-                name,
-                servingAmount,
-                servingUnit,
-                calories,
-                carbohydrateGrams,
-                proteinGrams,
-                fatGrams);
+        return FoodResult.from(
+                foodService.create(
+                        userId,
+                        name,
+                        servingAmount,
+                        servingUnit,
+                        calories,
+                        carbohydrateGrams,
+                        proteinGrams,
+                        fatGrams));
     }
 
     @Transactional
-    public Food updateFood(
+    public FoodResult updateFood(
             Long userId,
             Long foodId,
             String name,
@@ -79,15 +85,16 @@ public class NutritionApplicationService implements NutritionUseCase {
             BigDecimal proteinGrams,
             BigDecimal fatGrams) {
         Food food = foodService.getOwned(userId, foodId);
-        return foodService.update(
-                food,
-                name,
-                servingAmount,
-                servingUnit,
-                calories,
-                carbohydrateGrams,
-                proteinGrams,
-                fatGrams);
+        return FoodResult.from(
+                foodService.update(
+                        food,
+                        name,
+                        servingAmount,
+                        servingUnit,
+                        calories,
+                        carbohydrateGrams,
+                        proteinGrams,
+                        fatGrams));
     }
 
     @Transactional
@@ -135,32 +142,36 @@ public class NutritionApplicationService implements NutritionUseCase {
                 .map(entry -> foodById.get(entry.getKey()))
                 .toList();
 
-        return new FoodSuggestionsResult(recent, frequent);
+        return new FoodSuggestionsResult(
+                recent.stream().map(FoodResult::from).toList(),
+                frequent.stream().map(FoodResult::from).toList());
     }
 
     @Transactional
-    public MealFood addMealItem(
+    public MealFoodResult addMealItem(
             Long userId,
             LocalDate mealDate,
             MealType mealType,
             Long foodId,
             BigDecimal servings) {
         Food food = foodService.getOwned(userId, foodId);
-        return mealService.addFood(
-                userId,
-                mealDate,
-                mealType,
-                food,
-                servings);
+        return MealFoodResult.from(
+                mealService.addFood(
+                        userId,
+                        mealDate,
+                        mealType,
+                        food,
+                        servings));
     }
 
     @Transactional
-    public MealFood updateMealItem(
+    public MealFoodResult updateMealItem(
             Long userId,
             Long itemId,
             BigDecimal servings) {
         MealFood item = mealService.getOwnedItem(userId, itemId);
-        return mealService.updateItem(item, servings);
+        return MealFoodResult.from(
+                mealService.updateItem(item, servings));
     }
 
     @Transactional
@@ -193,7 +204,9 @@ public class NutritionApplicationService implements NutritionUseCase {
             consumed = consumed.add(sectionTotal);
             sections.add(new MealSectionResult(
                     mealType,
-                    mealItems,
+                    mealItems.stream()
+                            .map(MealFoodResult::from)
+                            .toList(),
                     sectionTotal));
         }
 
@@ -205,29 +218,31 @@ public class NutritionApplicationService implements NutritionUseCase {
 
         return new DailyNutritionResult(
                 date,
-                goal,
+                NutritionGoalResult.from(goal),
                 consumed,
                 remaining,
                 sections);
     }
 
-    public NutritionGoal currentGoal(Long userId) {
-        return nutritionGoalService.get(userId).orElse(null);
+    public NutritionGoalResult currentGoal(Long userId) {
+        return NutritionGoalResult.from(
+                nutritionGoalService.get(userId).orElse(null));
     }
 
     @Transactional
-    public NutritionGoal upsertGoal(
+    public NutritionGoalResult upsertGoal(
             Long userId,
             BigDecimal calories,
             BigDecimal carbohydrateGrams,
             BigDecimal proteinGrams,
             BigDecimal fatGrams) {
-        return nutritionGoalService.upsert(
-                userId,
-                calories,
-                carbohydrateGrams,
-                proteinGrams,
-                fatGrams);
+        return NutritionGoalResult.from(
+                nutritionGoalService.upsert(
+                        userId,
+                        calories,
+                        carbohydrateGrams,
+                        proteinGrams,
+                        fatGrams));
     }
 
     private static NutritionTotals totalsOf(MealFood item) {

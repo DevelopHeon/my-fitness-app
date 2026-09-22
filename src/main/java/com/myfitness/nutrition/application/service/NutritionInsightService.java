@@ -4,7 +4,7 @@ import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery
 import com.myfitness.nutrition.application.result.DailyNutritionResult;
 import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
 import com.myfitness.nutrition.application.result.NutritionTotals;
-import com.myfitness.nutrition.domain.model.NutritionGoal;
+import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,22 +32,22 @@ public class NutritionInsightService implements NutritionInsightQuery {
                 macro(daily.consumed()),
                 macro(daily.remaining()),
                 suggestions.recent().stream()
-                        .map(food -> food.getName())
+                        .map(food -> food.name())
                         .toList(),
                 suggestions.frequent().stream()
-                        .map(food -> food.getName())
+                        .map(food -> food.name())
                         .toList());
     }
 
-    private static MacroInsight macro(NutritionGoal goal) {
+    private static MacroInsight macro(NutritionGoalResult goal) {
         if (goal == null) {
             return null;
         }
         return new MacroInsight(
-                goal.getCalories(),
-                goal.getCarbohydrateGrams(),
-                goal.getProteinGrams(),
-                goal.getFatGrams());
+                goal.calories(),
+                goal.carbohydrateGrams(),
+                goal.proteinGrams(),
+                goal.fatGrams());
     }
 
     private static MacroInsight macro(NutritionTotals totals) {

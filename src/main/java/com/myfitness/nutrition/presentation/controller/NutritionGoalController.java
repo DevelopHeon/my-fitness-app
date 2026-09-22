@@ -1,7 +1,7 @@
 package com.myfitness.nutrition.presentation.controller;
 
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
-import com.myfitness.nutrition.domain.model.NutritionGoal;
+import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import com.myfitness.nutrition.presentation.dto.request.NutritionGoalUpsertRequest;
 import com.myfitness.nutrition.presentation.dto.response.NutritionGoalResponse;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ public class NutritionGoalController {
     @GetMapping("/current")
     public NutritionGoalResponse current(
             @RequestHeader("X-User-Id") Long userId) {
-        NutritionGoal goal =
+        NutritionGoalResult goal =
                 nutritionUseCase.currentGoal(userId);
         return goal == null
                 ? null

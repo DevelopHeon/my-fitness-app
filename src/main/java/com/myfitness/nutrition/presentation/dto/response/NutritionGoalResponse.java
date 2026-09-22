@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.domain.model.NutritionGoal;
+import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -12,17 +12,16 @@ public record NutritionGoalResponse(
         BigDecimal fatGrams,
         Instant updatedAt
 ) {
-    public static NutritionGoalResponse from(NutritionGoal goal) {
+    public static NutritionGoalResponse from(NutritionGoalResult goal) {
         if (goal == null) {
             return null;
         }
         return new NutritionGoalResponse(
-                goal.getId(),
-                goal.getCalories(),
-                goal.getCarbohydrateGrams(),
-                goal.getProteinGrams(),
-                goal.getFatGrams(),
-                goal.getUpdatedAt());
+                goal.id(),
+                goal.calories(),
+                goal.carbohydrateGrams(),
+                goal.proteinGrams(),
+                goal.fatGrams(),
+                goal.updatedAt());
     }
-
 }

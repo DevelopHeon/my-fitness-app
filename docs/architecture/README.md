@@ -156,7 +156,35 @@ WorkoutUseCase
 
 Presentation은 Infrastructure를 직접 참조하지 않는다.
 
-JPA LAZY 연관관계를 가진 Domain Entity를 Presentation까지 그대로 반환하지 않는다. 응답에 연관 데이터가 필요한 경우 Application Service의 트랜잭션 안에서 Application Result projection으로 변환한 뒤 Presentation에서 Response DTO로 매핑한다. 이를 통해 `open-in-view: false`에서도 응답 직렬화가 Persistence Session에 의존하지 않도록 한다.
+### Entity 경계 규칙
+
+JPA Entity는 Presentation까지 전달하지 않는다.
+
+~~~text
+금지
+
+Controller
+   ↓
+In Port
+   ↓
+Workout / BodyRecord / Food 같은 JPA Entity
+~~~
+
+~~~text
+허용
+
+Controller
+   ↓
+In Port
+   ↓
+Application Result
+   ↑
+Application Service가 transaction 안에서 Entity를 projection으로 변환
+~~~
+
+응답에 연관 데이터가 필요한 경우 Application Service의 트랜잭션 안에서 Application Result projection으로 변환한 뒤 Presentation에서 Response DTO로 매핑한다. 이를 통해 `open-in-view: false`에서도 응답 직렬화가 Persistence Session에 의존하지 않도록 한다.
+
+Application Result는 transaction-detached projection으로 취급한다. Result의 필드에는 JPA Entity를 넣지 않으며 primitive, enum, value object, 다른 Result projection만 사용한다. Result 내부의 정적 factory가 Entity를 읽어 projection을 만드는 것은 허용하지만 Entity 자체를 field/return contract로 노출하지 않는다.
 
 ---
 
@@ -175,6 +203,8 @@ Application은 Use Case와 orchestration을 담당한다.
 - 소유권/조회 실패 등 Application 수준 예외
 
 Application 내부에서 가장 중요한 구분은 port.in과 port.out이다.
+
+Application Service는 Domain Entity를 내부에서 사용하되 In Port 경계를 넘길 때는 Result projection으로 변환한다. 이 변환은 transaction이 열려 있는 Application 계층에서 완료한다.
 
 ---
 
@@ -205,6 +235,8 @@ WorkoutUseCase
       ↑ implements
 WorkoutApplicationService
 ~~~
+
+In Port는 JPA Entity를 입력/출력 계약으로 노출하지 않는다. 외부에 필요한 데이터는 command/value object/Application Result projection으로 표현한다.
 
 다른 application module도 공개된 In Port를 통해 호출한다.
 
@@ -595,6 +627,9 @@ ApplicationModules.of(MyFitnessAppApplication.class)
 - Application → Presentation/Infrastructure 금지
 - Presentation → Infrastructure 금지
 - Presentation → Application Service 구현체 직접 의존 금지
+- Presentation → JPA Entity 직접 의존 금지
+- Application In Port → JPA Entity 직접 의존 금지
+- Application Result field → JPA Entity 노출 금지
 - JpaRepository는 Infrastructure에만 위치
 - Repository Out Port는 Application에 위치하며 Spring Data 비의존
 - Entity는 domain.model
@@ -777,8 +812,11 @@ Module B Named In Port
 5. 다른 모듈 Service/Repository/Infrastructure를 직접 참조하지 않는가?
 6. 모듈 간 호출이 Named In Port를 통하는가?
 7. Domain이 외부 계층을 참조하지 않는가?
-8. Spring Modulith verify가 통과하는가?
-9. ArchUnit 테스트가 통과하는가?
-10. DB 변경은 Flyway migration으로만 수행되는가?
+8. In Port와 Presentation이 JPA Entity를 직접 노출/참조하지 않는가?
+9. Application Result field에 JPA Entity가 포함되지 않는가?
+10. Entity → Result 변환이 Application transaction 안에서 끝나는가?
+11. Spring Modulith verify가 통과하는가?
+12. ArchUnit 테스트가 통과하는가?
+13. DB 변경은 Flyway migration으로만 수행되는가?
 
 구조를 단순히 디렉터리 모양으로 유지하는 것이 아니라 의존성 방향이 코드와 테스트에서 실제로 강제되는 상태를 유지한다.

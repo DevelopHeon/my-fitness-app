@@ -3,6 +3,7 @@ package com.myfitness.architecture;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -107,6 +108,49 @@ class LayerArchitectureTest {
                 .resideInAPackage("..application.service..");
 
         rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Presentation은 JPA Entity에 직접 의존하지 않는다")
+    void presentationDoesNotDependOnJpaEntities() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..presentation..")
+                .should().dependOnClassesThat()
+                .areAnnotatedWith(Entity.class);
+
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Application In Port는 JPA Entity에 직접 의존하지 않는다")
+    void inputPortsDoNotDependOnJpaEntities() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application.port.in..")
+                .should().dependOnClassesThat()
+                .areAnnotatedWith(Entity.class);
+
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Application Result의 필드는 JPA Entity 타입을 노출하지 않는다")
+    void applicationResultsDoNotExposeJpaEntitiesAsFields() {
+        classes.stream()
+                .filter(javaClass -> javaClass.getPackageName()
+                        .contains(".application.result"))
+                .forEach(javaClass -> javaClass.getAllFields()
+                        .forEach(field -> {
+                            var entityTypes = field.getAllInvolvedRawTypes()
+                                    .stream()
+                                    .filter(type -> type.isAnnotatedWith(
+                                            Entity.class))
+                                    .map(type -> type.getName())
+                                    .toList();
+
+                            assertThat(entityTypes)
+                                    .as(field.getFullName())
+                                    .isEmpty();
+                        }));
     }
 
     @Test

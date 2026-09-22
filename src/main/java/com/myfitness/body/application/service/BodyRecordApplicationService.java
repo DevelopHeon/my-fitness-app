@@ -1,5 +1,6 @@
 package com.myfitness.body.application.service;
 
+import com.myfitness.body.application.result.BodyRecordResult;
 import com.myfitness.body.application.result.BodyTrendResult;
 import com.myfitness.body.application.port.in.BodyRecordUseCase;
 import com.myfitness.body.domain.model.BodyRecord;
@@ -20,35 +21,39 @@ public class BodyRecordApplicationService implements BodyRecordUseCase {
     }
 
     @Transactional
-    public BodyRecord create(
+    public BodyRecordResult create(
             Long userId,
             BigDecimal weightKg,
             BigDecimal bodyFatPercentage,
             BigDecimal skeletalMuscleKg,
             Instant measuredAt,
             String memo) {
-        return bodyRecordService.create(
-                userId,
-                weightKg,
-                bodyFatPercentage,
-                skeletalMuscleKg,
-                measuredAt,
-                memo);
+        return BodyRecordResult.from(
+                bodyRecordService.create(
+                        userId,
+                        weightKg,
+                        bodyFatPercentage,
+                        skeletalMuscleKg,
+                        measuredAt,
+                        memo));
     }
 
-    public List<BodyRecord> list(
+    public List<BodyRecordResult> list(
             Long userId,
             Instant from,
             Instant to) {
-        return bodyRecordService.list(userId, from, to);
+        return bodyRecordService.list(userId, from, to).stream()
+                .map(BodyRecordResult::from)
+                .toList();
     }
 
-    public BodyRecord get(Long userId, Long bodyRecordId) {
-        return bodyRecordService.getOwned(userId, bodyRecordId);
+    public BodyRecordResult get(Long userId, Long bodyRecordId) {
+        return BodyRecordResult.from(
+                bodyRecordService.getOwned(userId, bodyRecordId));
     }
 
     @Transactional
-    public BodyRecord update(
+    public BodyRecordResult update(
             Long userId,
             Long bodyRecordId,
             BigDecimal weightKg,
@@ -58,13 +63,14 @@ public class BodyRecordApplicationService implements BodyRecordUseCase {
             String memo) {
         BodyRecord record =
                 bodyRecordService.getOwned(userId, bodyRecordId);
-        return bodyRecordService.update(
-                record,
-                weightKg,
-                bodyFatPercentage,
-                skeletalMuscleKg,
-                measuredAt,
-                memo);
+        return BodyRecordResult.from(
+                bodyRecordService.update(
+                        record,
+                        weightKg,
+                        bodyFatPercentage,
+                        skeletalMuscleKg,
+                        measuredAt,
+                        memo));
     }
 
     @Transactional
@@ -93,7 +99,12 @@ public class BodyRecordApplicationService implements BodyRecordUseCase {
                                 records.getFirst().getSkeletalMuscleKg(),
                                 records.get(1).getSkeletalMuscleKg()));
 
-        return new BodyTrendResult(latest, change, records);
+        return new BodyTrendResult(
+                BodyRecordResult.from(latest),
+                change,
+                records.stream()
+                        .map(BodyRecordResult::from)
+                        .toList());
     }
 
     private static BigDecimal subtract(

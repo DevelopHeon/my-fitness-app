@@ -42,6 +42,8 @@
 ### 4순위: REST API 통합 테스트
 핵심 사용자 흐름과 사용자 데이터 격리가 HTTP 경계에서도 유지되는지 검증한다.
 
+JPA Entity를 Application Result로 변환하는 API는 클래스 레벨 `@Transactional` 테스트만으로 끝내지 않는다. 최소 한 개 이상의 비트랜잭션 MockMvc 테스트에서 요청별 transaction이 종료된 뒤에도 연관 데이터가 정상 응답되는지 확인한다. 이를 통해 `open-in-view: false` 환경의 LazyInitializationException을 테스트에서 놓치지 않는다.
+
 ### 5순위: Architecture 테스트
 
 Spring Modulith와 ArchUnit의 책임을 분리한다.
@@ -60,6 +62,8 @@ ArchUnit `LayerArchitectureTest`:
 - Spring Data JpaRepository는 Infrastructure에만 존재한다.
 - Repository Out Port는 `application.port.out`에 두며 Spring Data에 의존하지 않고 interface로 선언한다.
 - Presentation은 Application Service 구현체를 직접 참조하지 않고 In Port를 호출한다.
+- Presentation과 Application In Port는 JPA Entity에 직접 의존하지 않는다.
+- Application Result field에는 JPA Entity를 포함하지 않는다.
 - JPA Entity / Spring Service / REST Controller / Repository Adapter는 각 지정 계층에만 둔다.
 - 다른 기능 모듈의 Presentation/Infrastructure를 직접 참조하지 않는다.
 - Exercise 기반 모듈은 다른 기능 모듈에 역으로 의존하지 않는다.
@@ -67,6 +71,7 @@ ArchUnit `LayerArchitectureTest`:
 `PackageDocumentationTest`:
 - 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
 - 구현된 모듈은 `application.port` / `port.in` / `port.out` `package-info.java`를 유지한다.
+- Application Result를 사용하는 모듈은 `application.result/package-info.java`에 Entity 비노출 projection 규칙을 문서화한다.
 - package-info Javadoc은 개발자가 책임과 규칙을 코드 가까이에서 확인하기 위한 문서다.
 
 ### 6순위: AI Coach 테스트

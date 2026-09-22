@@ -1,13 +1,13 @@
 package com.myfitness.body.application.port.in;
 
+import com.myfitness.body.application.result.BodyRecordResult;
 import com.myfitness.body.application.result.BodyTrendResult;
-import com.myfitness.body.domain.model.BodyRecord;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
 public interface BodyRecordUseCase {
-    BodyRecord create(
+    BodyRecordResult create(
             Long userId,
             BigDecimal weightKg,
             BigDecimal bodyFatPercentage,
@@ -15,11 +15,11 @@ public interface BodyRecordUseCase {
             Instant measuredAt,
             String memo);
 
-    List<BodyRecord> list(Long userId, Instant from, Instant to);
+    List<BodyRecordResult> list(Long userId, Instant from, Instant to);
 
-    BodyRecord get(Long userId, Long bodyRecordId);
+    BodyRecordResult get(Long userId, Long bodyRecordId);
 
-    BodyRecord update(
+    BodyRecordResult update(
             Long userId,
             Long bodyRecordId,
             BigDecimal weightKg,
