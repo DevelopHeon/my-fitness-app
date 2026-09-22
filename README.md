@@ -7,7 +7,8 @@
 - Backend: Java 21, Spring Boot 4.1.1, Spring Data JPA, Spring Security
 - Frontend: Next.js 16.3.3, TypeScript, Tailwind CSS, PWA
 - Database: PostgreSQL 17
-- AI: Spring AI + Ollama (Phase 6 예정)
+- AI: Spring AI + external provider adapter (Phase 6 예정)
+- Architecture: domain-first 4-layer + Repository Port/Adapter + ArchUnit
 - Build: Gradle + npm
 
 ## 프로젝트 구조
@@ -15,6 +16,15 @@
 ```text
 .
 ├── src/                # Spring Boot
+│   └── main/java/com/myfitness
+│       ├── exercise
+│       ├── workout
+│       ├── routine
+│       ├── body
+│       ├── nutrition
+│       ├── dashboard
+│       ├── user
+│       └── ai
 ├── frontend/           # Next.js PWA
 ├── docs/
 │   ├── spec/

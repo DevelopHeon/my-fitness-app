@@ -42,7 +42,16 @@
 ### 4순위: REST API 통합 테스트
 핵심 사용자 흐름과 사용자 데이터 격리가 HTTP 경계에서도 유지되는지 검증한다.
 
-### 5순위: AI Tool 테스트
+### 5순위: Architecture 테스트
+ArchUnit으로 다음 의존성 규칙을 자동 검증한다.
+
+- Domain은 Application / Presentation / Infrastructure에 의존하지 않는다.
+- Application은 Presentation / Infrastructure에 의존하지 않는다.
+- Presentation은 Infrastructure에 직접 의존하지 않는다.
+- Spring Data JpaRepository는 Infrastructure에만 존재한다.
+- Domain Repository Port는 Spring Data에 의존하지 않는다.
+
+### 6순위: AI Tool 테스트
 LLM 자연어 문장 자체가 아니라 Tool 선택, Tool 입력/출력, 데이터 근거를 검증한다.
 
 ## 3. 작성하지 않아도 되는 테스트
