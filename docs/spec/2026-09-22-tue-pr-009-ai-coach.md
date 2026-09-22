@@ -444,28 +444,31 @@ AI가 다른 모듈의 Entity나 Repository를 직접 조회하지 않는다.
 ~~~text
 workout
 └── application
-    └── insight
-        ├── WorkoutInsightQuery
-        └── WorkoutInsightResult
+    └── port
+        └── in
+            └── insight
+                └── WorkoutInsightQuery
 
 body
 └── application
-    └── insight
-        ├── BodyInsightQuery
-        └── BodyInsightResult
+    └── port
+        └── in
+            └── insight
+                └── BodyInsightQuery
 
 nutrition
 └── application
-    └── insight
-        ├── NutritionInsightQuery
-        └── NutritionInsightResult
+    └── port
+        └── in
+            └── insight
+                └── NutritionInsightQuery
 ~~~
 
 각 insight package는 Named Interface로 공개한다.
 
 ~~~java
 @NamedInterface("insight")
-package com.myfitness.workout.application.insight;
+package com.myfitness.workout.application.port.in.insight;
 ~~~
 
 Phase 6 구현 시 ai module의 allowedDependencies는 최소한으로 연다.
@@ -480,12 +483,14 @@ ai
 AI가 다음에 직접 의존하지 않는다.
 
 ~~~text
-workout::repository
-body::repository
-nutrition::repository
-*.domain.model
-*.infrastructure
+WorkoutRepositoryPort
+BodyRecordRepositoryPort
+Nutrition 관련 RepositoryPort
+다른 모듈 application.port.out
+다른 모듈 infrastructure
 ~~~
+
+즉 AI는 다른 모듈의 Out Port나 Persistence 구현을 우회하지 않고 공개된 Insight In Port만 사용한다.
 
 ## 11. 정확한 계산 책임
 
@@ -927,6 +932,14 @@ ai
 │       └── response
 │
 ├── application
+│   ├── port
+│   │   ├── in
+│   │   │   └── AiCoachUseCase
+│   │   └── out
+│   │       ├── AiChatGateway
+│   │       ├── AiConversationRepositoryPort
+│   │       ├── AiMessageRepositoryPort
+│   │       └── AiRequestLogRepositoryPort
 │   ├── service
 │   │   └── AiCoachService
 │   ├── router
@@ -935,8 +948,6 @@ ai
 │   │   └── AiContextBuilder
 │   ├── command
 │   ├── result
-│   ├── port
-│   │   └── AiChatGateway
 │   └── exception
 │
 ├── domain
@@ -945,11 +956,11 @@ ai
 │   │   ├── AiMessage
 │   │   ├── AiMessageRole
 │   │   └── AiQueryType
-│   ├── repository
 │   └── exception
 │
 └── infrastructure
     ├── persistence
+    │   └── *RepositoryAdapter
     └── springai
         └── SpringAiChatGateway
 ~~~
@@ -1070,8 +1081,8 @@ Ollama profile
 - AiConversation
 - AiMessage
 - AiRequestLog
-- Domain Repository
-- Infrastructure Adapter
+- Application Repository Out Port
+- Persistence Adapter
 - Flyway V6
 - Repository 테스트
 

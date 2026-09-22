@@ -5,7 +5,7 @@ import com.myfitness.nutrition.domain.model.ServingUnit;
 import com.myfitness.nutrition.application.exception.NutritionAccessException;
 import com.myfitness.nutrition.application.exception.NutritionNotFoundException;
 import com.myfitness.nutrition.domain.exception.NutritionRuleException;
-import com.myfitness.nutrition.domain.repository.FoodRepository;
+import com.myfitness.nutrition.application.port.out.FoodRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.List;
@@ -14,15 +14,15 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FoodService {
-    private final FoodRepository foodRepository;
+    private final FoodRepositoryPort foodRepository;
     private final Clock clock;
 
     @Autowired
-    public FoodService(FoodRepository foodRepository) {
+    public FoodService(FoodRepositoryPort foodRepository) {
         this(foodRepository, Clock.systemDefaultZone());
     }
 
-    FoodService(FoodRepository foodRepository, Clock clock) {
+    FoodService(FoodRepositoryPort foodRepository, Clock clock) {
         this.foodRepository = foodRepository;
         this.clock = clock;
     }

@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import com.myfitness.nutrition.application.service.NutritionApplicationService;
+import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.MealItemCreateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemUpdateRequest;
 import com.myfitness.nutrition.presentation.dto.response.DailyNutritionResponse;
@@ -14,11 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/meals")
 public class MealController {
-    private final NutritionApplicationService nutritionApplicationService;
+    private final NutritionUseCase nutritionUseCase;
 
     public MealController(
-            NutritionApplicationService nutritionApplicationService) {
-        this.nutritionApplicationService = nutritionApplicationService;
+            NutritionUseCase nutritionUseCase) {
+        this.nutritionUseCase = nutritionUseCase;
     }
 
     @GetMapping("/daily")
@@ -28,7 +28,7 @@ public class MealController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
         return DailyNutritionResponse.from(
-                nutritionApplicationService.daily(userId, date));
+                nutritionUseCase.daily(userId, date));
     }
 
     @PostMapping("/items")
@@ -37,7 +37,7 @@ public class MealController {
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody MealItemCreateRequest request) {
         return MealFoodResponse.from(
-                nutritionApplicationService.addMealItem(
+                nutritionUseCase.addMealItem(
                         userId,
                         request.mealDate(),
                         request.mealType(),
@@ -51,7 +51,7 @@ public class MealController {
             @PathVariable Long itemId,
             @Valid @RequestBody MealItemUpdateRequest request) {
         return MealFoodResponse.from(
-                nutritionApplicationService.updateMealItem(
+                nutritionUseCase.updateMealItem(
                         userId,
                         itemId,
                         request.servings()));
@@ -62,6 +62,6 @@ public class MealController {
     public void deleteItem(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long itemId) {
-        nutritionApplicationService.deleteMealItem(userId, itemId);
+        nutritionUseCase.deleteMealItem(userId, itemId);
     }
 }

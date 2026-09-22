@@ -9,7 +9,7 @@
 @org.springframework.modulith.ApplicationModule(
     displayName = "Workout",
     allowedDependencies = {
-        "exercise::application-service",
+        "exercise::catalog",
         "exercise::domain-model"
     }
 )

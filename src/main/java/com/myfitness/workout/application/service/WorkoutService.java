@@ -6,8 +6,8 @@ import com.myfitness.workout.domain.model.*;
 import com.myfitness.workout.application.command.WorkoutSetCommand;
 import com.myfitness.workout.application.exception.WorkoutAccessException;
 import com.myfitness.workout.application.exception.WorkoutNotFoundException;
-import com.myfitness.workout.domain.repository.WorkoutExerciseRepository;
-import com.myfitness.workout.domain.repository.WorkoutRepository;
+import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
+import com.myfitness.workout.application.port.out.WorkoutRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -17,20 +17,20 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class WorkoutService {
-    private final WorkoutRepository workoutRepository;
-    private final WorkoutExerciseRepository workoutExerciseRepository;
+    private final WorkoutRepositoryPort workoutRepository;
+    private final WorkoutExerciseRepositoryPort workoutExerciseRepository;
     private final Clock clock;
 
     @Autowired
     public WorkoutService(
-            WorkoutRepository workoutRepository,
-            WorkoutExerciseRepository workoutExerciseRepository) {
+            WorkoutRepositoryPort workoutRepository,
+            WorkoutExerciseRepositoryPort workoutExerciseRepository) {
         this(workoutRepository, workoutExerciseRepository, Clock.systemDefaultZone());
     }
 
     WorkoutService(
-            WorkoutRepository workoutRepository,
-            WorkoutExerciseRepository workoutExerciseRepository,
+            WorkoutRepositoryPort workoutRepository,
+            WorkoutExerciseRepositoryPort workoutExerciseRepository,
             Clock clock) {
         this.workoutRepository = workoutRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;

@@ -1,6 +1,6 @@
 package com.myfitness.body.presentation.controller;
 
-import com.myfitness.body.application.service.BodyRecordApplicationService;
+import com.myfitness.body.application.port.in.BodyRecordUseCase;
 import com.myfitness.body.presentation.dto.request.BodyRecordUpsertRequest;
 import com.myfitness.body.presentation.dto.response.BodyRecordResponse;
 import com.myfitness.body.presentation.dto.response.BodyTrendResponse;
@@ -14,11 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/body-records")
 public class BodyRecordController {
-    private final BodyRecordApplicationService bodyRecordApplicationService;
+    private final BodyRecordUseCase bodyRecordUseCase;
 
     public BodyRecordController(
-            BodyRecordApplicationService bodyRecordApplicationService) {
-        this.bodyRecordApplicationService = bodyRecordApplicationService;
+            BodyRecordUseCase bodyRecordUseCase) {
+        this.bodyRecordUseCase = bodyRecordUseCase;
     }
 
     @PostMapping
@@ -27,7 +27,7 @@ public class BodyRecordController {
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody BodyRecordUpsertRequest request) {
         return BodyRecordResponse.from(
-                bodyRecordApplicationService.create(
+                bodyRecordUseCase.create(
                         userId,
                         request.weightKg(),
                         request.bodyFatPercentage(),
@@ -45,7 +45,7 @@ public class BodyRecordController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Instant to) {
-        return bodyRecordApplicationService.list(userId, from, to)
+        return bodyRecordUseCase.list(userId, from, to)
                 .stream()
                 .map(BodyRecordResponse::from)
                 .toList();
@@ -56,7 +56,7 @@ public class BodyRecordController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long bodyRecordId) {
         return BodyRecordResponse.from(
-                bodyRecordApplicationService.get(
+                bodyRecordUseCase.get(
                         userId, bodyRecordId));
     }
 
@@ -66,7 +66,7 @@ public class BodyRecordController {
             @PathVariable Long bodyRecordId,
             @Valid @RequestBody BodyRecordUpsertRequest request) {
         return BodyRecordResponse.from(
-                bodyRecordApplicationService.update(
+                bodyRecordUseCase.update(
                         userId,
                         bodyRecordId,
                         request.weightKg(),
@@ -81,7 +81,7 @@ public class BodyRecordController {
     public void delete(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long bodyRecordId) {
-        bodyRecordApplicationService.delete(
+        bodyRecordUseCase.delete(
                 userId, bodyRecordId);
     }
 
@@ -90,6 +90,6 @@ public class BodyRecordController {
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam(defaultValue = "30") int days) {
         return BodyTrendResponse.from(
-                bodyRecordApplicationService.trend(userId, days));
+                bodyRecordUseCase.trend(userId, days));
     }
 }

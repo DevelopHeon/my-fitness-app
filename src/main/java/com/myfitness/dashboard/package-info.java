@@ -9,11 +9,8 @@
 @org.springframework.modulith.ApplicationModule(
     displayName = "Dashboard",
     allowedDependencies = {
-        "body::domain-model",
-        "body::repository",
-        "exercise::domain-model",
-        "workout::domain-model",
-        "workout::repository"
+        "body::insight",
+        "workout::insight"
     }
 )
 package com.myfitness.dashboard;

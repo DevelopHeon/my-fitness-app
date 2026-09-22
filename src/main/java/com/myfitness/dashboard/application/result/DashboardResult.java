@@ -1,7 +1,5 @@
 package com.myfitness.dashboard.application.result;
 
-import com.myfitness.exercise.domain.model.ExerciseCategory;
-import com.myfitness.exercise.domain.model.ExerciseType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,7 +25,7 @@ public record DashboardResult(
     ) {}
 
     public record CategoryDailyVolume(
-            ExerciseCategory category,
+            String category,
             List<DailyVolume> dailyVolumes
     ) {}
 
@@ -56,7 +54,7 @@ public record DashboardResult(
     ) {}
 
     public record ExerciseSummary(
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,

@@ -4,7 +4,7 @@ import com.myfitness.routine.domain.model.Routine;
 import com.myfitness.routine.application.exception.RoutineAccessException;
 import com.myfitness.routine.application.exception.RoutineNotFoundException;
 import com.myfitness.routine.domain.exception.RoutineRuleException;
-import com.myfitness.routine.domain.repository.RoutineRepository;
+import com.myfitness.routine.application.port.out.RoutineRepositoryPort;
 import com.myfitness.exercise.domain.model.ExerciseReference;
 import java.time.Clock;
 import java.util.List;
@@ -13,15 +13,15 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RoutineService {
-    private final RoutineRepository routineRepository;
+    private final RoutineRepositoryPort routineRepository;
     private final Clock clock;
 
     @Autowired
-    public RoutineService(RoutineRepository routineRepository) {
+    public RoutineService(RoutineRepositoryPort routineRepository) {
         this(routineRepository, Clock.systemDefaultZone());
     }
 
-    RoutineService(RoutineRepository routineRepository, Clock clock) {
+    RoutineService(RoutineRepositoryPort routineRepository, Clock clock) {
         this.routineRepository = routineRepository;
         this.clock = clock;
     }

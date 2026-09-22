@@ -1,9 +1,13 @@
 package com.myfitness.dashboard.application.service;
 
 import com.myfitness.dashboard.domain.service.DashboardCalculator;
-import com.myfitness.body.domain.model.BodyRecord;
-import com.myfitness.dashboard.application.port.DashboardQueryPort;
-import com.myfitness.dashboard.application.port.DashboardQueryPort.DashboardSourceData;
+import com.myfitness.dashboard.application.port.in.DashboardQueryUseCase;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort.BodyData;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort.ExerciseData;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort.SetData;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort.WorkoutData;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort.DashboardSourceData;
 import com.myfitness.dashboard.application.result.DashboardResult;
 import com.myfitness.dashboard.application.result.DashboardResult.BodyChange;
 import com.myfitness.dashboard.application.result.DashboardResult.BodyPoint;
@@ -13,10 +17,6 @@ import com.myfitness.dashboard.application.result.DashboardResult.DailyVolume;
 import com.myfitness.dashboard.application.result.DashboardResult.ExerciseRecord;
 import com.myfitness.dashboard.application.result.DashboardResult.ExerciseSummary;
 import com.myfitness.dashboard.application.result.DashboardResult.WorkoutSummary;
-import com.myfitness.exercise.domain.model.ExerciseCategory;
-import com.myfitness.workout.domain.model.Workout;
-import com.myfitness.workout.domain.model.WorkoutExercise;
-import com.myfitness.workout.domain.model.WorkoutSet;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -34,40 +34,40 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class DashboardService {
+public class DashboardService implements DashboardQueryUseCase {
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
 
-    private final DashboardQueryPort dashboardQueryPort;
+    private final DashboardDataPort dashboardDataPort;
     private final Clock clock;
 
     @Autowired
-    public DashboardService(DashboardQueryPort dashboardQueryPort) {
-        this(dashboardQueryPort, Clock.systemDefaultZone());
+    public DashboardService(DashboardDataPort dashboardDataPort) {
+        this(dashboardDataPort, Clock.systemDefaultZone());
     }
 
     DashboardService(
-            DashboardQueryPort dashboardQueryPort,
+            DashboardDataPort dashboardDataPort,
             Clock clock) {
-        this.dashboardQueryPort = dashboardQueryPort;
+        this.dashboardDataPort = dashboardDataPort;
         this.clock = clock;
     }
 
     public DashboardResult getDashboard(Long userId) {
         LocalDate today = LocalDate.now(clock);
-        DashboardSourceData source = dashboardQueryPort.load(userId);
+        DashboardSourceData source = dashboardDataPort.load(userId);
 
-        List<Workout> completedWorkouts =
+        List<WorkoutData> completedWorkouts =
                 source.completedWorkouts().stream()
                         .sorted(Comparator
-                                .comparing(Workout::getWorkoutDate)
-                                .thenComparing(Workout::getStartedAt))
+                                .comparing(WorkoutData::getWorkoutDate)
+                                .thenComparing(WorkoutData::getStartedAt))
                         .toList();
 
         Instant now = clock.instant();
-        List<BodyRecord> bodyRecords =
+        List<BodyData> bodyRecords =
                 source.bodyRecords().stream()
                         .sorted(Comparator
-                                .comparing(BodyRecord::getMeasuredAt)
+                                .comparing(BodyData::getMeasuredAt)
                                 .reversed())
                         .toList();
 
@@ -81,7 +81,7 @@ public class DashboardService {
     }
 
     private static WorkoutSummary buildWorkoutSummary(
-            List<Workout> workouts,
+            List<WorkoutData> workouts,
             LocalDate today) {
         LocalDate last7Start = today.minusDays(6);
         LocalDate previous7Start = today.minusDays(13);
@@ -100,9 +100,10 @@ public class DashboardService {
                 volumeBetween(workouts, previous30Start, previous30End);
 
         Map<LocalDate, BigDecimal> dailyVolumes = new TreeMap<>();
-        Map<ExerciseCategory, Map<LocalDate, BigDecimal>> categoryDailyVolumes =
+        Map<String, Map<LocalDate, BigDecimal>> categoryDailyVolumes =
                 new LinkedHashMap<>();
-        for (ExerciseCategory category : ExerciseCategory.values()) {
+        for (String category : List.of(
+                "CHEST", "SHOULDER", "BACK", "ARM", "ABS", "LEGS")) {
             categoryDailyVolumes.put(category, new TreeMap<>());
         }
 
@@ -113,7 +114,7 @@ public class DashboardService {
                     .forEach(series -> series.put(date, ZERO));
         }
 
-        for (Workout workout : workouts) {
+        for (WorkoutData workout : workouts) {
             if (!isBetween(workout.getWorkoutDate(), last30Start, today)) {
                 continue;
             }
@@ -122,7 +123,7 @@ public class DashboardService {
                     workout.getWorkoutDate(),
                     (date, volume) -> volume.add(workoutVolume(workout)));
 
-            for (ExerciseCategory category : ExerciseCategory.values()) {
+            for (String category : categoryDailyVolumes.keySet()) {
                 Map<LocalDate, BigDecimal> series =
                         categoryDailyVolumes.get(category);
                 series.computeIfPresent(
@@ -167,19 +168,19 @@ public class DashboardService {
     }
 
     private static BodySummary buildBodySummary(
-            List<BodyRecord> records,
+            List<BodyData> records,
             Instant historyStart) {
         if (records.isEmpty()) {
             return new BodySummary(null, null, List.of());
         }
 
-        List<BodyRecord> orderedByMeasuredAtDesc = records.stream()
+        List<BodyData> orderedByMeasuredAtDesc = records.stream()
                 .sorted(Comparator
-                        .comparing(BodyRecord::getMeasuredAt)
+                        .comparing(BodyData::getMeasuredAt)
                         .reversed())
                 .toList();
 
-        BodyRecord latest = orderedByMeasuredAtDesc.getFirst();
+        BodyData latest = orderedByMeasuredAtDesc.getFirst();
         BodyChange change = orderedByMeasuredAtDesc.size() < 2
                 ? null
                 : new BodyChange(
@@ -195,7 +196,7 @@ public class DashboardService {
         List<BodyPoint> history = orderedByMeasuredAtDesc.stream()
                 .filter(record ->
                         !record.getMeasuredAt().isBefore(historyStart))
-                .sorted(Comparator.comparing(BodyRecord::getMeasuredAt))
+                .sorted(Comparator.comparing(BodyData::getMeasuredAt))
                 .map(DashboardService::bodyPoint)
                 .toList();
 
@@ -206,14 +207,14 @@ public class DashboardService {
     }
 
     private static List<ExerciseSummary> buildExerciseSummaries(
-            List<Workout> workouts) {
+            List<WorkoutData> workouts) {
         Map<String, ExerciseAccumulator> accumulators =
                 new LinkedHashMap<>();
 
-        for (Workout workout : workouts) {
-            for (WorkoutExercise entry : workout.getExercises()) {
-                List<WorkoutSet> completedSets = entry.getSets().stream()
-                        .filter(WorkoutSet::isCompleted)
+        for (WorkoutData workout : workouts) {
+            for (ExerciseData entry : workout.getExercises()) {
+                List<SetData> completedSets = entry.getSets().stream()
+                        .filter(SetData::isCompleted)
                         .filter(set -> set.getReps() > 0)
                         .toList();
                 if (completedSets.isEmpty()) {
@@ -230,7 +231,7 @@ public class DashboardService {
                 BigDecimal recordMaxWeight = ZERO;
                 BigDecimal recordMaxOneRepMax = ZERO;
 
-                for (WorkoutSet set : completedSets) {
+                for (SetData set : completedSets) {
                     BigDecimal setVolume = DashboardCalculator.volume(
                             set.getWeightKg(),
                             set.getReps());
@@ -252,7 +253,7 @@ public class DashboardService {
                 }
 
                 accumulator.exerciseName = entry.getExerciseName();
-                accumulator.category = entry.getCategory().name();
+                accumulator.category = entry.getCategory();
                 if (accumulator.latestWorkoutDate == null
                         || workout.getWorkoutDate()
                                 .isAfter(accumulator.latestWorkoutDate)) {
@@ -277,7 +278,7 @@ public class DashboardService {
     }
 
     private static int countBetween(
-            List<Workout> workouts,
+            List<WorkoutData> workouts,
             LocalDate from,
             LocalDate to) {
         return (int) workouts.stream()
@@ -287,7 +288,7 @@ public class DashboardService {
     }
 
     private static BigDecimal volumeBetween(
-            List<Workout> workouts,
+            List<WorkoutData> workouts,
             LocalDate from,
             LocalDate to) {
         return workouts.stream()
@@ -297,10 +298,10 @@ public class DashboardService {
                 .reduce(ZERO, BigDecimal::add);
     }
 
-    private static BigDecimal workoutVolume(Workout workout) {
+    private static BigDecimal workoutVolume(WorkoutData workout) {
         return workout.getExercises().stream()
                 .flatMap(entry -> entry.getSets().stream())
-                .filter(WorkoutSet::isCompleted)
+                .filter(SetData::isCompleted)
                 .filter(set -> set.getReps() > 0)
                 .map(set -> DashboardCalculator.volume(
                         set.getWeightKg(),
@@ -309,12 +310,12 @@ public class DashboardService {
     }
 
     private static BigDecimal workoutVolumeByCategory(
-            Workout workout,
-            ExerciseCategory category) {
+            WorkoutData workout,
+            String category) {
         return workout.getExercises().stream()
-                .filter(entry -> entry.getCategory() == category)
+                .filter(entry -> entry.getCategory().equals(category))
                 .flatMap(entry -> entry.getSets().stream())
-                .filter(WorkoutSet::isCompleted)
+                .filter(SetData::isCompleted)
                 .filter(set -> set.getReps() > 0)
                 .map(set -> DashboardCalculator.volume(
                         set.getWeightKg(),
@@ -329,7 +330,7 @@ public class DashboardService {
         return !date.isBefore(from) && !date.isAfter(to);
     }
 
-    private static BodyPoint bodyPoint(BodyRecord record) {
+    private static BodyPoint bodyPoint(BodyData record) {
         return new BodyPoint(
                 record.getMeasuredAt(),
                 record.getWeightKg(),
@@ -338,7 +339,7 @@ public class DashboardService {
     }
 
     private static final class ExerciseAccumulator {
-        private final com.myfitness.exercise.domain.model.ExerciseType exerciseType;
+        private final String exerciseType;
         private final Long exerciseId;
         private String exerciseName;
         private String category;
@@ -347,11 +348,11 @@ public class DashboardService {
         private LocalDate latestWorkoutDate;
         private final List<ExerciseRecord> records = new ArrayList<>();
 
-        private ExerciseAccumulator(WorkoutExercise entry) {
+        private ExerciseAccumulator(ExerciseData entry) {
             this.exerciseType = entry.getExerciseType();
             this.exerciseId = entry.getExerciseId();
             this.exerciseName = entry.getExerciseName();
-            this.category = entry.getCategory().name();
+            this.category = entry.getCategory();
         }
 
         private ExerciseSummary toResponse() {

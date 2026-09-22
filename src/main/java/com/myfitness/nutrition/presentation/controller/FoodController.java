@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import com.myfitness.nutrition.application.service.NutritionApplicationService;
+import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.FoodUpsertRequest;
 import com.myfitness.nutrition.presentation.dto.response.FoodResponse;
 import com.myfitness.nutrition.presentation.dto.response.FoodSuggestionsResponse;
@@ -12,18 +12,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/foods")
 public class FoodController {
-    private final NutritionApplicationService nutritionApplicationService;
+    private final NutritionUseCase nutritionUseCase;
 
     public FoodController(
-            NutritionApplicationService nutritionApplicationService) {
-        this.nutritionApplicationService = nutritionApplicationService;
+            NutritionUseCase nutritionUseCase) {
+        this.nutritionUseCase = nutritionUseCase;
     }
 
     @GetMapping
     public List<FoodResponse> list(
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) String query) {
-        return nutritionApplicationService.listFoods(userId, query)
+        return nutritionUseCase.listFoods(userId, query)
                 .stream()
                 .map(FoodResponse::from)
                 .toList();
@@ -33,7 +33,7 @@ public class FoodController {
     public FoodSuggestionsResponse suggestions(
             @RequestHeader("X-User-Id") Long userId) {
         return FoodSuggestionsResponse.from(
-                nutritionApplicationService.suggestions(userId));
+                nutritionUseCase.suggestions(userId));
     }
 
     @PostMapping
@@ -42,7 +42,7 @@ public class FoodController {
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody FoodUpsertRequest request) {
         return FoodResponse.from(
-                nutritionApplicationService.createFood(
+                nutritionUseCase.createFood(
                         userId,
                         request.name(),
                         request.servingAmount(),
@@ -59,7 +59,7 @@ public class FoodController {
             @PathVariable Long foodId,
             @Valid @RequestBody FoodUpsertRequest request) {
         return FoodResponse.from(
-                nutritionApplicationService.updateFood(
+                nutritionUseCase.updateFood(
                         userId,
                         foodId,
                         request.name(),
@@ -76,6 +76,6 @@ public class FoodController {
     public void delete(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long foodId) {
-        nutritionApplicationService.deleteFood(userId, foodId);
+        nutritionUseCase.deleteFood(userId, foodId);
     }
 }

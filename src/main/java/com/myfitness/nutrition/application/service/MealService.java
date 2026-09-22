@@ -7,8 +7,8 @@ import com.myfitness.nutrition.domain.model.MealType;
 import com.myfitness.nutrition.application.exception.NutritionAccessException;
 import com.myfitness.nutrition.application.exception.NutritionNotFoundException;
 import com.myfitness.nutrition.domain.exception.NutritionRuleException;
-import com.myfitness.nutrition.domain.repository.MealFoodRepository;
-import com.myfitness.nutrition.domain.repository.MealRepository;
+import com.myfitness.nutrition.application.port.out.MealFoodRepositoryPort;
+import com.myfitness.nutrition.application.port.out.MealRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -18,20 +18,20 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MealService {
-    private final MealRepository mealRepository;
-    private final MealFoodRepository mealFoodRepository;
+    private final MealRepositoryPort mealRepository;
+    private final MealFoodRepositoryPort mealFoodRepository;
     private final Clock clock;
 
     @Autowired
     public MealService(
-            MealRepository mealRepository,
-            MealFoodRepository mealFoodRepository) {
+            MealRepositoryPort mealRepository,
+            MealFoodRepositoryPort mealFoodRepository) {
         this(mealRepository, mealFoodRepository, Clock.systemDefaultZone());
     }
 
     MealService(
-            MealRepository mealRepository,
-            MealFoodRepository mealFoodRepository,
+            MealRepositoryPort mealRepository,
+            MealFoodRepositoryPort mealFoodRepository,
             Clock clock) {
         this.mealRepository = mealRepository;
         this.mealFoodRepository = mealFoodRepository;

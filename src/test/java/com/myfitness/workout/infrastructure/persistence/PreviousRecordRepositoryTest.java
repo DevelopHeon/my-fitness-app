@@ -4,8 +4,8 @@ import com.myfitness.exercise.domain.model.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.myfitness.workout.domain.model.*;
-import com.myfitness.workout.domain.repository.WorkoutExerciseRepository;
-import com.myfitness.workout.domain.repository.WorkoutRepository;
+import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
+import com.myfitness.workout.application.port.out.WorkoutRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 class PreviousRecordRepositoryTest {
-    @Autowired WorkoutRepository workoutRepository;
-    @Autowired WorkoutExerciseRepository workoutExerciseRepository;
+    @Autowired WorkoutRepositoryPort workoutRepository;
+    @Autowired WorkoutExerciseRepositoryPort workoutExerciseRepository;
 
     @Test
     @DisplayName("운동 출처와 ID가 같은 동일 종목의 가장 최근 완료 Workout 기록을 조회한다")

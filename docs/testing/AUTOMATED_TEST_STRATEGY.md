@@ -58,17 +58,19 @@ ArchUnit `LayerArchitectureTest`:
 - Application은 Presentation / Infrastructure에 의존하지 않는다.
 - Presentation은 Infrastructure에 직접 의존하지 않는다.
 - Spring Data JpaRepository는 Infrastructure에만 존재한다.
-- Domain Repository Port는 Spring Data에 의존하지 않으며 interface로 선언한다.
+- Repository Out Port는 `application.port.out`에 두며 Spring Data에 의존하지 않고 interface로 선언한다.
+- Presentation은 Application Service 구현체를 직접 참조하지 않고 In Port를 호출한다.
 - JPA Entity / Spring Service / REST Controller / Repository Adapter는 각 지정 계층에만 둔다.
 - 다른 기능 모듈의 Presentation/Infrastructure를 직접 참조하지 않는다.
 - Exercise 기반 모듈은 다른 기능 모듈에 역으로 의존하지 않는다.
 
 `PackageDocumentationTest`:
 - 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
+- 구현된 모듈은 `application.port` / `port.in` / `port.out` `package-info.java`를 유지한다.
 - package-info Javadoc은 개발자가 책임과 규칙을 코드 가까이에서 확인하기 위한 문서다.
 
-### 6순위: AI Tool 테스트
-LLM 자연어 문장 자체가 아니라 Tool 선택, Tool 입력/출력, 데이터 근거를 검증한다.
+### 6순위: AI Coach 테스트
+LLM 자연어 문장 자체가 아니라 Router 분류, 선택 Context, In/Out Port 호출, Provider Gateway 호출 여부와 데이터 근거를 검증한다.
 
 ## 3. 작성하지 않아도 되는 테스트
 

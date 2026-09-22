@@ -1,6 +1,7 @@
 package com.myfitness.exercise.presentation.controller;
 
-import com.myfitness.exercise.application.service.ExerciseService;
+import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.exercise.presentation.dto.request.CreateExerciseRequest;
 import com.myfitness.exercise.presentation.dto.response.ExerciseResponse;
 import jakarta.validation.Valid;
@@ -11,16 +12,20 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/exercises")
 public class ExerciseController {
-    private final ExerciseService exerciseService;
+    private final ExerciseManagementUseCase exerciseManagementUseCase;
+    private final ExerciseCatalogQuery exerciseCatalogQuery;
 
-    public ExerciseController(ExerciseService exerciseService) {
-        this.exerciseService = exerciseService;
+    public ExerciseController(
+            ExerciseManagementUseCase exerciseManagementUseCase,
+            ExerciseCatalogQuery exerciseCatalogQuery) {
+        this.exerciseManagementUseCase = exerciseManagementUseCase;
+        this.exerciseCatalogQuery = exerciseCatalogQuery;
     }
 
     @GetMapping
     public List<ExerciseResponse> list(
             @RequestHeader("X-User-Id") Long userId) {
-        return exerciseService.list(userId).stream()
+        return exerciseCatalogQuery.list(userId).stream()
                 .map(ExerciseResponse::from)
                 .toList();
     }
@@ -30,7 +35,7 @@ public class ExerciseController {
     public ExerciseResponse createCustom(
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody CreateExerciseRequest request) {
-        return ExerciseResponse.from(exerciseService.createCustom(
+        return ExerciseResponse.from(exerciseManagementUseCase.createCustom(
                 userId, request.name(), request.category()));
     }
 }

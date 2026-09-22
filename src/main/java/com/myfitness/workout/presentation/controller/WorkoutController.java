@@ -1,7 +1,7 @@
 package com.myfitness.workout.presentation.controller;
 
 import com.myfitness.workout.application.command.WorkoutSetCommand;
-import com.myfitness.workout.application.service.WorkoutApplicationService;
+import com.myfitness.workout.application.port.in.WorkoutUseCase;
 import com.myfitness.workout.presentation.dto.request.AddWorkoutExerciseRequest;
 import com.myfitness.workout.presentation.dto.request.StartWorkoutRequest;
 import com.myfitness.workout.presentation.dto.request.WorkoutSetBatchRequest;
@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/workouts")
 public class WorkoutController {
-    private final WorkoutApplicationService workoutApplicationService;
+    private final WorkoutUseCase workoutUseCase;
 
     public WorkoutController(
-            WorkoutApplicationService workoutApplicationService) {
-        this.workoutApplicationService = workoutApplicationService;
+            WorkoutUseCase workoutUseCase) {
+        this.workoutUseCase = workoutUseCase;
     }
 
     @PostMapping
@@ -31,7 +31,7 @@ public class WorkoutController {
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody StartWorkoutRequest request) {
         return WorkoutResponse.from(
-                workoutApplicationService.startWorkout(
+                workoutUseCase.startWorkout(
                         userId,
                         request.workoutDate(),
                         request.memo()));
@@ -42,7 +42,7 @@ public class WorkoutController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutApplicationService.getWorkout(userId, workoutId));
+                workoutUseCase.getWorkout(userId, workoutId));
     }
 
     @GetMapping
@@ -50,7 +50,7 @@ public class WorkoutController {
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
-        return workoutApplicationService
+        return workoutUseCase
                 .getWorkouts(userId, from, to)
                 .stream()
                 .map(WorkoutResponse::from)
@@ -61,7 +61,7 @@ public class WorkoutController {
     public List<WorkoutCalendarDayResponse> calendar(
             @RequestHeader("X-User-Id") Long userId,
             @RequestParam String month) {
-        return workoutApplicationService
+        return workoutUseCase
                 .getCalendar(userId, YearMonth.parse(month))
                 .stream()
                 .map(WorkoutCalendarDayResponse::from)
@@ -74,7 +74,7 @@ public class WorkoutController {
             @PathVariable Long workoutId,
             @Valid @RequestBody AddWorkoutExerciseRequest request) {
         return WorkoutResponse.from(
-                workoutApplicationService.addExercise(
+                workoutUseCase.addExercise(
                         userId,
                         workoutId,
                         request.exerciseType(),
@@ -88,7 +88,7 @@ public class WorkoutController {
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId) {
         return WorkoutResponse.from(
-                workoutApplicationService.removeExercise(
+                workoutUseCase.removeExercise(
                         userId, workoutId, workoutExerciseId));
     }
 
@@ -99,7 +99,7 @@ public class WorkoutController {
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetRequest request) {
         return WorkoutResponse.from(
-                workoutApplicationService.addSet(
+                workoutUseCase.addSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -123,7 +123,7 @@ public class WorkoutController {
                         set.completed()))
                 .toList();
         return WorkoutResponse.from(
-                workoutApplicationService.addSets(
+                workoutUseCase.addSets(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -138,7 +138,7 @@ public class WorkoutController {
             @PathVariable Long setId,
             @Valid @RequestBody WorkoutSetRequest request) {
         return WorkoutResponse.from(
-                workoutApplicationService.updateSet(
+                workoutUseCase.updateSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -156,7 +156,7 @@ public class WorkoutController {
             @PathVariable Long workoutExerciseId,
             @PathVariable Long setId) {
         return WorkoutResponse.from(
-                workoutApplicationService.removeSet(
+                workoutUseCase.removeSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -168,7 +168,7 @@ public class WorkoutController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutApplicationService.completeWorkout(
+                workoutUseCase.completeWorkout(
                         userId, workoutId));
     }
 
@@ -177,7 +177,7 @@ public class WorkoutController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutApplicationService.reopenWorkout(
+                workoutUseCase.reopenWorkout(
                         userId, workoutId));
     }
 }

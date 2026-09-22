@@ -2,10 +2,10 @@ package com.myfitness.routine.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
-import com.myfitness.workout.domain.model.Workout;
-import com.myfitness.workout.domain.model.WorkoutExercise;
-import com.myfitness.workout.domain.model.WorkoutSet;
-import com.myfitness.workout.domain.model.WorkoutStatus;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.ExerciseView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.PreviousRecordView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.SetView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.WorkoutView;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,21 +27,21 @@ public record RoutineWorkoutStartResponse(
     public record WorkoutEntry(
             Long id,
             LocalDate workoutDate,
-            WorkoutStatus status,
+            String status,
             String memo,
             Instant startedAt,
             Instant completedAt,
             List<ExerciseEntry> exercises
     ) {
-        static WorkoutEntry from(Workout workout) {
+        static WorkoutEntry from(WorkoutView workout) {
             return new WorkoutEntry(
-                    workout.getId(),
-                    workout.getWorkoutDate(),
-                    workout.getStatus(),
-                    workout.getMemo(),
-                    workout.getStartedAt(),
-                    workout.getCompletedAt(),
-                    workout.getExercises().stream()
+                    workout.id(),
+                    workout.workoutDate(),
+                    workout.status(),
+                    workout.memo(),
+                    workout.startedAt(),
+                    workout.completedAt(),
+                    workout.exercises().stream()
                             .map(ExerciseEntry::from)
                             .toList());
         }
@@ -57,16 +57,16 @@ public record RoutineWorkoutStartResponse(
             String memo,
             List<SetEntry> sets
     ) {
-        static ExerciseEntry from(WorkoutExercise entry) {
+        static ExerciseEntry from(ExerciseView entry) {
             return new ExerciseEntry(
-                    entry.getId(),
-                    entry.getExerciseType(),
-                    entry.getExerciseId(),
-                    entry.getExerciseName(),
-                    entry.getCategory().name(),
-                    entry.getOrderIndex(),
-                    entry.getMemo(),
-                    entry.getSets().stream()
+                    entry.id(),
+                    entry.exerciseType(),
+                    entry.exerciseId(),
+                    entry.exerciseName(),
+                    entry.category(),
+                    entry.orderIndex(),
+                    entry.memo(),
+                    entry.sets().stream()
                             .map(SetEntry::from)
                             .toList());
         }
@@ -80,14 +80,14 @@ public record RoutineWorkoutStartResponse(
             Integer durationSeconds,
             boolean completed
     ) {
-        static SetEntry from(WorkoutSet set) {
+        static SetEntry from(SetView set) {
             return new SetEntry(
-                    set.getId(),
-                    set.getSetNumber(),
-                    set.getWeightKg(),
-                    set.getReps(),
-                    set.getDurationSeconds(),
-                    set.isCompleted());
+                    set.id(),
+                    set.setNumber(),
+                    set.weightKg(),
+                    set.reps(),
+                    set.durationSeconds(),
+                    set.completed());
         }
     }
 
@@ -100,15 +100,15 @@ public record RoutineWorkoutStartResponse(
             String exerciseName,
             List<SetEntry> sets
     ) {
-        static PreviousRecordEntry from(WorkoutExercise entry) {
+        static PreviousRecordEntry from(PreviousRecordView entry) {
             return new PreviousRecordEntry(
-                    entry.getWorkout().getId(),
-                    entry.getWorkout().getWorkoutDate(),
-                    entry.getId(),
-                    entry.getExerciseType(),
-                    entry.getExerciseId(),
-                    entry.getExerciseName(),
-                    entry.getSets().stream()
+                    entry.workoutId(),
+                    entry.workoutDate(),
+                    entry.workoutExerciseId(),
+                    entry.exerciseType(),
+                    entry.exerciseId(),
+                    entry.exerciseName(),
+                    entry.sets().stream()
                             .map(SetEntry::from)
                             .toList());
         }

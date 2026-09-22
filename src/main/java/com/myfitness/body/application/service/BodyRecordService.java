@@ -3,7 +3,7 @@ package com.myfitness.body.application.service;
 import com.myfitness.body.domain.model.BodyRecord;
 import com.myfitness.body.application.exception.BodyRecordAccessException;
 import com.myfitness.body.application.exception.BodyRecordNotFoundException;
-import com.myfitness.body.domain.repository.BodyRecordRepository;
+import com.myfitness.body.application.port.out.BodyRecordRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -14,15 +14,15 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class BodyRecordService {
-    private final BodyRecordRepository bodyRecordRepository;
+    private final BodyRecordRepositoryPort bodyRecordRepository;
     private final Clock clock;
 
     @Autowired
-    public BodyRecordService(BodyRecordRepository bodyRecordRepository) {
+    public BodyRecordService(BodyRecordRepositoryPort bodyRecordRepository) {
         this(bodyRecordRepository, Clock.systemUTC());
     }
 
-    BodyRecordService(BodyRecordRepository bodyRecordRepository, Clock clock) {
+    BodyRecordService(BodyRecordRepositoryPort bodyRecordRepository, Clock clock) {
         this.bodyRecordRepository = bodyRecordRepository;
         this.clock = clock;
     }

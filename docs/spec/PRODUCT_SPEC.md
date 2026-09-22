@@ -317,33 +317,27 @@ Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
                             ▼
                    OpenAI / Ollama
 ```
-Spring Boot는 기능 단위 패키지를 기본으로 하고, 각 기능 내부는 실용적인 역할 단위로 분리한다.
+Spring Boot는 기능 단위 application module을 기본으로 하고, 각 기능 내부는 동일한 4계층과 Port/Adapter 규칙을 사용한다.
 
 ```text
-com.myfitness
-├── user
-├── workout
-│   ├── controller
-│   ├── dto
-│   │   ├── request
-│   │   └── response
+<module>
+├── presentation
+├── application
+│   ├── port
+│   │   ├── in
+│   │   └── out
 │   ├── service
-│   ├── domain
-│   ├── repository
+│   ├── command
+│   └── result
+├── domain
+│   ├── model
 │   └── exception
-├── routine
-├── body
-├── nutrition
-├── dashboard
-├── ai
-└── common
-    ├── config
-    └── exception
+└── infrastructure
 ```
 
-Controller는 여러 하위 Service를 직접 조합하지 않고 해당 도메인의 Application Service를 단일 진입점으로 사용한다. Application Service가 필요한 Service와 Domain을 조합하고 트랜잭션 경계를 가진다.
+Controller와 다른 모듈은 Application Service 구현체가 아니라 `application.port.in`의 Use Case/Query를 호출한다. Application은 DB나 외부 시스템 구현체가 아니라 `application.port.out` 계약에 의존하고 Infrastructure Adapter가 이를 구현한다.
 
-엄격한 헥사고날/DDD 계층을 그대로 적용하기보다, 패키지 책임이 명확하고 테스트하기 쉬운 정도로만 분리한다. 마이크로서비스 분리는 고려하지 않는다.
+모듈 간 접근은 Spring Modulith Named Interface로 공개한 In Port만 사용하는 것을 기본으로 한다. Exercise의 작은 공통 식별 모델은 명시적인 shared vocabulary로만 예외적으로 공개한다. 상세 규칙은 `docs/architecture/README.md`를 기준으로 한다.
 
 AI 패키지는 기존 4계층과 Spring Modulith 경계를 유지한다.
 

@@ -1,7 +1,7 @@
 package com.myfitness.exercise.infrastructure.bootstrap;
 
 import com.myfitness.exercise.domain.model.Exercise;
-import com.myfitness.exercise.domain.repository.ExerciseRepository;
+import com.myfitness.exercise.application.port.out.ExerciseRepositoryPort;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -9,9 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class DefaultExerciseInitializer implements ApplicationRunner {
-    private final ExerciseRepository exerciseRepository;
+    private final ExerciseRepositoryPort exerciseRepository;
 
-    public DefaultExerciseInitializer(ExerciseRepository exerciseRepository) {
+    public DefaultExerciseInitializer(ExerciseRepositoryPort exerciseRepository) {
         this.exerciseRepository = exerciseRepository;
     }
 

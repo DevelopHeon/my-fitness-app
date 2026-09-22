@@ -1,14 +1,14 @@
 package com.myfitness.body.infrastructure.persistence;
 
 import com.myfitness.body.domain.model.BodyRecord;
-import com.myfitness.body.domain.repository.BodyRecordRepository;
+import com.myfitness.body.application.port.out.BodyRecordRepositoryPort;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class BodyRecordRepositoryAdapter implements BodyRecordRepository {
+public class BodyRecordRepositoryAdapter implements BodyRecordRepositoryPort {
     private final SpringDataBodyRecordRepository repository;
 
     public BodyRecordRepositoryAdapter(SpringDataBodyRecordRepository repository) {

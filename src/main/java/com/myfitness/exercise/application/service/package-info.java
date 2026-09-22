@@ -1,7 +1,5 @@
 /**
- * 다른 application module에 공개하는 application-service 인터페이스다.
+ * Application Service 구현체를 두는 내부 패키지다.
  *
- * <p>외부 모듈은 exercise::application-service 의존을 명시한 경우에만 이 패키지에 접근할 수 있다.</p>
  */
-@org.springframework.modulith.NamedInterface("application-service")
 package com.myfitness.exercise.application.service;

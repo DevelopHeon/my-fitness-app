@@ -1,9 +1,16 @@
 package com.myfitness.workout.application.service;
 
-import com.myfitness.exercise.application.service.ExerciseService;
 import com.myfitness.exercise.domain.model.ExerciseReference;
 import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.workout.application.command.WorkoutSetCommand;
+import com.myfitness.workout.application.port.in.WorkoutUseCase;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.ExerciseView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.PreviousRecordView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.RoutineWorkoutView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.SetView;
+import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.WorkoutView;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.workout.application.result.WorkoutCalendarDayResult;
 import com.myfitness.workout.domain.model.Workout;
 import com.myfitness.workout.domain.model.WorkoutExercise;
@@ -21,22 +28,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class WorkoutApplicationService {
+public class WorkoutApplicationService implements WorkoutUseCase, WorkoutRoutineUseCase {
     private final WorkoutService workoutService;
-    private final ExerciseService exerciseService;
+    private final ExerciseCatalogQuery exerciseCatalogQuery;
 
     public WorkoutApplicationService(
             WorkoutService workoutService,
-            ExerciseService exerciseService) {
+            ExerciseCatalogQuery exerciseCatalogQuery) {
         this.workoutService = workoutService;
-        this.exerciseService = exerciseService;
+        this.exerciseCatalogQuery = exerciseCatalogQuery;
     }
 
     public WorkoutExercise getPreviousExerciseRecord(
             Long userId,
             ExerciseType exerciseType,
             Long exerciseId) {
-        exerciseService.getAvailable(userId, exerciseType, exerciseId);
+        exerciseCatalogQuery.getAvailable(userId, exerciseType, exerciseId);
         return workoutService.getPreviousCompletedExercise(
                 userId, exerciseType, exerciseId);
     }
@@ -103,7 +110,7 @@ public class WorkoutApplicationService {
             Long exerciseId,
             String memo) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        ExerciseReference exercise = exerciseService.getAvailable(
+        ExerciseReference exercise = exerciseCatalogQuery.getAvailable(
                 userId, exerciseType, exerciseId);
         return workoutService.addExercise(workout, exercise, memo);
     }
@@ -192,4 +199,82 @@ public class WorkoutApplicationService {
         return workoutService.reopen(
                 workoutService.getOwned(userId, workoutId));
     }
+
+    @Override
+    @Transactional
+    public RoutineWorkoutView startWorkout(
+            Long userId,
+            LocalDate workoutDate,
+            String memo,
+            List<ExerciseReference> exercises) {
+        Workout workout = workoutService.startWithExercises(
+                userId, workoutDate, memo, exercises);
+
+        List<PreviousRecordView> previousRecords =
+                workout.getExercises().stream()
+                        .map(entry -> workoutService.getPreviousCompletedExercise(
+                                userId,
+                                entry.getExerciseType(),
+                                entry.getExerciseId()))
+                        .filter(previous -> previous != null)
+                        .map(WorkoutApplicationService::toPreviousRecordView)
+                        .toList();
+
+        return new RoutineWorkoutView(
+                toWorkoutView(workout),
+                previousRecords);
+    }
+
+    private static WorkoutView toWorkoutView(Workout workout) {
+        return new WorkoutView(
+                workout.getId(),
+                workout.getWorkoutDate(),
+                workout.getStatus().name(),
+                workout.getMemo(),
+                workout.getStartedAt(),
+                workout.getCompletedAt(),
+                workout.getExercises().stream()
+                        .map(WorkoutApplicationService::toExerciseView)
+                        .toList());
+    }
+
+    private static ExerciseView toExerciseView(WorkoutExercise entry) {
+        return new ExerciseView(
+                entry.getId(),
+                entry.getExerciseType(),
+                entry.getExerciseId(),
+                entry.getExerciseName(),
+                entry.getCategory().name(),
+                entry.getOrderIndex(),
+                entry.getMemo(),
+                entry.getSets().stream()
+                        .map(WorkoutApplicationService::toSetView)
+                        .toList());
+    }
+
+    private static SetView toSetView(
+            com.myfitness.workout.domain.model.WorkoutSet set) {
+        return new SetView(
+                set.getId(),
+                set.getSetNumber(),
+                set.getWeightKg(),
+                set.getReps(),
+                set.getDurationSeconds(),
+                set.isCompleted());
+    }
+
+    private static PreviousRecordView toPreviousRecordView(
+            WorkoutExercise entry) {
+        return new PreviousRecordView(
+                entry.getWorkout().getId(),
+                entry.getWorkout().getWorkoutDate(),
+                entry.getId(),
+                entry.getExerciseType(),
+                entry.getExerciseId(),
+                entry.getExerciseName(),
+                entry.getSets().stream()
+                        .map(WorkoutApplicationService::toSetView)
+                        .toList());
+    }
+
 }

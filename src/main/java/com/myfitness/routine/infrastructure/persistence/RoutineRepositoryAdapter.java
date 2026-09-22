@@ -1,13 +1,13 @@
 package com.myfitness.routine.infrastructure.persistence;
 
 import com.myfitness.routine.domain.model.Routine;
-import com.myfitness.routine.domain.repository.RoutineRepository;
+import com.myfitness.routine.application.port.out.RoutineRepositoryPort;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class RoutineRepositoryAdapter implements RoutineRepository {
+public class RoutineRepositoryAdapter implements RoutineRepositoryPort {
     private final SpringDataRoutineRepository repository;
 
     public RoutineRepositoryAdapter(SpringDataRoutineRepository repository) {

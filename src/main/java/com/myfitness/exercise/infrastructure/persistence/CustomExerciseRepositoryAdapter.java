@@ -1,13 +1,13 @@
 package com.myfitness.exercise.infrastructure.persistence;
 
 import com.myfitness.exercise.domain.model.CustomExercise;
-import com.myfitness.exercise.domain.repository.CustomExerciseRepository;
+import com.myfitness.exercise.application.port.out.CustomExerciseRepositoryPort;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class CustomExerciseRepositoryAdapter implements CustomExerciseRepository {
+public class CustomExerciseRepositoryAdapter implements CustomExerciseRepositoryPort {
     private final SpringDataCustomExerciseRepository repository;
 
     public CustomExerciseRepositoryAdapter(SpringDataCustomExerciseRepository repository) {

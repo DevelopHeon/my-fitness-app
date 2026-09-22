@@ -1,10 +1,12 @@
 package com.myfitness.exercise.application.service;
 
 import com.myfitness.exercise.domain.model.*;
+import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.exercise.application.exception.ExerciseNotFoundException;
 import com.myfitness.exercise.domain.exception.ExerciseRuleException;
-import com.myfitness.exercise.domain.repository.CustomExerciseRepository;
-import com.myfitness.exercise.domain.repository.ExerciseRepository;
+import com.myfitness.exercise.application.port.out.CustomExerciseRepositoryPort;
+import com.myfitness.exercise.application.port.out.ExerciseRepositoryPort;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,21 +14,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ExerciseService {
-    private final ExerciseRepository exerciseRepository;
-    private final CustomExerciseRepository customExerciseRepository;
+public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatalogQuery {
+    private final ExerciseRepositoryPort exerciseRepository;
+    private final CustomExerciseRepositoryPort customExerciseRepository;
     private final Clock clock;
 
     @Autowired
     public ExerciseService(
-            ExerciseRepository exerciseRepository,
-            CustomExerciseRepository customExerciseRepository) {
+            ExerciseRepositoryPort exerciseRepository,
+            CustomExerciseRepositoryPort customExerciseRepository) {
         this(exerciseRepository, customExerciseRepository, Clock.systemDefaultZone());
     }
 
     ExerciseService(
-            ExerciseRepository exerciseRepository,
-            CustomExerciseRepository customExerciseRepository,
+            ExerciseRepositoryPort exerciseRepository,
+            CustomExerciseRepositoryPort customExerciseRepository,
             Clock clock) {
         this.exerciseRepository = exerciseRepository;
         this.customExerciseRepository = customExerciseRepository;

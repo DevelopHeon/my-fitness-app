@@ -28,6 +28,14 @@ class PackageDocumentationTest {
             "domain",
             "infrastructure");
 
+    private static final List<String> IMPLEMENTED_MODULES = List.of(
+            "exercise",
+            "workout",
+            "routine",
+            "body",
+            "nutrition",
+            "dashboard");
+
     @Test
     @DisplayName("모든 기능 모듈은 최상위 package-info로 책임과 경계를 문서화한다")
     void documentsEveryFeatureModuleBoundary() {
@@ -56,6 +64,33 @@ class PackageDocumentationTest {
                         .as("%s.%s package-info.java", module, layer)
                         .isTrue();
             }
+        }
+    }
+
+    @Test
+    @DisplayName("구현된 기능 모듈은 Application Port 방향을 package-info로 문서화한다")
+    void documentsInputAndOutputPortBoundaries() {
+        for (String module : IMPLEMENTED_MODULES) {
+            Path application = SOURCE_ROOT
+                    .resolve(module)
+                    .resolve("application");
+
+            assertThat(Files.isRegularFile(
+                    application.resolve("port").resolve("package-info.java")))
+                    .as("%s application.port package-info.java", module)
+                    .isTrue();
+            assertThat(Files.isRegularFile(
+                    application.resolve("port")
+                            .resolve("in")
+                            .resolve("package-info.java")))
+                    .as("%s application.port.in package-info.java", module)
+                    .isTrue();
+            assertThat(Files.isRegularFile(
+                    application.resolve("port")
+                            .resolve("out")
+                            .resolve("package-info.java")))
+                    .as("%s application.port.out package-info.java", module)
+                    .isTrue();
         }
     }
 

@@ -77,10 +77,10 @@ class LayerArchitectureTest {
     }
 
     @Test
-    @DisplayName("Domain Repository Port는 Spring Data에 의존하지 않는다")
-    void domainRepositoryPortsDoNotDependOnSpringData() {
+    @DisplayName("Application Out Port는 Spring Data에 의존하지 않는다")
+    void applicationOutputPortsDoNotDependOnSpringData() {
         ArchRule rule = noClasses()
-                .that().resideInAPackage("..domain.repository..")
+                .that().resideInAPackage("..application.port.out..")
                 .should().dependOnClassesThat()
                 .resideInAPackage("org.springframework.data..");
 
@@ -88,11 +88,23 @@ class LayerArchitectureTest {
     }
 
     @Test
-    @DisplayName("Domain Repository Port는 인터페이스로 선언한다")
-    void domainRepositoryPortsAreInterfaces() {
+    @DisplayName("Repository Out Port는 인터페이스로 선언한다")
+    void repositoryOutputPortsAreInterfaces() {
         ArchRule rule = classes()
-                .that().resideInAPackage("..domain.repository..")
+                .that().resideInAPackage("..application.port.out..")
+                .and().haveSimpleNameEndingWith("RepositoryPort")
                 .should().beInterfaces();
+
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Presentation은 Application Service 구현체를 직접 참조하지 않는다")
+    void presentationDependsOnInputPortsInsteadOfApplicationServices() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..presentation..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("..application.service..");
 
         rule.check(classes);
     }

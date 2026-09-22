@@ -9,10 +9,9 @@
 @org.springframework.modulith.ApplicationModule(
     displayName = "Routine",
     allowedDependencies = {
-        "exercise::application-service",
+        "exercise::catalog",
         "exercise::domain-model",
-        "workout::application-service",
-        "workout::domain-model"
+        "workout::routine-api"
     }
 )
 package com.myfitness.routine;

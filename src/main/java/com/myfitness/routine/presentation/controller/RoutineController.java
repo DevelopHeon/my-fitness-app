@@ -2,7 +2,7 @@ package com.myfitness.routine.presentation.controller;
 
 import com.myfitness.routine.application.command.ExerciseSelection;
 import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
-import com.myfitness.routine.application.service.RoutineApplicationService;
+import com.myfitness.routine.application.port.in.RoutineUseCase;
 import com.myfitness.routine.presentation.dto.request.RoutineUpsertRequest;
 import com.myfitness.routine.presentation.dto.request.StartRoutineWorkoutRequest;
 import com.myfitness.routine.presentation.dto.response.RoutineResponse;
@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/routines")
 public class RoutineController {
-    private final RoutineApplicationService routineApplicationService;
+    private final RoutineUseCase routineUseCase;
 
     public RoutineController(
-            RoutineApplicationService routineApplicationService) {
-        this.routineApplicationService = routineApplicationService;
+            RoutineUseCase routineUseCase) {
+        this.routineUseCase = routineUseCase;
     }
 
     @PostMapping
@@ -27,7 +27,7 @@ public class RoutineController {
     public RoutineResponse create(
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody RoutineUpsertRequest request) {
-        return RoutineResponse.from(routineApplicationService.create(
+        return RoutineResponse.from(routineUseCase.create(
                 userId,
                 request.name(),
                 toSelections(request)));
@@ -36,7 +36,7 @@ public class RoutineController {
     @GetMapping
     public List<RoutineResponse> list(
             @RequestHeader("X-User-Id") Long userId) {
-        return routineApplicationService.list(userId).stream()
+        return routineUseCase.list(userId).stream()
                 .map(RoutineResponse::from)
                 .toList();
     }
@@ -46,7 +46,7 @@ public class RoutineController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long routineId) {
         return RoutineResponse.from(
-                routineApplicationService.get(userId, routineId));
+                routineUseCase.get(userId, routineId));
     }
 
     @PutMapping("/{routineId}")
@@ -54,7 +54,7 @@ public class RoutineController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long routineId,
             @Valid @RequestBody RoutineUpsertRequest request) {
-        return RoutineResponse.from(routineApplicationService.update(
+        return RoutineResponse.from(routineUseCase.update(
                 userId,
                 routineId,
                 request.name(),
@@ -66,7 +66,7 @@ public class RoutineController {
     public void delete(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long routineId) {
-        routineApplicationService.delete(userId, routineId);
+        routineUseCase.delete(userId, routineId);
     }
 
     @PostMapping("/{routineId}/workouts")
@@ -79,7 +79,7 @@ public class RoutineController {
                 ? new StartRoutineWorkoutRequest(null, null)
                 : request;
         RoutineWorkoutStartResult result =
-                routineApplicationService.startWorkout(
+                routineUseCase.startWorkout(
                         userId,
                         routineId,
                         actual.workoutDate(),

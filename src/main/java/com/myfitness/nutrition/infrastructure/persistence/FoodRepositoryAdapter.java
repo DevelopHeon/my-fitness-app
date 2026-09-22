@@ -1,13 +1,13 @@
 package com.myfitness.nutrition.infrastructure.persistence;
 
 import com.myfitness.nutrition.domain.model.Food;
-import com.myfitness.nutrition.domain.repository.FoodRepository;
+import com.myfitness.nutrition.application.port.out.FoodRepositoryPort;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class FoodRepositoryAdapter implements FoodRepository {
+public class FoodRepositoryAdapter implements FoodRepositoryPort {
     private final SpringDataFoodRepository repository;
 
     public FoodRepositoryAdapter(SpringDataFoodRepository repository) {

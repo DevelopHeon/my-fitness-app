@@ -1,6 +1,7 @@
 package com.myfitness.body.application.service;
 
 import com.myfitness.body.application.result.BodyTrendResult;
+import com.myfitness.body.application.port.in.BodyRecordUseCase;
 import com.myfitness.body.domain.model.BodyRecord;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class BodyRecordApplicationService {
+public class BodyRecordApplicationService implements BodyRecordUseCase {
     private final BodyRecordService bodyRecordService;
 
     public BodyRecordApplicationService(

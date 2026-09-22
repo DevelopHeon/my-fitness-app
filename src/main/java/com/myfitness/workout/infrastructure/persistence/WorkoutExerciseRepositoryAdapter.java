@@ -3,12 +3,12 @@ package com.myfitness.workout.infrastructure.persistence;
 import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.workout.domain.model.WorkoutExercise;
 import com.myfitness.workout.domain.model.WorkoutStatus;
-import com.myfitness.workout.domain.repository.WorkoutExerciseRepository;
+import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class WorkoutExerciseRepositoryAdapter implements WorkoutExerciseRepository {
+public class WorkoutExerciseRepositoryAdapter implements WorkoutExerciseRepositoryPort {
     private final SpringDataWorkoutExerciseRepository repository;
 
     public WorkoutExerciseRepositoryAdapter(SpringDataWorkoutExerciseRepository repository) {

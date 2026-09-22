@@ -1,6 +1,7 @@
 package com.myfitness.nutrition.application.service;
 
 import com.myfitness.nutrition.application.result.DailyNutritionResult;
+import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
 import com.myfitness.nutrition.application.result.MealSectionResult;
 import com.myfitness.nutrition.application.result.NutritionTotals;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class NutritionApplicationService {
+public class NutritionApplicationService implements NutritionUseCase {
     private static final int SUGGESTION_LIMIT = 5;
 
     private final FoodService foodService;

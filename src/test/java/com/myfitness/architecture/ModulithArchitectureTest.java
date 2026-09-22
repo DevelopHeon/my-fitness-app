@@ -17,21 +17,17 @@ class ModulithArchitectureTest {
             Map.of(
                     "exercise", Set.of(),
                     "workout", Set.of(
-                            "exercise::application-service",
+                            "exercise::catalog",
                             "exercise::domain-model"),
                     "routine", Set.of(
-                            "exercise::application-service",
+                            "exercise::catalog",
                             "exercise::domain-model",
-                            "workout::application-service",
-                            "workout::domain-model"),
+                            "workout::routine-api"),
                     "body", Set.of(),
                     "nutrition", Set.of(),
                     "dashboard", Set.of(
-                            "body::domain-model",
-                            "body::repository",
-                            "exercise::domain-model",
-                            "workout::domain-model",
-                            "workout::repository"),
+                            "body::insight",
+                            "workout::insight"),
                     "ai", Set.of(),
                     "user", Set.of(),
                     "common", Set.of(
@@ -49,20 +45,24 @@ class ModulithArchitectureTest {
     private static final Map<String, String> NAMED_INTERFACES =
             Map.ofEntries(
                     Map.entry(
-                            "exercise.application.service",
-                            "application-service"),
+                            "exercise.application.port.in.catalog",
+                            "catalog"),
                     Map.entry("exercise.domain.model", "domain-model"),
+                    Map.entry(
+                            "workout.application.port.in.routine",
+                            "routine-api"),
+                    Map.entry(
+                            "workout.application.port.in.insight",
+                            "insight"),
+                    Map.entry(
+                            "body.application.port.in.insight",
+                            "insight"),
                     Map.entry(
                             "exercise.application.exception",
                             "application-exception"),
                     Map.entry(
                             "exercise.domain.exception",
                             "domain-exception"),
-                    Map.entry(
-                            "workout.application.service",
-                            "application-service"),
-                    Map.entry("workout.domain.model", "domain-model"),
-                    Map.entry("workout.domain.repository", "repository"),
                     Map.entry(
                             "workout.application.exception",
                             "application-exception"),
@@ -75,8 +75,6 @@ class ModulithArchitectureTest {
                     Map.entry(
                             "routine.domain.exception",
                             "domain-exception"),
-                    Map.entry("body.domain.model", "domain-model"),
-                    Map.entry("body.domain.repository", "repository"),
                     Map.entry(
                             "body.application.exception",
                             "application-exception"),
