@@ -722,6 +722,14 @@ AI는 다른 기능 모듈의 Repository Out Port나 Infrastructure를 직접 �
 
 LLM에는 위 계산 결과와 질문에 필요한 최소 Context만 전달한다.
 
+AI Context를 만들기 위해 기능 모듈의 전체 이력을 무조건 조회하지 않는다.
+
+- Body: 최신/직전 비교에 필요한 최근 2건만 조회
+- Workout: 7일/30일 집계에 필요한 최근 30일 완료 Workout만 조회
+- Nutrition: 선택 날짜 식단과 목표를 조회하고, 음식 추천용 사용 이력은 최근 50건으로 제한
+
+Dashboard처럼 전체 기간 Read Model이 필요한 소비자는 기존 전체 Insight API를 유지하고, AI는 별도의 bounded Insight Query를 사용한다.
+
 Conversation 전체를 매 호출마다 보내지 않는다. 현재 기본값은 최근 8개 Message, 최대 4,000자로 제한한다. 단일 영역 질문은 같은 영역 또는 COMPOSITE History만 전달하고 OUT_OF_SCOPE 및 다른 영역 대화는 제외한다.
 질문은 Java Router에서 WORKOUT / NUTRITION / BODY / GENERAL_FITNESS / COMPOSITE / OUT_OF_SCOPE로 분류하며 명백한 범위 밖 질문은 Provider를 호출하지 않는다. COMPOSITE는 AiContextSelector가 질문 키워드를 다시 확인해 실제 필요한 영역만 Context로 구성하고, 영역이 드러나지 않는 Dashboard 종합 질문에서만 Workout/Body/Nutrition 전체 요약을 사용한다.
 
@@ -735,6 +743,8 @@ AI_PROVIDER=ollama  # 로컬 모델 전환
 
 Provider와 모델은 환경 설정으로 선택하며 Application/REST/Frontend 코드는 변경하지 않는다.
 raw prompt/completion observability logging은 활성화하지 않고 RequestLog에는 provider/model/token/latency/context type 같은 메타데이터만 저장한다.
+
+채팅 저장은 긴 Provider 호출보다 먼저 수행한다. User Message와 Conversation 갱신이 완료된 뒤 Provider를 호출하고, 응답 성공 시 Assistant Message를 저장한다. 따라서 서버가 요청을 수신한 이후 Provider 실패나 클라이언트 UI 닫힘이 발생해도 User Message는 보존된다. Frontend의 AI POST는 page unload 상황을 보강하기 위해 fetch keepalive를 사용한다.
 
 AI가 직접 접근하지 않는 것:
 

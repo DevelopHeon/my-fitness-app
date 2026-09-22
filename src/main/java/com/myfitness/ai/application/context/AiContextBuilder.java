@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 public class AiContextBuilder {
     private static final BigDecimal THIRTY = new BigDecimal("30");
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
+    private static final int BODY_RECENT_LIMIT = 2;
     private static final String NL = System.lineSeparator();
 
     private final WorkoutInsightQuery workoutInsightQuery;
@@ -103,8 +104,17 @@ public class AiContextBuilder {
             Long userId,
             String question,
             Set<AiContextType> types) {
+        LocalDate today = LocalDate.now(clock);
+        LocalDate last7Start = today.minusDays(6);
+        LocalDate previous7Start = today.minusDays(13);
+        LocalDate previous7End = today.minusDays(7);
+        LocalDate last30Start = today.minusDays(29);
+
         List<WorkoutInsight> workouts =
-                workoutInsightQuery.findCompletedWorkouts(userId).stream()
+                workoutInsightQuery.findCompletedSince(
+                                userId,
+                                last30Start)
+                        .stream()
                         .sorted(Comparator
                                 .comparing(WorkoutInsight::workoutDate)
                                 .thenComparing(WorkoutInsight::startedAt)
@@ -113,14 +123,8 @@ public class AiContextBuilder {
 
         types.add(AiContextType.WORKOUT_SUMMARY);
         if (workouts.isEmpty()) {
-            return "[운동 기록]" + NL + "- 완료된 운동 기록 없음";
+            return "[운동 기록]" + NL + "- 최근 30일 완료 운동 기록 없음";
         }
-
-        LocalDate today = LocalDate.now(clock);
-        LocalDate last7Start = today.minusDays(6);
-        LocalDate previous7Start = today.minusDays(13);
-        LocalDate previous7End = today.minusDays(7);
-        LocalDate last30Start = today.minusDays(29);
 
         long last7Count = countBetween(workouts, last7Start, today);
         long last30Count = countBetween(workouts, last30Start, today);
@@ -222,7 +226,9 @@ public class AiContextBuilder {
             Long userId,
             Set<AiContextType> types) {
         types.add(AiContextType.BODY_TREND);
-        List<BodyInsight> records = bodyInsightQuery.findAll(userId).stream()
+        List<BodyInsight> records = bodyInsightQuery
+                .findRecent(userId, BODY_RECENT_LIMIT)
+                .stream()
                 .sorted(Comparator
                         .comparing(BodyInsight::measuredAt)
                         .thenComparing(BodyInsight::id)

@@ -7,6 +7,8 @@ import java.util.List;
 public interface BodyInsightQuery {
     List<BodyInsight> findAll(Long userId);
 
+    List<BodyInsight> findRecent(Long userId, int limit);
+
     record BodyInsight(
             Long id,
             Instant measuredAt,

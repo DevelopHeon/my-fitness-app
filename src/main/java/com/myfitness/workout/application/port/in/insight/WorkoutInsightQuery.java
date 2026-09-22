@@ -8,6 +8,8 @@ import java.util.List;
 public interface WorkoutInsightQuery {
     List<WorkoutInsight> findCompletedWorkouts(Long userId);
 
+    List<WorkoutInsight> findCompletedSince(Long userId, LocalDate from);
+
     record WorkoutInsight(
             LocalDate workoutDate,
             Instant startedAt,

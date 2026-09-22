@@ -18,9 +18,24 @@ public class WorkoutInsightService implements WorkoutInsightQuery {
 
     @Override
     public List<WorkoutInsight> findCompletedWorkouts(Long userId) {
-        return workoutRepositoryPort
-                .findByUserIdAndStatus(userId, WorkoutStatus.COMPLETED)
-                .stream()
+        return toInsights(workoutRepositoryPort
+                .findByUserIdAndStatus(userId, WorkoutStatus.COMPLETED));
+    }
+
+    @Override
+    public List<WorkoutInsight> findCompletedSince(
+            Long userId,
+            java.time.LocalDate from) {
+        return toInsights(workoutRepositoryPort
+                .findByUserIdAndStatusSince(
+                        userId,
+                        WorkoutStatus.COMPLETED,
+                        from));
+    }
+
+    private static List<WorkoutInsight> toInsights(
+            List<com.myfitness.workout.domain.model.Workout> workouts) {
+        return workouts.stream()
                 .map(workout -> new WorkoutInsight(
                         workout.getWorkoutDate(),
                         workout.getStartedAt(),

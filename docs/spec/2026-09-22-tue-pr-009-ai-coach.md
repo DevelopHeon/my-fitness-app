@@ -1226,6 +1226,13 @@ POST   /api/ai/conversations/{conversationId}/messages
 - NUTRITION_DAY
 - NUTRITION_GOAL
 
+Context 조회 범위:
+
+- Body는 최신/직전 비교에 필요한 최근 2건만 조회
+- Workout은 최근 30일 완료 기록만 조회
+- Nutrition은 선택 날짜 기록과 목표를 조회하고 추천 계산용 MealFood 사용 이력은 최근 50건으로 제한
+- Dashboard의 전체 Insight 조회 계약은 유지하고 AI만 bounded query를 사용
+
 Java에서 계산하는 항목:
 
 - 최근 7일/30일 운동 횟수
@@ -1279,6 +1286,10 @@ AppShell에 AI Coach를 한 번 마운트해 모든 주요 페이지에서 우�
 - 현재 화면별 Quick Prompt
 - 현재 화면 정보를 Client Context hint로 전달
 - Workout과 Nutrition은 화면에서 선택한 날짜를 Client Context로 전달
+- 전송 직후 User Message를 화면에 먼저 표시하고 `AI 답변 생성 중...` 상태를 노출
+- 한글 IME 조합 중 Enter를 전송으로 처리하지 않아 마지막 글자 잔류를 방지
+- AI 전송 fetch에 keepalive를 적용해 page unload 시 요청 전달을 보강
+- 채팅 패널을 닫아도 컴포넌트를 유지해 진행 중 요청을 취소하지 않음
 - Provider 실패 시 기존 User Message를 다시 조회해 대화 기록을 보존
 - 의료 진단이 아니라 기록 기반 참고 정보라는 UI 안내
 
@@ -1296,7 +1307,9 @@ AppShell에 AI Coach를 한 번 마운트해 모든 주요 페이지에서 우�
 - Conversation 사용자 격리
 - OUT_OF_SCOPE Provider 미호출
 - 최근 Conversation History 전달 및 다른 영역 History 제외
+- Provider 응답 대기 중에도 User Message가 먼저 커밋되는 비트랜잭션 저장 경계
 - Provider 실패 시 FAILED RequestLog와 User Message 보존
+- bounded Body/Workout/Nutrition Insight 조회
 - RequestLog token usage 저장
 - Conversation 삭제 연관 데이터 정리
 - Spring AI ChatModel Adapter prompt/history/context 전달

@@ -17,7 +17,18 @@ public class BodyInsightService implements BodyInsightQuery {
 
     @Override
     public List<BodyInsight> findAll(Long userId) {
-        return bodyRecordRepositoryPort.findAllByUserId(userId).stream()
+        return toInsights(bodyRecordRepositoryPort.findAllByUserId(userId));
+    }
+
+    @Override
+    public List<BodyInsight> findRecent(Long userId, int limit) {
+        return toInsights(
+                bodyRecordRepositoryPort.findRecentByUserId(userId, limit));
+    }
+
+    private static List<BodyInsight> toInsights(
+            List<com.myfitness.body.domain.model.BodyRecord> records) {
+        return records.stream()
                 .map(record -> new BodyInsight(
                         record.getId(),
                         record.getMeasuredAt(),

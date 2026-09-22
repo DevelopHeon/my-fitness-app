@@ -104,6 +104,14 @@ public class MealService {
                         userId);
     }
 
+    public List<MealFood> listRecentUsageHistory(
+            Long userId,
+            int limit) {
+        return mealFoodRepository
+                .findRecentUsageHistory(
+                        userId, limit);
+    }
+
     private void validateMealDate(LocalDate mealDate) {
         if (mealDate == null) {
             throw new NutritionRuleException("식사 날짜는 필수입니다.");

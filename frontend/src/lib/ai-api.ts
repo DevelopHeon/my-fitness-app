@@ -68,6 +68,7 @@ export const aiApi = {
       "/api/ai/conversations/" + conversationId + "/messages",
       {
         method: "POST",
+        keepalive: true,
         body: JSON.stringify({
           message,
           clientContext: clientContext ?? null,

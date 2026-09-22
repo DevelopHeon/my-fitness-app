@@ -17,6 +17,8 @@ public interface BodyRecordRepositoryPort {
 
     List<BodyRecord> findAllByUserId(Long userId);
 
+    List<BodyRecord> findRecentByUserId(Long userId, int limit);
+
     boolean existsByUserIdAndMeasuredAt(
             Long userId,
             Instant measuredAt);

@@ -34,7 +34,7 @@ class AiContextBuilderPersonalContextTest {
         BodyInsightQuery body = mock(BodyInsightQuery.class);
         NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
 
-        when(body.findAll(1L)).thenReturn(List.of(
+        when(body.findRecent(1L, 2)).thenReturn(List.of(
                 new BodyInsight(
                         2L,
                         Instant.parse("2026-09-21T03:00:00Z"),
@@ -81,7 +81,7 @@ class AiContextBuilderPersonalContextTest {
         NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
         Instant measuredAt = Instant.parse("2026-09-21T03:00:00Z");
 
-        when(body.findAll(1L)).thenReturn(List.of(
+        when(body.findRecent(1L, 2)).thenReturn(List.of(
                 new BodyInsight(
                         1L,
                         measuredAt,

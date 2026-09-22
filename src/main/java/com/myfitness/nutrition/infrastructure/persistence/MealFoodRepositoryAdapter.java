@@ -5,6 +5,7 @@ import com.myfitness.nutrition.application.port.out.MealFoodRepositoryPort;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -22,6 +23,14 @@ public class MealFoodRepositoryAdapter implements MealFoodRepositoryPort {
     }
     @Override public List<MealFood> findUsageHistory(Long userId) {
         return repository.findAllByMealUserIdOrderByMealMealDateDescCreatedAtDesc(userId);
+    }
+
+    @Override
+    public List<MealFood> findRecentUsageHistory(Long userId, int limit) {
+        return repository
+                .findAllByMealUserIdOrderByMealMealDateDescCreatedAtDesc(
+                        userId,
+                        PageRequest.of(0, Math.max(1, limit)));
     }
     @Override public void delete(MealFood item) {
         repository.delete(item);

@@ -39,4 +39,14 @@ public class WorkoutRepositoryAdapter implements WorkoutRepositoryPort {
         return repository.findAllByUserIdAndStatusOrderByWorkoutDateAscStartedAtAsc(
                 userId, status);
     }
+
+    @Override
+    public List<Workout> findByUserIdAndStatusSince(
+            Long userId,
+            WorkoutStatus status,
+            LocalDate from) {
+        return repository
+                .findAllByUserIdAndStatusAndWorkoutDateGreaterThanEqualOrderByWorkoutDateDescStartedAtDesc(
+                        userId, status, from);
+    }
 }

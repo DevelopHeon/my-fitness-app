@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -44,6 +45,15 @@ public class BodyRecordRepositoryAdapter implements BodyRecordRepositoryPort {
     public List<BodyRecord> findAllByUserId(Long userId) {
         return repository.findAllByUserIdOrderByMeasuredAtDescIdDesc(
                 userId);
+    }
+
+    @Override
+    public List<BodyRecord> findRecentByUserId(
+            Long userId,
+            int limit) {
+        return repository.findAllByUserIdOrderByMeasuredAtDescIdDesc(
+                userId,
+                PageRequest.of(0, Math.max(1, limit)));
     }
 
 

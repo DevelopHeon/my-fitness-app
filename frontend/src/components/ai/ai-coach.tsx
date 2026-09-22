@@ -46,9 +46,14 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const composingRef = useRef(false);
+
+  const busy = loading || sending;
 
   const active = conversations.find((item) => item.id === activeId) ?? null;
 
@@ -89,7 +94,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
     if (open) {
       endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages, open]);
+  }, [messages, pendingMessage, sending, open]);
 
   async function createConversation() {
     setLoading(true);
@@ -175,11 +180,14 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
 
   async function send(event?: FormEvent, preset?: string) {
     event?.preventDefault();
+    if (preset === undefined && composingRef.current) return;
+
     const message = (preset ?? input).trim();
-    if (!message || loading || activeId === null) return;
+    if (!message || busy || activeId === null) return;
 
     setInput("");
-    setLoading(true);
+    setPendingMessage(message);
+    setSending(true);
     setError(null);
 
     try {
@@ -192,6 +200,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
         result.userMessage,
         result.assistantMessage,
       ]);
+      setPendingMessage(null);
       setConversations((current) => [
         result.conversation,
         ...current.filter((item) => item.id !== result.conversation.id),
@@ -203,8 +212,9 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
       } catch {
         // Provider 오류를 우선 표시한다.
       }
+      setPendingMessage(null);
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   }
 
@@ -243,7 +253,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
               </button>
               <button
                 type="button"
-                disabled={loading}
+                disabled={busy}
                 onClick={() => void createConversation()}
                 className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
               >
@@ -263,7 +273,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
               <ConversationList
                 conversations={conversations}
                 activeId={activeId}
-                loading={loading}
+                loading={busy}
                 onSelect={selectConversation}
                 onRename={renameConversation}
                 onDelete={deleteConversation}
@@ -273,7 +283,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   {initializing ? (
                     <Centered text="AI 대화를 불러오는 중이에요." />
-                  ) : messages.length === 0 ? (
+                  ) : messages.length === 0 && pendingMessage === null && !sending ? (
                     <div className="flex min-h-full flex-col justify-center gap-5 py-6">
                       <div>
                         <p className="text-lg font-bold text-zinc-950">
@@ -286,7 +296,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                       </div>
                       <QuickPrompts
                         prompts={prompts[currentView]}
-                        disabled={loading || activeId === null}
+                        disabled={busy || activeId === null}
                         onSelect={(prompt) => void send(undefined, prompt)}
                       />
                     </div>
@@ -295,9 +305,25 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                       {messages.map((message) => (
                         <MessageBubble key={message.id} message={message} />
                       ))}
-                      {loading ? (
-                        <div className="mr-auto max-w-[86%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3 text-sm text-zinc-500">
-                          기록을 확인하고 답변을 만드는 중...
+                      {pendingMessage ? (
+                        <div className="ml-auto max-w-[86%] rounded-2xl rounded-br-md bg-zinc-950 px-4 py-3 text-sm leading-6 text-white">
+                          <p className="whitespace-pre-wrap break-words">
+                            {pendingMessage}
+                          </p>
+                        </div>
+                      ) : null}
+                      {sending ? (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className="mr-auto flex max-w-[86%] items-center gap-2 rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3 text-sm text-zinc-600"
+                        >
+                          <span className="inline-flex gap-1" aria-hidden="true">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
+                          </span>
+                          AI 답변 생성 중...
                         </div>
                       ) : null}
                       <div ref={endRef} />
@@ -312,7 +338,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                         <button
                           key={prompt}
                           type="button"
-                          disabled={loading}
+                          disabled={busy}
                           onClick={() => void send(undefined, prompt)}
                           className="shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 disabled:opacity-50"
                         >
@@ -334,9 +360,23 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                   >
                     <textarea
                       value={input}
+                      disabled={busy}
                       onChange={(event) => setInput(event.target.value.slice(0, 1000))}
+                      onCompositionStart={() => {
+                        composingRef.current = true;
+                      }}
+                      onCompositionEnd={() => {
+                        composingRef.current = false;
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
+                          if (
+                            event.nativeEvent.isComposing ||
+                            event.nativeEvent.keyCode === 229 ||
+                            composingRef.current
+                          ) {
+                            return;
+                          }
                           event.preventDefault();
                           void send();
                         }
@@ -348,7 +388,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                     />
                     <button
                       type="submit"
-                      disabled={loading || !input.trim() || activeId === null}
+                      disabled={busy || !input.trim() || activeId === null}
                       className="h-11 rounded-2xl bg-zinc-950 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
                     >
                       전송

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class NutritionInsightService implements NutritionInsightQuery {
+    private static final int AI_USAGE_HISTORY_LIMIT = 50;
     private final NutritionApplicationService nutritionApplicationService;
 
     public NutritionInsightService(
@@ -24,7 +25,9 @@ public class NutritionInsightService implements NutritionInsightQuery {
         DailyNutritionResult daily =
                 nutritionApplicationService.daily(userId, date);
         FoodSuggestionsResult suggestions =
-                nutritionApplicationService.suggestions(userId);
+                nutritionApplicationService.suggestions(
+                        userId,
+                        AI_USAGE_HISTORY_LIMIT);
 
         return new NutritionDayInsight(
                 daily.date(),

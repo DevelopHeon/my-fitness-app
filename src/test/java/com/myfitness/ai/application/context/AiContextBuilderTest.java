@@ -33,7 +33,9 @@ class AiContextBuilderTest {
                 Instant.parse("2026-09-22T03:00:00Z"),
                 ZoneId.of("Asia/Seoul"));
 
-        when(workout.findCompletedWorkouts(1L)).thenReturn(List.of(
+        when(workout.findCompletedSince(
+                1L,
+                LocalDate.of(2026, 8, 24))).thenReturn(List.of(
                 workout(
                         LocalDate.of(2026, 9, 21),
                         "벤치프레스",

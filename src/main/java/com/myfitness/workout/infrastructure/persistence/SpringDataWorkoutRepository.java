@@ -12,4 +12,10 @@ interface SpringDataWorkoutRepository extends JpaRepository<Workout, Long> {
 
     List<Workout> findAllByUserIdAndStatusOrderByWorkoutDateAscStartedAtAsc(
             Long userId, WorkoutStatus status);
+
+    List<Workout>
+            findAllByUserIdAndStatusAndWorkoutDateGreaterThanEqualOrderByWorkoutDateDescStartedAtDesc(
+                    Long userId,
+                    WorkoutStatus status,
+                    LocalDate from);
 }

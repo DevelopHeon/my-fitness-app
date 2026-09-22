@@ -11,4 +11,5 @@ public interface WorkoutRepositoryPort {
     Optional<Workout> findById(Long id);
     List<Workout> findByUserIdAndDateRange(Long userId, LocalDate from, LocalDate to);
     List<Workout> findByUserIdAndStatus(Long userId, WorkoutStatus status);
+    List<Workout> findByUserIdAndStatusSince(Long userId, WorkoutStatus status, LocalDate from);
 }

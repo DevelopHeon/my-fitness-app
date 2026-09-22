@@ -103,12 +103,28 @@ public class NutritionApplicationService implements NutritionUseCase {
     }
 
     public FoodSuggestionsResult suggestions(Long userId) {
+        return buildSuggestions(
+                userId,
+                mealService.listUsageHistory(userId));
+    }
+
+    FoodSuggestionsResult suggestions(
+            Long userId,
+            int usageHistoryLimit) {
+        return buildSuggestions(
+                userId,
+                mealService.listRecentUsageHistory(
+                        userId, usageHistoryLimit));
+    }
+
+    private FoodSuggestionsResult buildSuggestions(
+            Long userId,
+            List<MealFood> history) {
         List<Food> foods = foodService.list(userId, null);
         Map<Long, Food> foodById = foods.stream()
                 .collect(Collectors.toMap(
                         Food::getId, Function.identity()));
 
-        List<MealFood> history = mealService.listUsageHistory(userId);
         Set<Long> recentIds = new LinkedHashSet<>();
         Map<Long, Integer> counts = new HashMap<>();
         Map<Long, Integer> firstSeenOrder = new HashMap<>();
