@@ -1,11 +1,11 @@
 # My Fitness - Product & Technical Specification
 
 > 상태: Draft v0.1  
-> 목적: 1~2명이 사용하는 개인용 헬스 기록, 식단 관리, 로컬 AI 코치 애플리케이션
+> 목적: 1~2명이 사용하는 개인용 헬스 기록, 식단 관리, 개인화 AI 코치 애플리케이션
 
 ## 1. 프로젝트 목표
 
-My Fitness는 운동 기록과 식단/신체 데이터를 한 곳에 축적하고, 통계와 로컬 LLM을 이용해 사용자가 자신의 변화를 쉽게 이해할 수 있도록 하는 개인용 피트니스 애플리케이션이다.
+My Fitness는 운동 기록과 식단/신체 데이터를 한 곳에 축적하고, 통계와 AI Coach를 이용해 사용자가 자신의 변화를 쉽게 이해할 수 있도록 하는 개인용 피트니스 애플리케이션이다.
 
 초기 목표는 범용 상용 서비스가 아니라 **본인이 매일 실제로 사용할 수 있는 기록 앱**을 완성하는 것이다. 사용자는 최대 1~2명을 가정하며, 대규모 트래픽이나 분산 시스템은 고려하지 않는다.
 
@@ -15,8 +15,9 @@ My Fitness는 운동 기록과 식단/신체 데이터를 한 곳에 축적하�
 - 이전 기록과 현재 기록을 쉽게 비교할 수 있을 것
 - 체중, 체지방, 골격근, 운동량의 변화를 한 화면에서 확인할 수 있을 것
 - 식단의 칼로리 및 탄수화물/단백질/지방을 기록할 수 있을 것
-- 로컬 LLM이 사용자 기록을 바탕으로 질의 응답과 간단한 분석을 제공할 것
-- 개인 운동/식단 데이터를 외부 LLM API에 보내지 않는 구성을 우선할 것
+- AI Coach가 사용자 기록을 바탕으로 질의 응답과 간단한 분석을 제공할 것
+- 외부 AI Provider 사용 시 질문에 필요한 최소한의 집계 Context만 전달하고 식별 정보와 불필요한 기록은 전달하지 않을 것
+- Spring AI Provider 추상화를 사용해 향후 Ollama 등 로컬 모델로 전환할 수 있을 것
 
 ## 2. 기술 방향
 
@@ -27,11 +28,11 @@ My Fitness는 운동 기록과 식단/신체 데이터를 한 곳에 축적하�
 - Frontend: Next.js + TypeScript
 - UI: Tailwind CSS
 - Client: PWA
-- Local AI: Ollama
-- AI Integration: Spring AI
+- AI Provider: OpenAI 초기 운영, Ollama 등 로컬 Provider 전환 가능
+- AI Integration: Spring AI ChatModel / ChatClient
 - Chart: Recharts 또는 동급의 경량 차트 라이브러리
 - Deployment: Docker 기반 단일 애플리케이션 배포
-- Initial Infra: PostgreSQL + Spring Boot + Ollama
+- Initial Infra: PostgreSQL + Spring Boot + external AI provider
 
 Redis, Kafka, Elasticsearch, Kubernetes, MSA, CQRS, Event Sourcing은 초기 범위에서 제외한다.
 
@@ -238,46 +239,45 @@ estimated 1RM = weight × (1 + reps / 30)
 - 하루 섭취량과 목표량 차이를 즉시 확인할 수 있다.
 - 음식 정보를 수정하거나 삭제해도 이미 기록된 과거 식단 값은 유지된다.
 
-### Phase 6. Local AI Coach - Ollama
+### Phase 6. AI Coach
 
-목표: 로컬 LLM이 사용자의 운동/식단 데이터를 조회하여 간단한 질의응답, 기록 해석, 식단 제안을 제공한다.
+목표: 사용자가 기록한 Workout / Body / Nutrition 데이터를 바탕으로 개인화된 질의응답과 기록 해석을 제공한다.
 
-초기 기능:
-- 일반적인 운동/식단 질의응답
-- 최근 운동 빈도/볼륨 변화 설명
-- 특정 운동의 최근 기록 및 성장 추이 설명
-- 최근 체중/체성분 변화 요약
-- 최근 섭취량과 영양 목표 비교
-- 남은 칼로리/탄단지를 고려한 간단한 식단 후보 제안
+상세 구현 기준은 [2026-09-22-tue-pr-009-ai-coach.md](./2026-09-22-tue-pr-009-ai-coach.md)를 기준으로 한다.
+
+핵심 기능:
+- 모든 주요 화면의 우측 하단 AI Floating Button
+- 모바일 Bottom Sheet / 데스크톱 Side Panel
+- 사용자별 여러 Conversation 생성/조회
+- Conversation별 User / Assistant Message 저장
+- 운동/식단/신체 기록 기반 개인화
+- 질문 유형별 최소 Context 선택
+- 앱과 무관한 명백한 질문은 Provider 호출 전 차단
+- 최근 대화 일부를 이용한 후속 질문
+- token / model / provider / latency / 성공·실패 로그
+- Quick Prompt
+- 기록 기반 추천의 근거 제시
+
 AI 처리 원칙:
-- LLM은 DB에 직접 접근하지 않는다.
-- 사용자 데이터 조회는 Spring AI Tool Calling을 통해 애플리케이션 서비스가 수행한다.
-- Volume, 평균, 증감률, 목표 대비 차이, 1RM 등 정확성이 필요한 계산은 Java 코드에서 수행한다.
-- LLM은 계산 결과를 자연어로 설명하고 선택지를 제안하는 역할에 집중한다.
+- AI는 Read-only로 시작하며 Workout / Body / Nutrition 기록을 직접 수정하지 않는다.
+- LLM은 DB와 Repository에 직접 접근하지 않는다.
+- 각 기능 모듈이 공개하는 Spring Modulith insight Named Interface를 통해 Java가 Context를 구성한다.
+- Volume, 평균, 증감률, 목표 대비 차이, 1RM 등 정확성이 필요한 계산은 Java에서 수행한다.
+- 모든 사용자 데이터를 항상 Prompt에 넣지 않고 질문 유형에 필요한 Context만 선택한다.
+- userId는 모델 입력으로 전달하거나 모델이 생성하지 않고 서버 요청 컨텍스트에서 결정한다.
+- 의료 진단, 치료 판단, 질병 식단 처방, 위험한 운동 권장은 범위에서 제외한다.
 - 데이터가 부족하면 추측하지 않고 기록이 부족하다고 답한다.
-- 의료 진단, 치료 판단, 질병 관련 식단 처방은 범위에서 제외한다.
-- 사용자의 userId는 모델 입력에 의존하지 않고 서버 요청 컨텍스트에서 강제한다.
 
-초기 Tool 후보:
-- getRecentWorkouts
-- getWorkoutSummary
-- getExerciseHistory
-- getExerciseProgress
-- getPersonalRecords
-- getBodyTrend
-- getNutritionSummary
-- getNutritionGoal
-- getRecentMeals
-- getRemainingNutritionTarget
+Provider:
+- 초기 운영은 OpenAI gpt-4o-mini를 기본 설정으로 사용한다.
+- Spring AI의 ChatModel / ChatClient 추상화를 사용한다.
+- Provider와 model은 환경 설정으로 관리하며 Application 코드에 하드코딩하지 않는다.
+- 이후 Ollama 등 로컬 Provider로 전환할 때 Conversation, Context Builder, REST API, Frontend는 변경하지 않는 것을 목표로 한다.
+- 자동 Provider failover는 초기 범위에서 제외한다.
 
-예시 질의:
-- "최근 한 달 동안 벤치프레스 얼마나 늘었어?"
-- "이번 주 운동량이 지난주보다 줄었어?"
-- "최근 2주 단백질 평균이 목표에 비해 어때?"
-- "오늘 남은 칼로리와 단백질을 기준으로 저녁 식단 추천해줘."
-- "최근 체중은 줄었는데 운동 퍼포먼스는 어떻게 변했어?"
+초기에는 Java Router + Context Builder + 단일 모델 호출 구조를 우선한다.
+자유로운 Tool Calling, RAG, Vector DB, Embedding, Streaming SSE는 필요성이 확인된 이후 확장한다.
 
-RAG는 Phase 6에 포함하지 않는다. 운동/영양 문서 검색 기반의 RAG는 실제 기록 기반 Tool Calling이 안정화된 이후 확장 기능으로 검토한다.
 ### Phase 7. 이후 확장
 
 Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
@@ -315,7 +315,7 @@ Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
       PostgreSQL         Spring AI
                             │
                             ▼
-                          Ollama
+                   OpenAI / Ollama
 ```
 Spring Boot는 기능 단위 패키지를 기본으로 하고, 각 기능 내부는 실용적인 역할 단위로 분리한다.
 
@@ -345,20 +345,18 @@ Controller는 여러 하위 Service를 직접 조합하지 않고 해당 도메�
 
 엄격한 헥사고날/DDD 계층을 그대로 적용하기보다, 패키지 책임이 명확하고 테스트하기 쉬운 정도로만 분리한다. 마이크로서비스 분리는 고려하지 않는다.
 
-AI 패키지는 다음 책임을 가진다.
+AI 패키지는 기존 4계층과 Spring Modulith 경계를 유지한다.
 
-```text
+~~~text
 ai
-├── presentation     # chat API, streaming endpoint
-├── application
-│   ├── AiChatService
-│   └── AiCoachService
-├── tool             # Spring AI Tool 정의
-├── prompt           # system prompt / prompt template
-└── config           # Ollama / ChatClient 설정
-```
+├── presentation     # Conversation / Message API
+├── application      # Coach, Router, Context Builder, AiChatGateway Port
+├── domain           # Conversation / Message / RequestLog
+└── infrastructure   # Persistence + Spring AI Provider Adapter
+~~~
 
-도메인 데이터 조회는 AI 전용 Repository를 새로 만들기보다 기존 application service 또는 전용 query service를 통해 수행한다.
+AI는 다른 기능 모듈의 Repository나 Entity를 직접 조회하지 않는다.
+Workout / Body / Nutrition 모듈이 제공하는 읽기 전용 insight Named Interface를 통해 필요한 집계 데이터를 받는다.
 
 ## 6. 핵심 도메인 모델
 
@@ -420,7 +418,8 @@ Base path는 `/api`를 사용한다.
 - `/api/meals`
 - `/api/nutrition-goals`
 - `/api/dashboard`
-- `/api/ai/chat`
+- /api/ai/conversations
+- /api/ai/conversations/{conversationId}/messages
 
 응답은 화면 중심 DTO를 사용하며 JPA Entity를 API 응답으로 직접 노출하지 않는다.
 ## 8. 사용자 및 인증
@@ -431,7 +430,7 @@ Base path는 `/api`를 사용한다.
 - 인증은 이메일/비밀번호 기반의 단순한 Spring Security 구성을 우선한다.
 - 외부 OAuth 로그인은 초기 범위에서 제외한다.
 - API 요청에서 인증된 사용자 기준으로 데이터 범위를 제한한다.
-- AI Tool 호출 시에도 userId를 모델이 생성한 인자에서 받지 않고 서버 인증 컨텍스트에서 결정한다.
+- AI 요청에서도 userId는 모델 입력이나 Client Context에서 받지 않고 서버 인증 컨텍스트에서 결정한다.
 
 ## 9. PWA 및 화면 요구사항
 
@@ -450,37 +449,47 @@ Base path는 `/api`를 사용한다.
 
 초기에는 완전한 오프라인 쓰기 동기화까지 구현하지 않는다. 네트워크가 끊겼을 때 작성 중인 입력값이 가능한 한 보존되도록 클라이언트 상태 처리부터 적용한다.
 
-## 10. Ollama / AI 상세 정책
+## 10. AI Coach 상세 정책
 
-Ollama는 Spring Boot와 별도 프로세스로 실행하되 외부 사용자에게 직접 노출하지 않는다.
+AI 호출은 Browser에서 Provider로 직접 연결하지 않는다.
 
-```text
+~~~text
 Browser
   ↓
-Spring Boot /api/ai/chat
+Spring Boot AI Coach API
   ↓
-Spring AI
+Java Router / Context Builder
   ↓
-Ollama localhost
-```
+AiChatGateway
+  ↓
+Spring AI ChatClient / ChatModel
+  ↓
+OpenAI 또는 Ollama
+~~~
 
-프론트엔드는 Ollama API를 직접 호출하지 않는다.
+초기 운영은 OpenAI를 사용하고, 로컬 전환 시 Ollama를 선택할 수 있게 Provider 설정을 외부화한다.
+
 AI 응답 정책:
-- 가능한 경우 Tool 조회 결과를 근거로 답한다.
+- 사용자의 Conversation과 Message를 DB에 저장한다.
+- 여러 Conversation을 지원한다.
+- 최근 대화 일부만 Prompt history에 사용한다.
 - 기록이 없거나 조회 기간이 짧으면 그 한계를 명시한다.
-- 사용자의 목표와 실제 섭취량을 구분해서 표현한다.
-- 식단 추천은 하나의 정답이 아니라 조건에 맞는 후보를 제안하는 방식으로 제공한다.
-- 모델 응답에 계산된 수치를 넣을 때 서버에서 생성된 값을 우선한다.
-- 대화 기록 저장은 초기에는 최소화하고 필요성이 확인되면 별도 ChatSession 모델을 추가한다.
-- 스트리밍 응답이 필요할 경우 SSE를 우선 검토한다.
+- 사용자의 목표와 실제 섭취량을 구분한다.
+- 식단 추천은 하나의 정답이 아니라 조건에 맞는 후보를 제안한다.
+- 모델 응답에 계산된 수치를 넣을 때 서버에서 계산한 값을 우선한다.
+- 명백한 비관련 질문은 Provider 호출 전에 차단한다.
+- 모델 사용량과 latency는 AiRequestLog에 기록한다.
+- prompt/completion 원문 observability logging은 운영에서 활성화하지 않는다.
+- 초기 응답은 non-streaming으로 구현하고 필요 시 SSE를 추가한다.
 
-초기 모델 선정 기준:
-- 로컬 장비에서 무리 없이 실행 가능할 것
+Provider 선택 기준:
+- Spring AI ChatModel 구현을 제공할 것
 - 한국어 응답 품질이 충분할 것
-- Tool Calling을 안정적으로 지원할 것
 - 응답 속도가 모바일 사용성을 크게 해치지 않을 것
+- token usage metadata를 가능한 범위에서 제공할 것
 
-특정 모델명은 스펙에 고정하지 않고 실제 Mac 환경에서 2~3개 후보를 비교한 뒤 결정한다.
+초기 기본 모델은 gpt-4o-mini이며 모델명은 환경 변수로 관리한다.
+로컬 Ollama 모델은 실제 개발 장비에서 비교 후 설정한다.
 
 ## 11. 테스트 전략
 
@@ -500,10 +509,11 @@ AI 응답 정책:
 2. Workout / Routine / Nutrition 애플리케이션 서비스 테스트
 3. 이전 기록 조회, 기간 집계 등 Repository 통합 테스트
 4. 주요 REST API 통합 테스트
-5. AI Tool 입출력 테스트
-6. Ollama 연동 smoke test
+5. AI Router / Context / Conversation / Provider Gateway 테스트
+6. Spring Modulith / ArchUnit 아키텍처 테스트
+7. OpenAI 및 Ollama Provider smoke test
 
-LLM의 자연어 문장 자체를 정확 문자열로 검증하지 않는다. 대신 호출해야 할 Tool, Tool 결과 스키마, 필수 응답 조건을 검증한다.
+LLM의 자연어 문장 자체를 정확 문자열로 검증하지 않는다. 대신 Router 분류, 선택 Context, Provider Gateway 호출 여부, token usage 기록과 필수 응답 조건을 검증한다.
 
 AI 없이도 Workout, Routine, BodyRecord, Dashboard, Nutrition의 핵심 기능은 정상 동작해야 한다.
 
@@ -514,10 +524,10 @@ AI 없이도 Workout, Routine, BodyRecord, Dashboard, Nutrition의 핵심 기능
 
 - Spring Boot 애플리케이션 1개
 - PostgreSQL 1개
-- Ollama 1개
-- Docker Compose 기반 로컬/개인 서버 구성을 우선
+- 초기 AI Provider는 외부 OpenAI API 사용
+- 로컬 개발/향후 전환 Provider로 Ollama 지원
 - 프론트엔드는 Spring Boot 배포물에 포함
-- 환경 변수로 DB 및 Ollama 연결 정보를 분리
+- 환경 변수로 DB, AI Provider, model, API key / base URL 설정을 분리
 - 주기적인 PostgreSQL 백업 방법을 마련
 - 로그는 파일 또는 stdout 기반으로 시작
 

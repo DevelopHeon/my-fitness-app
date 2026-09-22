@@ -400,23 +400,28 @@ Volume, 1RM, 변화율 계산은 Dashboard Domain Service에서 수행한다.
 
 ### AI / User
 
-아직 본 기능 구현 전이지만 동일한 4계층 package boundary를 미리 유지한다.
+AI와 User는 동일한 4계층 package boundary와 Spring Modulith 경계를 유지한다.
 
-Phase 6에서는 예를 들어:
+Phase 6에서는 다른 기능 모듈이 읽기 전용 insight Named Interface를 공개하고 AI가 해당 API만 사용한다.
 
-```text
-ai.presentation
-    ↓
-ai.application
-    ├── Workout/Body/Nutrition Query Port
-    └── AiClientPort
-              ▲
-              │
-ai.infrastructure
-    └── OpenAI/Spring AI Adapter
-```
+~~~text
+workout::insight  ─┐
+body::insight     ─┼──► ai.application
+nutrition::insight─┘        │
+                             ▼
+                        AiChatGateway
+                             ▲
+                             │
+                   ai.infrastructure
+                     Spring AI Adapter
+                             │
+                      OpenAI / Ollama
+~~~
 
-형태로 확장한다.
+AI Application은 Spring AI 타입이나 Provider SDK를 직접 알지 않는다.
+Spring AI의 ChatModel / ChatClient는 Infrastructure Adapter 내부에서 사용하고 Provider는 설정으로 선택한다.
+
+User는 현재 X-User-Id 임시 컨텍스트를 사용하며 실제 인증 도입 시에도 외부 인증 기술은 Infrastructure에 격리한다.
 
 ## 10. 예외 배치
 
@@ -495,23 +500,25 @@ Workout / Body Domain Repository Ports
 
 Phase 6 AI:
 
-```text
+~~~text
 PWA
  ↓
 AI Presentation
  ↓
 AI Application
- ├── 정확한 수치/기록 조회
- └── AiClientPort
+ ├── Query Router
+ ├── Context Builder
+ ├── Conversation
+ └── AiChatGateway Port
           ▲
           │
-   Infrastructure Adapter
+   Spring AI Adapter
           ↓
-      AI Provider
-```
+   OpenAI / Ollama
+~~~
 
-수치 계산과 데이터 필터링은 Java에서 수행하고,
-LLM은 설명과 추천 문장 생성에 집중한다.
+Workout / Body / Nutrition 데이터는 각 모듈의 insight Named Interface로 조회한다.
+수치 계산과 데이터 필터링은 Java에서 수행하고 LLM은 설명과 추천에 집중한다.
 
 ## 13. 단계별 확장
 
