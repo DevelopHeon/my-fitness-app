@@ -34,7 +34,8 @@ class PackageDocumentationTest {
             "routine",
             "body",
             "nutrition",
-            "dashboard");
+            "dashboard",
+            "ai");
 
     @Test
     @DisplayName("모든 기능 모듈은 최상위 package-info로 책임과 경계를 문서화한다")

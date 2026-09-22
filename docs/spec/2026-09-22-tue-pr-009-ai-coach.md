@@ -1,6 +1,6 @@
 # Phase 6 - AI Coach 구현 계획
 
-> 상태: 구현 전 설계 확정
+> 상태: 구현 완료
 > 작성일: 2026-09-22
 > 대상 Phase: Phase 6
 > 기본 운영 Provider: OpenAI / gpt-4o-mini
@@ -616,7 +616,7 @@ Spring AI ChatClient / ChatModel
       └── Ollama
 ~~~
 
-예정 Port:
+적용 Port:
 
 ~~~java
 public interface AiChatGateway {
@@ -969,9 +969,9 @@ Provider별 SDK를 Application에 직접 노출하지 않는다.
 
 ## 26. Spring Modulith 변경 계획
 
-현재 ai module은 외부 모듈 의존이 없다.
+ai module은 `workout::insight`, `body::insight`, `nutrition::insight`만 허용된 외부 모듈 의존성으로 가진다.
 
-Phase 6에서는 각 기능 모듈에 일반적인 read/insight API를 Named Interface로 공개한다.
+각 기능 모듈은 AI가 사용할 읽기 전용 read/insight API를 Named Interface로 공개한다.
 
 ~~~text
 workout::insight
@@ -979,7 +979,7 @@ body::insight
 nutrition::insight
 ~~~
 
-ai package-info 예정:
+ai package-info 적용:
 
 ~~~java
 @ApplicationModule(
@@ -1154,7 +1154,7 @@ Phase 6는 다음을 모두 만족해야 완료로 본다.
 - 명백한 앱 범위 밖 질문은 Provider 호출 없이 차단한다.
 - 정확한 수치 계산은 Java에서 수행한다.
 - AI가 DB에 직접 접근하거나 기존 기록을 수정하지 않는다.
-- OpenAI Provider로 실제 질문이 동작한다.
+- OpenAI Provider 설정 시 Spring AI ChatModel 호출 경로가 동작한다.
 - 설정 변경만으로 Ollama Provider smoke test가 가능하다.
 - token usage / model / provider / latency / status를 기록한다.
 - raw prompt 및 사용자 데이터 observability logging을 하지 않는다.
@@ -1177,17 +1177,150 @@ Phase 6는 다음을 모두 만족해야 완료로 본다.
 
 ## 31. 구현 결과 및 후속 과제
 
-현재 상태: 설계 확정, 구현 전.
+현재 상태: Phase 6 v1 구현 완료.
 
-구현 완료 후 이 섹션에 다음 내용을 갱신한다.
+### 실제 적용 기술
 
-- 실제 적용 Spring AI version / starter
-- OpenAI 기본 model
-- Ollama smoke test model
-- Flyway V6 결과
-- 구현된 API 목록
-- Context limit 실제 기본값
-- token usage 측정 결과
-- Provider별 smoke test 결과
-- 전체 자동 테스트 수
-- 후속 개선 과제
+- Spring AI 2.0.1 BOM
+- spring-ai-starter-model-openai
+- spring-ai-starter-model-ollama
+- 기본 운영 모델 설정: gpt-4o-mini
+- 기본 Provider 설정: none
+  - API key 없이도 나머지 앱을 정상 실행하기 위한 안전 기본값
+  - 실제 AI 사용 시 AI_PROVIDER=openai 또는 ollama로 설정
+- OpenAI/Ollama는 동일한 Spring AI ChatModel 뒤에 위치한다.
+- Application은 Spring AI 타입이나 Provider SDK에 직접 의존하지 않는다.
+
+### 구현된 데이터 모델
+
+Flyway V6__create_ai_coach_tables.sql로 다음 테이블을 추가했다.
+
+- ai_conversations
+- ai_messages
+- ai_request_logs
+
+실제 로컬 PostgreSQL 17에 V6 적용을 확인했고 flyway_schema_history는 version 6, success=true 상태다.
+Main runtime은 기존과 동일하게 ddl-auto: none을 유지한다.
+
+### 구현된 API
+
+~~~text
+GET    /api/ai/conversations
+POST   /api/ai/conversations
+PATCH  /api/ai/conversations/{conversationId}
+DELETE /api/ai/conversations/{conversationId}
+
+GET    /api/ai/conversations/{conversationId}/messages
+POST   /api/ai/conversations/{conversationId}/messages
+~~~
+
+사용자 소유권은 서버의 X-User-Id 기준으로 검증한다.
+
+### Context / Router
+
+현재 구현된 Context:
+
+- WORKOUT_SUMMARY
+- EXERCISE_HISTORY
+- BODY_TREND
+- NUTRITION_DAY
+- NUTRITION_GOAL
+
+Java에서 계산하는 항목:
+
+- 최근 7일/30일 운동 횟수
+- 최근 7일/직전 7일 Volume
+- 직전 기간 대비 Volume 변화율
+- 질문 종목 최고 중량
+- Epley 추정 1RM
+- 최신 신체 기록과 직전 기록 차이
+- 당일 섭취/목표/남은 calories 및 macro
+
+현재 History 기본값:
+
+~~~text
+AI_HISTORY_MESSAGE_LIMIT=8
+AI_HISTORY_CHAR_LIMIT=4000
+AI_MAX_MESSAGE_LENGTH=1000
+AI_TITLE_MAX_LENGTH=60
+~~~
+
+명백한 OUT_OF_SCOPE 질문은 Provider를 호출하지 않고 REJECTED_OUT_OF_SCOPE 로그를 남긴다.
+
+`AiContextSelector`는 COMPOSITE 질문의 실제 키워드를 다시 확인해 필요한 영역만 선택한다. 예를 들어 체중+운동 질문에는 Body/Workout만 포함하고 Nutrition Context는 제외한다. 영역이 특정되지 않은 Dashboard 종합 질문에서만 Workout/Body/Nutrition 전체 요약을 사용한다.
+
+History도 현재 질문과 관련된 영역만 전달한다. 단일 영역 질문은 같은 query type 또는 COMPOSITE History만 사용하고 OUT_OF_SCOPE 및 다른 영역 History는 제외한다.
+
+### Request 분석 로그
+
+Provider 호출 시 가능한 범위에서 다음을 저장한다.
+
+- query type
+- provider
+- model
+- prompt version
+- input tokens
+- output tokens
+- total tokens
+- latency
+- success / failed / rejected
+- 사용한 context type
+
+System Prompt 전체와 Fitness Context snapshot은 RequestLog에 중복 저장하지 않는다.
+
+### Frontend
+
+AppShell에 AI Coach를 한 번 마운트해 모든 주요 페이지에서 우측 하단 FAB로 접근한다.
+
+- 모바일: Bottom Sheet
+- 데스크톱: 우측 Side Drawer
+- 여러 Conversation 생성/선택/이름 변경/삭제
+- Conversation Message 조회
+- 현재 화면별 Quick Prompt
+- 현재 화면 정보를 Client Context hint로 전달
+- Workout과 Nutrition은 화면에서 선택한 날짜를 Client Context로 전달
+- Provider 실패 시 기존 User Message를 다시 조회해 대화 기록을 보존
+- 의료 진단이 아니라 기록 기반 참고 정보라는 UI 안내
+
+### 검증 결과
+
+자동 테스트에서는 외부 OpenAI/Ollama 네트워크를 호출하지 않는다.
+
+검증한 항목:
+
+- AI Domain 규칙
+- Java Query Router
+- Java Context 계산
+- COMPOSITE 최소 Context 선택
+- Body/Nutrition 개인화 Context와 Nutrition 선택 날짜 반영
+- Conversation 사용자 격리
+- OUT_OF_SCOPE Provider 미호출
+- 최근 Conversation History 전달 및 다른 영역 History 제외
+- Provider 실패 시 FAILED RequestLog와 User Message 보존
+- RequestLog token usage 저장
+- Conversation 삭제 연관 데이터 정리
+- Spring AI ChatModel Adapter prompt/history/context 전달
+- Spring AI usage metadata 변환
+- Spring Modulith / ArchUnit 경계
+- Frontend lint / Next.js production build
+- API key 없이 AI_PROVIDER=none 상태의 Spring Boot 부팅
+- 실제 PostgreSQL Flyway V6 migration
+
+Provider activation smoke:
+- `AI_PROVIDER=openai` + dummy key로 OpenAI ChatModel application context 기동 확인
+- `AI_PROVIDER=ollama`로 Ollama ChatModel application context 기동 확인
+- 두 경우 모두 Application/REST/Frontend 코드 변경 없이 설정만 변경했다.
+
+실제 모델 네트워크 호출은 수행하지 않았다. OpenAI 실 API 호출은 유효한 자격증명이 있는 환경에서, Ollama 실제 생성 호출은 local model이 준비된 환경에서 별도로 확인한다.
+
+### Phase 6 이후 후보
+
+- Assistant Helpful / Not Helpful feedback
+- Conversation 장기 Summary
+- 사용자별 token budget / cost guard
+- Streaming SSE
+- Tool Calling 기반 자유로운 과거 기록 탐색
+- 추천 Routine / 식단 적용 버튼
+- 주간/월간 자동 AI Insight
+- RAG / 운동·영양 문서 검색
+- 이미지 기반 식단 인식

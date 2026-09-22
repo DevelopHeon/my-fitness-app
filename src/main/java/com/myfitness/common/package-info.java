@@ -9,6 +9,8 @@
 @org.springframework.modulith.ApplicationModule(
     displayName = "Common",
     allowedDependencies = {
+        "ai::application-exception",
+        "ai::domain-exception",
         "body::application-exception",
         "body::domain-exception",
         "exercise::application-exception",

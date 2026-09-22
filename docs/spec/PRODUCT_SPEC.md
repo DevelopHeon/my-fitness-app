@@ -241,6 +241,8 @@ estimated 1RM = weight × (1 + reps / 30)
 
 ### Phase 6. AI Coach
 
+> 구현 상태: 완료
+
 목표: 사용자가 기록한 Workout / Body / Nutrition 데이터를 바탕으로 개인화된 질의응답과 기록 해석을 제공한다.
 
 상세 구현 기준은 [2026-09-22-tue-pr-009-ai-coach.md](./2026-09-22-tue-pr-009-ai-coach.md)를 기준으로 한다.
@@ -301,7 +303,7 @@ Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
 │ workout / routine / body / meal     │
 │ dashboard / ai chat                 │
 └────────────────┬────────────────────┘
-                 │ REST / SSE
+                 │ REST
                  ▼
 ┌─────────────────────────────────────┐
 │            Spring Boot              │

@@ -71,7 +71,11 @@ function emptyGoalForm(): GoalFormState {
   };
 }
 
-export default function NutritionScreen() {
+type Props = {
+  onSelectedDateChange?: (date: string) => void;
+};
+
+export default function NutritionScreen({ onSelectedDateChange }: Props) {
   const [view, setView] = useState<NutritionView>("summary");
   const [date, setDate] = useState(todayString);
   const [daily, setDaily] = useState<DailyNutrition | null>(null);
@@ -408,7 +412,9 @@ export default function NutritionScreen() {
             max={todayString()}
             value={date}
             onChange={(event) => {
-              setDate(event.target.value);
+              const nextDate = event.target.value;
+              setDate(nextDate);
+              onSelectedDateChange?.(nextDate);
               setAddingMealType(null);
               setSelectedFoodId(null);
             }}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AiCoach from "@/components/ai/ai-coach";
 import BodyScreen from "@/components/body/body-screen";
 import DashboardScreen from "@/components/dashboard/dashboard-screen";
 import NutritionScreen from "@/components/nutrition/nutrition-screen";
@@ -19,6 +20,7 @@ type View =
 export default function AppShell() {
   const [view, setView] = useState<View>("dashboard");
   const [workoutDate, setWorkoutDate] = useState(todayString);
+  const [nutritionDate, setNutritionDate] = useState(todayString);
   const [startedWorkout, setStartedWorkout] =
     useState<RoutineWorkoutStart | null>(null);
 
@@ -87,8 +89,19 @@ export default function AppShell() {
       ) : view === "body" ? (
         <BodyScreen />
       ) : (
-        <NutritionScreen />
+        <NutritionScreen onSelectedDateChange={setNutritionDate} />
       )}
+
+      <AiCoach
+        currentView={view}
+        selectedDate={
+          view === "workout"
+            ? workoutDate
+            : view === "nutrition"
+              ? nutritionDate
+              : undefined
+        }
+      />
     </div>
   );
 }

@@ -20,11 +20,14 @@ repositories {
 dependencyManagement {
 	imports {
 		mavenBom("org.springframework.modulith:spring-modulith-bom:2.1.1")
+		mavenBom("org.springframework.ai:spring-ai-bom:2.0.1")
 	}
 }
 
 dependencies {
 	implementation("org.springframework.modulith:spring-modulith-api")
+	implementation("org.springframework.ai:spring-ai-starter-model-openai")
+	implementation("org.springframework.ai:spring-ai-starter-model-ollama")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")

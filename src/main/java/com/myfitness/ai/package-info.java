@@ -1,13 +1,15 @@
 /**
- * 피트니스 기록을 기반으로 설명과 추천을 제공할 AI 기능의 경계다.
+ * 피트니스 기록을 기반으로 설명과 추천을 제공하는 AI Coach application module이다.
  *
- * <p>Phase 6 구현 전에는 외부 기능 모듈 의존을 허용하지 않으며 구현 시 필요한 공개 API만 명시적으로 추가한다.</p>
- *
- * <p>Spring Modulith의 closed application module로 선언하며,
- * allowedDependencies와 Named Interface를 통해 모듈 간 접근 범위를 검증한다.</p>
+ * <p>다른 기능 모듈의 Repository/Infrastructure를 직접 참조하지 않고
+ * 읽기 전용 Insight Named Interface만 사용한다.</p>
  */
 @org.springframework.modulith.ApplicationModule(
     displayName = "AI Coach",
-    allowedDependencies = {}
+    allowedDependencies = {
+        "workout::insight",
+        "body::insight",
+        "nutrition::insight"
+    }
 )
 package com.myfitness.ai;

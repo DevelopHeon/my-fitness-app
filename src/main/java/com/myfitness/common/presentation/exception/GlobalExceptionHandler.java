@@ -1,5 +1,9 @@
 package com.myfitness.common.presentation.exception;
 
+import com.myfitness.ai.application.exception.AiConversationAccessException;
+import com.myfitness.ai.application.exception.AiConversationNotFoundException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.body.application.exception.BodyRecordAccessException;
 import com.myfitness.body.application.exception.BodyRecordNotFoundException;
 import com.myfitness.body.domain.exception.BodyRecordRuleException;
@@ -117,4 +121,36 @@ public class GlobalExceptionHandler {
 
         return ApiErrorResponse.of("INVALID_REQUEST", message);
     }
+
+    @ExceptionHandler(AiConversationNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiErrorResponse handleAiConversationNotFound(
+            AiConversationNotFoundException exception) {
+        return ApiErrorResponse.of("NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(AiConversationAccessException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiErrorResponse handleAiConversationAccess(
+            AiConversationAccessException exception) {
+        return ApiErrorResponse.of("FORBIDDEN", exception.getMessage());
+    }
+
+    @ExceptionHandler(AiRuleException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse handleAiRule(AiRuleException exception) {
+        return ApiErrorResponse.of(
+                "AI_RULE_VIOLATION",
+                exception.getMessage());
+    }
+
+    @ExceptionHandler(AiProviderUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiErrorResponse handleAiProviderUnavailable(
+            AiProviderUnavailableException exception) {
+        return ApiErrorResponse.of(
+                "AI_PROVIDER_UNAVAILABLE",
+                exception.getMessage());
+    }
+
 }

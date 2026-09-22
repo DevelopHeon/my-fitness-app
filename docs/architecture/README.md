@@ -53,7 +53,7 @@ PostgreSQL
 - Spring Modulith
 - ArchUnit
 - Next.js 16 + TypeScript + PWA
-- Phase 6: Spring AI
+- Spring AI 2.0.1
 
 Main runtime은 Hibernate ddl-auto: none을 유지한다.
 DB schema 변경은 Flyway migration으로만 관리한다.
@@ -543,7 +543,7 @@ ExerciseCatalogQuery
 | body | 없음 |
 | nutrition | 없음 |
 | dashboard | body::insight, workout::insight |
-| ai | 없음 — Phase 6에서 필요한 insight만 추가 |
+| ai | workout::insight, body::insight, nutrition::insight |
 | user | 없음 |
 | common | 각 모듈의 공개 exception interface |
 
@@ -557,6 +557,7 @@ exercise::domain-model
 workout::routine-api
 workout::insight
 body::insight
+nutrition::insight
 ~~~
 
 서비스 구현체, Repository Out Port, Infrastructure는 모듈 외부에 공개하지 않는다.
@@ -630,29 +631,73 @@ Javadoc은 사람을 위한 설명이고, Spring Modulith annotation은 실제 �
 
 ---
 
-## 17. AI Phase 6 확장 방향
+## 17. AI Coach 구조
 
-AI도 동일한 방향을 사용한다.
+Phase 6 AI Coach도 동일한 In/Out Port 규칙을 사용한다.
 
 ~~~text
-AI Presentation
-      ↓
-AI In Port
-      ↑
+전역 AI FAB / REST
+        │
+        ▼
+AiCoachController
+        │
+        ▼
+AiCoachUseCase                         IN PORT
+        ▲
+        │ implements
 AiCoachService
-      │
-      ├── WorkoutInsightQuery
-      ├── BodyInsightQuery
-      ├── NutritionInsightQuery
-      │
-      └── AiChatGateway              OUT PORT
-              ▲
-              │
-       SpringAiChatAdapter           Infrastructure
-              │
-              ▼
-       OpenAI / Ollama
+        │
+        ├── AiQueryRouter
+        ├── AiContextSelector
+        ├── AiContextBuilder
+        │      ├── WorkoutInsightQuery   workout::insight
+        │      ├── BodyInsightQuery      body::insight
+        │      └── NutritionInsightQuery nutrition::insight
+        │
+        ├── AiConversationRepositoryPort
+        ├── AiMessageRepositoryPort
+        ├── AiRequestLogRepositoryPort
+        │          ▲
+        │          │ implements
+        │      Persistence Adapters
+        │
+        └── AiChatGateway                OUT PORT
+                   ▲
+                   │ implements
+            SpringAiChatGateway
+                   │
+                   ▼
+            Spring AI ChatModel
+              ├── OpenAI
+              └── Ollama
 ~~~
+
+AI는 다른 기능 모듈의 Repository Out Port나 Infrastructure를 직접 조회하지 않는다.
+질문에 필요한 기록은 각 모듈의 읽기 전용 Insight Named Interface로만 가져온다.
+
+정확한 계산은 Java에서 처리한다.
+
+- 최근 7일/30일 운동 횟수
+- 기간별 Volume과 직전 기간 대비 변화율
+- 종목 최고 중량과 Epley 추정 1RM
+- 최신 신체 기록과 직전 기록 대비 변화
+- 영양 목표 대비 섭취량과 남은 macro
+
+LLM에는 위 계산 결과와 질문에 필요한 최소 Context만 전달한다.
+
+Conversation 전체를 매 호출마다 보내지 않는다. 현재 기본값은 최근 8개 Message, 최대 4,000자로 제한한다. 단일 영역 질문은 같은 영역 또는 COMPOSITE History만 전달하고 OUT_OF_SCOPE 및 다른 영역 대화는 제외한다.
+질문은 Java Router에서 WORKOUT / NUTRITION / BODY / GENERAL_FITNESS / COMPOSITE / OUT_OF_SCOPE로 분류하며 명백한 범위 밖 질문은 Provider를 호출하지 않는다. COMPOSITE는 AiContextSelector가 질문 키워드를 다시 확인해 실제 필요한 영역만 Context로 구성하고, 영역이 드러나지 않는 Dashboard 종합 질문에서만 Workout/Body/Nutrition 전체 요약을 사용한다.
+
+AI Provider는 Spring AI ChatModel 뒤에 격리한다.
+
+~~~text
+AI_PROVIDER=none    # AI 호출 비활성화, 나머지 앱 정상 동작
+AI_PROVIDER=openai  # 초기 운영 Provider
+AI_PROVIDER=ollama  # 로컬 모델 전환
+~~~
+
+Provider와 모델은 환경 설정으로 선택하며 Application/REST/Frontend 코드는 변경하지 않는다.
+raw prompt/completion observability logging은 활성화하지 않고 RequestLog에는 provider/model/token/latency/context type 같은 메타데이터만 저장한다.
 
 AI가 직접 접근하지 않는 것:
 
@@ -660,9 +705,7 @@ AI가 직접 접근하지 않는 것:
 - 다른 모듈 Infrastructure
 - Spring Data Repository
 - DB
-- Provider SDK를 Application에서 직접 사용
-
-Phase 6에서 nutrition::insight를 추가하고 AI module의 allowedDependencies에는 필요한 insight만 명시한다.
+- OpenAI/Ollama SDK를 Application에서 직접 사용
 
 ---
 
@@ -715,7 +758,7 @@ Module B Named In Port
 - Next.js static export 포함
 - PostgreSQL
 - Flyway schema history
-- AI Provider는 Phase 6에서 OpenAI 또는 Ollama
+- AI Provider는 Spring AI를 통해 OpenAI 또는 Ollama를 설정으로 선택
 
 현재 요구사항에 불필요한 MSA, Kafka, Redis, Kubernetes는 도입하지 않는다.
 

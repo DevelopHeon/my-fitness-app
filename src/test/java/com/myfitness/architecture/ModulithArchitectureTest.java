@@ -28,9 +28,14 @@ class ModulithArchitectureTest {
                     "dashboard", Set.of(
                             "body::insight",
                             "workout::insight"),
-                    "ai", Set.of(),
+                    "ai", Set.of(
+                            "workout::insight",
+                            "body::insight",
+                            "nutrition::insight"),
                     "user", Set.of(),
                     "common", Set.of(
+                            "ai::application-exception",
+                            "ai::domain-exception",
                             "body::application-exception",
                             "body::domain-exception",
                             "exercise::application-exception",
@@ -45,6 +50,12 @@ class ModulithArchitectureTest {
     private static final Map<String, String> NAMED_INTERFACES =
             Map.ofEntries(
                     Map.entry(
+                            "ai.application.exception",
+                            "application-exception"),
+                    Map.entry(
+                            "ai.domain.exception",
+                            "domain-exception"),
+                    Map.entry(
                             "exercise.application.port.in.catalog",
                             "catalog"),
                     Map.entry("exercise.domain.model", "domain-model"),
@@ -56,6 +67,9 @@ class ModulithArchitectureTest {
                             "insight"),
                     Map.entry(
                             "body.application.port.in.insight",
+                            "insight"),
+                    Map.entry(
+                            "nutrition.application.port.in.insight",
                             "insight"),
                     Map.entry(
                             "exercise.application.exception",

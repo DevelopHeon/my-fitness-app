@@ -1,14 +1,14 @@
 # my-fitness-app
 
-개인 운동, 신체, 식단 기록과 로컬 AI 코치를 위한 개인용 피트니스 애플리케이션입니다.
+개인 운동, 신체, 식단 기록과 기록 기반 AI Coach를 위한 개인용 피트니스 애플리케이션입니다.
 
 ## 기술 스택
 
 - Backend: Java 21, Spring Boot 4.1.1, Spring Data JPA, Spring Security
 - Frontend: Next.js 16.3.3, TypeScript, Tailwind CSS, PWA
 - Database: PostgreSQL 17
-- AI: Spring AI + external provider adapter (Phase 6 예정)
-- Architecture: domain-first 4-layer + Repository Port/Adapter + ArchUnit
+- AI: Spring AI 2.0.1 + OpenAI / Ollama ChatModel Provider
+- Architecture: Modular Monolith + 4-layer In/Out Port + Spring Modulith + ArchUnit
 - Build: Gradle + npm
 
 ## 프로젝트 구조
@@ -47,6 +47,26 @@ docker compose up -d postgres
 ```bash
 ./gradlew bootRun
 ```
+
+AI Coach를 OpenAI로 사용할 때는 실행 전에 Provider와 API key를 설정합니다.
+
+```bash
+export AI_PROVIDER=openai
+export OPENAI_API_KEY=...
+export AI_OPENAI_MODEL=gpt-4o-mini
+./gradlew bootRun
+```
+
+로컬 Ollama로 전환할 때는 Application 코드 변경 없이 설정만 바꿉니다.
+
+```bash
+export AI_PROVIDER=ollama
+export OLLAMA_BASE_URL=http://localhost:11434
+export AI_OLLAMA_MODEL=qwen3:1.7b
+./gradlew bootRun
+```
+
+AI Provider를 설정하지 않으면 기본값은 `none`이며, 나머지 앱 기능은 정상 동작하고 AI Provider 호출만 비활성화됩니다.
 
 프론트엔드 개발 서버:
 
@@ -90,8 +110,8 @@ npm run dev
 - [x] Phase 3 BodyRecord
 - [x] Phase 4 Dashboard
 - [x] Phase 5 Nutrition
-- [ ] Phase 6 Local AI Coach
+- [x] Phase 6 AI Coach
 
 현재 개발 환경에서는 인증 구현 전까지 `X-User-Id: 1`을 임시 사용자 컨텍스트로 사용합니다.
 
-다음 작업은 Phase 6 Local AI Coach 구현입니다.
+Phase 6 AI Coach는 여러 Conversation, 기록 기반 개인화 Context, 범위 제한, 사용량 로그, Spring AI Provider 전환과 전역 FAB UI까지 구현되어 있습니다.
