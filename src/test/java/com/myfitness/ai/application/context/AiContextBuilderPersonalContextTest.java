@@ -49,11 +49,10 @@ class AiContextBuilderPersonalContextTest {
                         new BigDecimal("34.0"))));
 
         AiContextBuilder builder = new AiContextBuilder(
-                workout,
-                body,
-                nutrition,
                 new AiContextSelector(),
-                CLOCK);
+                new AiWorkoutContextBuilder(workout, CLOCK),
+                new AiBodyContextBuilder(body, CLOCK),
+                new AiNutritionContextBuilder(nutrition, CLOCK));
 
         AiContextBundle context = builder.build(
                 1L,
@@ -96,11 +95,10 @@ class AiContextBuilderPersonalContextTest {
                         new BigDecimal("32.0"))));
 
         AiContextBuilder builder = new AiContextBuilder(
-                workout,
-                body,
-                nutrition,
                 new AiContextSelector(),
-                CLOCK);
+                new AiWorkoutContextBuilder(workout, CLOCK),
+                new AiBodyContextBuilder(body, CLOCK),
+                new AiNutritionContextBuilder(nutrition, CLOCK));
 
         AiContextBundle context = builder.build(
                 1L,
@@ -151,11 +149,10 @@ class AiContextBuilderPersonalContextTest {
                         List.of("계란")));
 
         AiContextBuilder builder = new AiContextBuilder(
-                workout,
-                body,
-                nutrition,
                 new AiContextSelector(),
-                CLOCK);
+                new AiWorkoutContextBuilder(workout, CLOCK),
+                new AiBodyContextBuilder(body, CLOCK),
+                new AiNutritionContextBuilder(nutrition, CLOCK));
 
         AiContextBundle context = builder.build(
                 1L,

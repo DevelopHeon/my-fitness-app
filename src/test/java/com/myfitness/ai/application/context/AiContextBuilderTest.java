@@ -48,11 +48,10 @@ class AiContextBuilderTest {
                         10)));
 
         AiContextBuilder builder = new AiContextBuilder(
-                workout,
-                body,
-                nutrition,
                 new AiContextSelector(),
-                clock);
+                new AiWorkoutContextBuilder(workout, clock),
+                new AiBodyContextBuilder(body, clock),
+                new AiNutritionContextBuilder(nutrition, clock));
 
         AiContextBundle context = builder.build(
                 1L,

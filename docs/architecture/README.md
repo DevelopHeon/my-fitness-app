@@ -206,6 +206,18 @@ Application 내부에서 가장 중요한 구분은 port.in과 port.out이다.
 
 Application Service는 Domain Entity를 내부에서 사용하되 In Port 경계를 넘길 때는 Result projection으로 변환한다. 이 변환은 transaction이 열려 있는 Application 계층에서 완료한다.
 
+Application Service 자체는 Use Case orchestration과 transaction boundary에 집중한다. 계산, 응답 조립, AI Context 생성처럼 독립적으로 설명할 수 있는 책임이 커지면 같은 Application 계층의 전용 collaborator로 분리한다.
+
+현재 예:
+
+- `AiCoachService` → `AiHistorySelector`, `AiProviderExecutor`
+- `AiContextBuilder` → `AiWorkoutContextBuilder`, `AiBodyContextBuilder`, `AiNutritionContextBuilder`
+- `NutritionApplicationService` → `NutritionResultAssembler`
+- `DashboardService` → `DashboardResultAssembler`
+- `WorkoutUseCase`와 `WorkoutRoutineUseCase` → 각각 `WorkoutApplicationService`, `WorkoutRoutineApplicationService`
+
+하나의 Service가 여러 In Port를 구현하는 것이 항상 금지는 아니지만, 호출 주체와 결과 계약이 다르고 변경 이유도 분리된다면 구현 Service도 경계별로 나눈다.
+
 ---
 
 ## 7. In Port와 Out Port
@@ -466,6 +478,8 @@ DashboardQueryUseCase                    IN PORT
  │ implements
 DashboardService
  │
+ ├────────► DashboardResultAssembler
+ │
  ▼
 DashboardDataPort                        OUT PORT
  ▲
@@ -505,6 +519,7 @@ DashboardDataAdapter                     @Component
 - Dashboard는 Workout/Body Entity를 직접 받지 않는다.
 - DashboardDataPort는 Dashboard가 필요한 자체 데이터 계약을 가진다.
 - DashboardDataAdapter가 타 모듈 projection을 Dashboard 데이터로 변환한다.
+- DashboardService는 조회와 시간 기준 결정만 orchestration하고, Workout/Body/Exercise 통계와 `DashboardResult` 조립은 DashboardResultAssembler가 담당한다.
 
 ---
 
@@ -524,9 +539,15 @@ RoutineApplicationService
       │
       └── WorkoutRoutineUseCase
               workout::routine-api
+                    ↑
+                    │ implements
+          WorkoutRoutineApplicationService
+                    │
+                    ▼
+               WorkoutService
 ~~~
 
-WorkoutRoutineUseCase는 Routine에 필요한 projection만 반환한다.
+WorkoutRoutineUseCase는 Routine에 필요한 projection만 반환한다. 일반 Workout REST Use Case는 `WorkoutApplicationService`, Routine 모듈용 공개 경계는 `WorkoutRoutineApplicationService`가 각각 구현해 변경 이유를 분리한다.
 
 Routine이 직접 의존하지 않는 것:
 
@@ -685,11 +706,12 @@ AiCoachUseCase                         IN PORT
 AiCoachService
         │
         ├── AiQueryRouter
-        ├── AiContextSelector
+        ├── AiHistorySelector
+        ├── AiProviderExecutor
         ├── AiContextBuilder
-        │      ├── WorkoutInsightQuery   workout::insight
-        │      ├── BodyInsightQuery      body::insight
-        │      └── NutritionInsightQuery nutrition::insight
+        │      ├── AiWorkoutContextBuilder   → WorkoutInsightQuery
+        │      ├── AiBodyContextBuilder      → BodyInsightQuery
+        │      └── AiNutritionContextBuilder → NutritionInsightQuery
         │
         ├── AiConversationRepositoryPort
         ├── AiMessageRepositoryPort
