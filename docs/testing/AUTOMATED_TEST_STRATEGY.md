@@ -49,7 +49,12 @@ ArchUnit으로 다음 의존성 규칙을 자동 검증한다.
 - Application은 Presentation / Infrastructure에 의존하지 않는다.
 - Presentation은 Infrastructure에 직접 의존하지 않는다.
 - Spring Data JpaRepository는 Infrastructure에만 존재한다.
-- Domain Repository Port는 Spring Data에 의존하지 않는다.
+- Domain Repository Port는 Spring Data에 의존하지 않으며 interface로 선언한다.
+- JPA Entity / Spring Service / REST Controller / Repository Adapter는 각 지정 계층에만 둔다.
+- 기능 모듈 간 순환 의존을 허용하지 않는다.
+- 다른 기능 모듈의 Presentation/Infrastructure를 직접 참조하지 않는다.
+- Exercise 기반 모듈은 다른 기능 모듈에 역으로 의존하지 않는다.
+- `PackageDocumentationTest`로 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
 
 ### 6순위: AI Tool 테스트
 LLM 자연어 문장 자체가 아니라 Tool 선택, Tool 입력/출력, 데이터 근거를 검증한다.

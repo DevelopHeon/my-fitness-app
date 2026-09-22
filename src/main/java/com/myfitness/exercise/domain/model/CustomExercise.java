@@ -1,6 +1,6 @@
 package com.myfitness.exercise.domain.model;
 
-import com.myfitness.workout.domain.exception.WorkoutRuleException;
+import com.myfitness.exercise.domain.exception.ExerciseRuleException;
 import jakarta.persistence.*;
 import java.time.Instant;
 
@@ -34,13 +34,13 @@ public class CustomExercise {
             ExerciseCategory category,
             Instant createdAt) {
         if (userId == null || userId <= 0) {
-            throw new WorkoutRuleException("유효한 사용자 ID가 필요합니다.");
+            throw new ExerciseRuleException("유효한 사용자 ID가 필요합니다.");
         }
         if (name == null || name.isBlank()) {
-            throw new WorkoutRuleException("운동 종목 이름은 필수입니다.");
+            throw new ExerciseRuleException("운동 종목 이름은 필수입니다.");
         }
         if (category == null) {
-            throw new WorkoutRuleException("운동 카테고리는 필수입니다.");
+            throw new ExerciseRuleException("운동 카테고리는 필수입니다.");
         }
         this.userId = userId;
         this.name = name.trim();

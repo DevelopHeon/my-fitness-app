@@ -207,6 +207,20 @@ Presentation   -X-> Infrastructure
 
 이 규칙은 \`LayerArchitectureTest\`의 ArchUnit 테스트로 검증한다.
 
+각 기능 모듈은 최상위 \`package-info.java\`와 \`presentation/application/domain/infrastructure\` 계층별 \`package-info.java\`를 유지한다. 여기에는 해당 모듈과 계층의 책임, 허용 의존성, 금지 의존성을 명시한다. 아직 구현 전인 \`ai\`, \`user\`도 같은 경계를 문서화해 이후 기능 추가 시 구조가 흔들리지 않도록 한다.
+
+추가 Architecture 테스트는 다음을 검증한다.
+
+- JPA \`@Entity\`는 \`domain.model\`에만 둔다.
+- Spring \`@Service\`는 \`application.service\`에만 둔다.
+- REST \`@RestController\`는 \`presentation.controller\`에만 둔다.
+- Spring \`@Repository\` adapter는 \`infrastructure\`에만 둔다.
+- Domain Repository Port는 interface여야 한다.
+- 기능 모듈 간 순환 의존을 금지한다.
+- 다른 기능 모듈의 Presentation/Infrastructure를 직접 재사용하지 않는다.
+- 기반 모듈인 Exercise는 다른 기능 모듈에 역으로 의존하지 않는다.
+- \`PackageDocumentationTest\`로 각 모듈의 \`package-info.java\` 문서 구조를 유지한다.
+
 ## 7. JPA와 Domain 모델
 
 현재 프로젝트는 Domain Entity와 JPA Entity를 별도로 복제하지 않는다.
@@ -491,4 +505,5 @@ LLM은 설명과 추천 문장 생성에 집중한다.
 - Application은 Infrastructure 구현을 직접 참조하지 않는다.
 - 새 Repository는 Domain Port + Infrastructure Adapter 형태를 우선한다.
 - Architecture rule 위반은 ArchUnit 테스트 실패로 차단한다.
+- 각 기능 모듈의 루트와 4계층에는 `package-info.java`를 유지해 책임과 의존성 규칙을 코드 가까이에 문서화한다.
 - 현재 사용자 규모에 불필요한 분산 구성은 도입하지 않는다.
