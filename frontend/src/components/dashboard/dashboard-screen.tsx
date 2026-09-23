@@ -564,6 +564,18 @@ function LineChart({
   valueFormatter: (value: number) => string;
   compact?: boolean;
 }) {
+  const [selection, setSelection] = useState<{
+    seriesKey: string;
+    index: number;
+  } | null>(null);
+  const seriesKey = points
+    .map((point) => point.label + ":" + point.value)
+    .join("|");
+  const activeIndex =
+    selection?.seriesKey === seriesKey
+      ? selection.index
+      : null;
+
   const hasValue = points.some((point) => point.value !== 0);
   if (points.length < 2 || !hasValue) {
     return (
@@ -644,11 +656,84 @@ function LineChart({
               key={index}
               cx={point.x}
               cy={point.y}
-              r={compact ? 2.5 : 3}
+              r={activeIndex === index ? (compact ? 4 : 4.5) : compact ? 2.5 : 3}
               fill="currentColor"
             />
           ))}
         </svg>
+
+        {coordinates.map((coordinate, index) => {
+          const point = points[index];
+          const active = activeIndex === index;
+          const showBelow = coordinate.y < height * 0.32;
+          const horizontalAlignment =
+            index === 0
+              ? "left-1/2"
+              : index === coordinates.length - 1
+                ? "right-1/2"
+                : "left-1/2 -translate-x-1/2";
+
+          return (
+            <button
+              key={point.label + "-" + index}
+              type="button"
+              aria-label={
+                point.label + " " + valueFormatter(point.value)
+              }
+              aria-pressed={active}
+              onClick={() =>
+                setSelection({ seriesKey, index })
+              }
+              onMouseEnter={() =>
+                setSelection({ seriesKey, index })
+              }
+              onMouseLeave={() =>
+                setSelection((current) =>
+                  current?.seriesKey === seriesKey &&
+                  current.index === index
+                    ? null
+                    : current,
+                )
+              }
+              onFocus={() =>
+                setSelection({ seriesKey, index })
+              }
+              onBlur={() =>
+                setSelection((current) =>
+                  current?.seriesKey === seriesKey &&
+                  current.index === index
+                    ? null
+                    : current,
+                )
+              }
+              className="absolute z-10 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+              style={{
+                left: (coordinate.x / width) * 100 + "%",
+                top: (coordinate.y / height) * 100 + "%",
+              }}
+            >
+              {active && (
+                <span
+                  role="tooltip"
+                  className={
+                    "pointer-events-none absolute z-20 min-w-max rounded-lg bg-zinc-950 px-2.5 py-1.5 text-left text-[11px] font-medium leading-4 text-white shadow-lg " +
+                    horizontalAlignment +
+                    (showBelow
+                      ? " top-[calc(100%+4px)]"
+                      : " bottom-[calc(100%+4px)]")
+                  }
+                >
+                  <span className="block text-zinc-300">
+                    {point.label}
+                  </span>
+                  <span className="block text-xs font-bold text-white">
+                    {valueFormatter(point.value)}
+                  </span>
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400">
