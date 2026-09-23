@@ -58,7 +58,7 @@ export class ApplicationStack extends cdk.Stack {
     const userData = ec2.UserData.forLinux();
     userData.addCommands(
       "set -euxo pipefail",
-      "dnf install -y docker jq curl",
+      "dnf install -y docker jq",
       "if ! command -v aws >/dev/null 2>&1; then dnf install -y awscli2 || dnf install -y awscli; fi",
       "systemctl enable --now docker",
       "usermod -aG docker ec2-user",
