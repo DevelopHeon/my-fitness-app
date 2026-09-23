@@ -1,5 +1,6 @@
 package com.myfitness.exercise.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
 import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.exercise.presentation.dto.request.CreateExerciseRequest;
@@ -24,7 +25,7 @@ public class ExerciseController {
 
     @GetMapping
     public List<ExerciseResponse> list(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         return exerciseCatalogQuery.list(userId).stream()
                 .map(ExerciseResponse::from)
                 .toList();
@@ -33,7 +34,7 @@ public class ExerciseController {
     @PostMapping("/custom")
     @ResponseStatus(HttpStatus.CREATED)
     public ExerciseResponse createCustom(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody CreateExerciseRequest request) {
         return ExerciseResponse.from(exerciseManagementUseCase.createCustom(
                 userId, request.name(), request.category()));

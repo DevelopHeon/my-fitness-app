@@ -1,5 +1,6 @@
 package com.myfitness.routine.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.routine.application.command.ExerciseSelection;
 import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
 import com.myfitness.routine.application.port.in.RoutineUseCase;
@@ -25,7 +26,7 @@ public class RoutineController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RoutineResponse create(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody RoutineUpsertRequest request) {
         return RoutineResponse.from(routineUseCase.create(
                 userId,
@@ -35,7 +36,7 @@ public class RoutineController {
 
     @GetMapping
     public List<RoutineResponse> list(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         return routineUseCase.list(userId).stream()
                 .map(RoutineResponse::from)
                 .toList();
@@ -43,7 +44,7 @@ public class RoutineController {
 
     @GetMapping("/{routineId}")
     public RoutineResponse get(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId) {
         return RoutineResponse.from(
                 routineUseCase.get(userId, routineId));
@@ -51,7 +52,7 @@ public class RoutineController {
 
     @PutMapping("/{routineId}")
     public RoutineResponse update(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId,
             @Valid @RequestBody RoutineUpsertRequest request) {
         return RoutineResponse.from(routineUseCase.update(
@@ -64,7 +65,7 @@ public class RoutineController {
     @DeleteMapping("/{routineId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId) {
         routineUseCase.delete(userId, routineId);
     }
@@ -72,7 +73,7 @@ public class RoutineController {
     @PostMapping("/{routineId}/workouts")
     @ResponseStatus(HttpStatus.CREATED)
     public RoutineWorkoutStartResponse startWorkout(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId,
             @RequestBody(required = false) StartRoutineWorkoutRequest request) {
         StartRoutineWorkoutRequest actual = request == null

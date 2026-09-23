@@ -1,5 +1,7 @@
 package com.myfitness.workout.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,14 +30,16 @@ class WorkoutApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
     @DisplayName("기본 운동 카탈로그와 사용자별 커스텀 운동을 분리해 제공한다")
     void providesDefaultCatalogAndUserCustomExercisesSeparately() throws Exception {
         MvcResult defaults = mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == '벤치프레스')].type").value("DEFAULT"))
                 .andExpect(jsonPath("$[?(@.name == '스쿼트')].category").value("LEGS"))
@@ -44,7 +48,7 @@ class WorkoutApiIntegrationTest {
         assertThat(json(defaults).size()).isGreaterThanOrEqualTo(40);
 
         mockMvc.perform(post("/api/exercises/custom")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"나만의 프레스","category":"CHEST"}
@@ -54,12 +58,12 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.name").value("나만의 프레스"));
 
         mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == '나만의 프레스')].type").value("CUSTOM"));
 
         mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", 2L))
+                        .with(authenticatedUser(2L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == '나만의 프레스')]").isEmpty());
     }
@@ -70,7 +74,7 @@ class WorkoutApiIntegrationTest {
         long exerciseId = findDefaultExerciseId("벤치프레스");
 
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"workoutDate":"2026-09-18","memo":"가슴 운동"}
@@ -82,7 +86,7 @@ class WorkoutApiIntegrationTest {
 
         MvcResult exerciseAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises", workoutId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"exerciseType":"DEFAULT","exerciseId":%d}
@@ -97,7 +101,7 @@ class WorkoutApiIntegrationTest {
         MvcResult setAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
                         workoutId, workoutExerciseId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":60,"reps":10,"completed":true}
@@ -111,7 +115,7 @@ class WorkoutApiIntegrationTest {
         mockMvc.perform(patch(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}",
                         workoutId, workoutExerciseId, setId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":65,"reps":8,"completed":true}
@@ -120,28 +124,28 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.exercises[0].sets[0].weightKg").value(65));
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
 
         mockMvc.perform(get(
                         "/api/exercises/DEFAULT/{exerciseId}/previous-record",
                         exerciseId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workoutId").value(workoutId))
                 .andExpect(jsonPath("$.exerciseType").value("DEFAULT"))
                 .andExpect(jsonPath("$.sets[0].weightKg").value(65));
 
         mockMvc.perform(get("/api/workouts")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].exercises[0].exerciseName")
                         .value("벤치프레스"))
                 .andExpect(jsonPath("$[0].exercises[0].sets[0].weightKg").value(65));
 
         mockMvc.perform(get("/api/workouts/{workoutId}", workoutId)
-                        .header("X-User-Id", 2L))
+                        .with(authenticatedUser(2L)))
                 .andExpect(status().isForbidden());
     }
 
@@ -151,7 +155,7 @@ class WorkoutApiIntegrationTest {
         long exerciseId = findDefaultExerciseId("벤치프레스");
 
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"workoutDate":"2026-09-17"}
@@ -162,7 +166,7 @@ class WorkoutApiIntegrationTest {
 
         MvcResult exerciseAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises", workoutId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"exerciseType":"DEFAULT","exerciseId":%d}
@@ -175,7 +179,7 @@ class WorkoutApiIntegrationTest {
         MvcResult setAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
                         workoutId, workoutExerciseId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":60,"reps":10,"completed":true}
@@ -186,12 +190,12 @@ class WorkoutApiIntegrationTest {
                 .get(0).path("sets").get(0).path("id").asLong();
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/reopen", workoutId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.completedAt").doesNotExist());
@@ -199,7 +203,7 @@ class WorkoutApiIntegrationTest {
         mockMvc.perform(patch(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}",
                         workoutId, workoutExerciseId, setId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":67.5,"reps":8,"completed":true}
@@ -208,7 +212,7 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.exercises[0].sets[0].weightKg").value(67.5));
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.exercises[0].sets[0].weightKg").value(67.5));
@@ -221,7 +225,7 @@ class WorkoutApiIntegrationTest {
         long exerciseId = custom.path("id").asLong();
 
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isCreated())
@@ -230,7 +234,7 @@ class WorkoutApiIntegrationTest {
 
         MvcResult exerciseAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises", workoutId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"exerciseType":"CUSTOM","exerciseId":%d}
@@ -243,7 +247,7 @@ class WorkoutApiIntegrationTest {
         MvcResult setAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
                         workoutId, workoutExerciseId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":0,"reps":0,"durationSeconds":60,"completed":true}
@@ -257,14 +261,14 @@ class WorkoutApiIntegrationTest {
         mockMvc.perform(delete(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}",
                         workoutId, workoutExerciseId, setId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exercises[0].sets").isEmpty());
 
         mockMvc.perform(delete(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}",
                         workoutId, workoutExerciseId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exercises").isEmpty());
     }
@@ -275,7 +279,7 @@ class WorkoutApiIntegrationTest {
         long exerciseId = findDefaultExerciseId("벤치프레스");
 
         MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"workoutDate":"2026-09-12"}
@@ -286,7 +290,7 @@ class WorkoutApiIntegrationTest {
 
         MvcResult exerciseAdded = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises", workoutId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"exerciseType":"DEFAULT","exerciseId":%d}
@@ -299,7 +303,7 @@ class WorkoutApiIntegrationTest {
         mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets/batch",
                         workoutId, workoutExerciseId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -316,11 +320,11 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.exercises[0].sets[2].weightKg").value(70));
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/workouts/calendar")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("month", "2026-09"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].date").value("2026-09-12"))
@@ -331,7 +335,7 @@ class WorkoutApiIntegrationTest {
 
     private long findDefaultExerciseId(String name) throws Exception {
         JsonNode exercises = json(mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andReturn());
         for (JsonNode exercise : exercises) {
@@ -345,7 +349,7 @@ class WorkoutApiIntegrationTest {
 
     private JsonNode createCustomExercise(String name, String category) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/exercises/custom")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"%s","category":"%s"}

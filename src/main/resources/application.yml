@@ -18,6 +18,20 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:not-configured}
+            client-secret: ${GOOGLE_CLIENT_SECRET:not-configured}
+            scope:
+              - openid
+              - profile
+              - email
+  session:
+    jdbc:
+      initialize-schema: never
   ai:
     model:
       chat: ${AI_PROVIDER:none}
@@ -56,8 +70,18 @@ management:
 
 server:
   port: ${SERVER_PORT:8080}
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:30d}
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 app:
+  security:
+    login-success-url: ${LOGIN_SUCCESS_URL:http://localhost:3000}
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
   ai:
     prompt-version: ${AI_PROMPT_VERSION:fitness-coach-v1}
     history-message-limit: ${AI_HISTORY_MESSAGE_LIMIT:8}

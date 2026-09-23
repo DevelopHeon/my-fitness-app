@@ -1,5 +1,7 @@
 package com.myfitness.ai.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -43,7 +45,9 @@ class AiCoachApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
         fakeGateway.reset();
     }
 
@@ -54,7 +58,7 @@ class AiCoachApiIntegrationTest {
         createConversation(1L);
 
         mockMvc.perform(get("/api/ai/conversations")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].title").value("새 대화"));
@@ -68,7 +72,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(post(
                         "/api/ai/conversations/{id}/messages",
                         conversationId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -99,7 +103,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(post(
                         "/api/ai/conversations/{id}/messages",
                         conversationId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -169,7 +173,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(post(
                         "/api/ai/conversations/{id}/messages",
                         conversationId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"message":"오늘 운동 어떻게 할까?"}
@@ -196,7 +200,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(get(
                         "/api/ai/conversations/{id}/messages",
                         conversationId)
-                        .header("X-User-Id", 2L))
+                        .with(authenticatedUser(2L)))
                 .andExpect(status().isForbidden());
     }
 
@@ -209,7 +213,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(delete(
                         "/api/ai/conversations/{id}",
                         conversationId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isNoContent());
 
         assertThat(jdbcTemplate.queryForObject(
@@ -231,7 +235,7 @@ class AiCoachApiIntegrationTest {
 
     private long createConversation(long userId) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/ai/conversations")
-                        .header("X-User-Id", userId))
+                        .with(authenticatedUser(userId)))
                 .andExpect(status().isCreated())
                 .andReturn();
         return json(result).path("id").asLong();
@@ -244,7 +248,7 @@ class AiCoachApiIntegrationTest {
         mockMvc.perform(post(
                         "/api/ai/conversations/{id}/messages",
                         conversationId)
-                        .header("X-User-Id", userId)
+                        .with(authenticatedUser(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"message":"%s"}

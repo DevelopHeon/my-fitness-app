@@ -1,5 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.MealItemCreateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemUpdateRequest;
@@ -23,7 +24,7 @@ public class MealController {
 
     @GetMapping("/daily")
     public DailyNutritionResponse daily(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
@@ -34,7 +35,7 @@ public class MealController {
     @PostMapping("/items")
     @ResponseStatus(HttpStatus.CREATED)
     public MealFoodResponse addItem(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody MealItemCreateRequest request) {
         return MealFoodResponse.from(
                 nutritionUseCase.addMealItem(
@@ -47,7 +48,7 @@ public class MealController {
 
     @PatchMapping("/items/{itemId}")
     public MealFoodResponse updateItem(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long itemId,
             @Valid @RequestBody MealItemUpdateRequest request) {
         return MealFoodResponse.from(
@@ -60,7 +61,7 @@ public class MealController {
     @DeleteMapping("/items/{itemId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long itemId) {
         nutritionUseCase.deleteMealItem(userId, itemId);
     }

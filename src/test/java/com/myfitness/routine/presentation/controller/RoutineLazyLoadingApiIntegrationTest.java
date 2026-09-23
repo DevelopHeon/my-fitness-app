@@ -1,5 +1,7 @@
 package com.myfitness.routine.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,7 +30,9 @@ class RoutineLazyLoadingApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
@@ -37,7 +41,7 @@ class RoutineLazyLoadingApiIntegrationTest {
         long exerciseId = findDefaultExerciseId("벤치프레스");
 
         MvcResult created = mockMvc.perform(post("/api/routines")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -55,26 +59,26 @@ class RoutineLazyLoadingApiIntegrationTest {
         long routineId = json(created).path("id").asLong();
 
         mockMvc.perform(get("/api/routines")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == %d)].exercises[0].exerciseName"
                         .formatted(routineId))
                         .value("벤치프레스"));
 
         mockMvc.perform(get("/api/routines/{routineId}", routineId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exercises[0].exerciseName")
                         .value("벤치프레스"));
 
         mockMvc.perform(delete("/api/routines/{routineId}", routineId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isNoContent());
     }
 
     private long findDefaultExerciseId(String name) throws Exception {
         JsonNode exercises = json(mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andReturn());
 

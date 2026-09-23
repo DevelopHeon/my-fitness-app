@@ -1,5 +1,7 @@
 package com.myfitness.ai.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,7 +44,9 @@ class AiMessagePersistenceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
         blockingGateway.reset();
     }
 
@@ -73,7 +77,7 @@ class AiMessagePersistenceIntegrationTest {
 
     private long createConversation() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/ai/conversations")
-                        .header("X-User-Id", USER_ID))
+                        .with(authenticatedUser(USER_ID)))
                 .andExpect(status().isCreated())
                 .andReturn();
         return objectMapper.readTree(
@@ -87,7 +91,7 @@ class AiMessagePersistenceIntegrationTest {
             return mockMvc.perform(post(
                             "/api/ai/conversations/{id}/messages",
                             conversationId)
-                            .header("X-User-Id", USER_ID)
+                            .with(authenticatedUser(USER_ID))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"message":"운동 회복 방법 알려줘"}

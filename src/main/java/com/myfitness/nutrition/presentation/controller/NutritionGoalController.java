@@ -1,5 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import com.myfitness.nutrition.presentation.dto.request.NutritionGoalUpsertRequest;
@@ -19,7 +20,7 @@ public class NutritionGoalController {
 
     @GetMapping("/current")
     public NutritionGoalResponse current(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         NutritionGoalResult goal =
                 nutritionUseCase.currentGoal(userId);
         return goal == null
@@ -29,7 +30,7 @@ public class NutritionGoalController {
 
     @PutMapping("/current")
     public NutritionGoalResponse upsert(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody NutritionGoalUpsertRequest request) {
         return NutritionGoalResponse.from(
                 nutritionUseCase.upsertGoal(

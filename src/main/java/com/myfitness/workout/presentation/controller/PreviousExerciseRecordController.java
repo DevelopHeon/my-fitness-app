@@ -1,5 +1,6 @@
 package com.myfitness.workout.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
 import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
@@ -18,7 +19,7 @@ public class PreviousExerciseRecordController {
 
     @GetMapping("/{exerciseType}/{exerciseId}/previous-record")
     public PreviousExerciseRecordResponse previousRecord(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable ExerciseType exerciseType,
             @PathVariable Long exerciseId) {
         PreviousExerciseRecordResult previous =

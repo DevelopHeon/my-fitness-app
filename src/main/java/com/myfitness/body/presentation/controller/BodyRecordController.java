@@ -1,5 +1,6 @@
 package com.myfitness.body.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.body.application.port.in.BodyRecordUseCase;
 import com.myfitness.body.presentation.dto.request.BodyRecordUpsertRequest;
 import com.myfitness.body.presentation.dto.response.BodyRecordResponse;
@@ -24,7 +25,7 @@ public class BodyRecordController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public BodyRecordResponse create(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody BodyRecordUpsertRequest request) {
         return BodyRecordResponse.from(
                 bodyRecordUseCase.create(
@@ -38,7 +39,7 @@ public class BodyRecordController {
 
     @GetMapping
     public List<BodyRecordResponse> list(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             Instant from,
@@ -53,7 +54,7 @@ public class BodyRecordController {
 
     @GetMapping("/{bodyRecordId}")
     public BodyRecordResponse get(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long bodyRecordId) {
         return BodyRecordResponse.from(
                 bodyRecordUseCase.get(
@@ -62,7 +63,7 @@ public class BodyRecordController {
 
     @PutMapping("/{bodyRecordId}")
     public BodyRecordResponse update(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long bodyRecordId,
             @Valid @RequestBody BodyRecordUpsertRequest request) {
         return BodyRecordResponse.from(
@@ -79,7 +80,7 @@ public class BodyRecordController {
     @DeleteMapping("/{bodyRecordId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long bodyRecordId) {
         bodyRecordUseCase.delete(
                 userId, bodyRecordId);
@@ -87,7 +88,7 @@ public class BodyRecordController {
 
     @GetMapping("/trend")
     public BodyTrendResponse trend(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam(defaultValue = "30") int days) {
         return BodyTrendResponse.from(
                 bodyRecordUseCase.trend(userId, days));

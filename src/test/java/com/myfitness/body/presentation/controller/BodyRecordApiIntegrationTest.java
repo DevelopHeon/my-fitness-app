@@ -1,5 +1,7 @@
 package com.myfitness.body.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -27,7 +29,9 @@ class BodyRecordApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
@@ -50,7 +54,7 @@ class BodyRecordApiIntegrationTest {
         long latestId = json(latest).path("id").asLong();
 
         mockMvc.perform(get("/api/body-records")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("from", "2026-09-17T00:00:00Z")
                         .param("to", "2026-09-19T00:00:00Z"))
                 .andExpect(status().isOk())
@@ -59,7 +63,7 @@ class BodyRecordApiIntegrationTest {
                 .andExpect(jsonPath("$[1].weightKg").value(72.8));
 
         mockMvc.perform(get("/api/body-records/trend")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("days", "3650"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.latest.id").value(latestId))
@@ -82,7 +86,7 @@ class BodyRecordApiIntegrationTest {
                 null);
 
         mockMvc.perform(post("/api/body-records")
-                        .header("X-User-Id", 11L)
+                        .with(authenticatedUser(11L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -121,7 +125,7 @@ class BodyRecordApiIntegrationTest {
         long recordId = json(created).path("id").asLong();
 
         mockMvc.perform(put("/api/body-records/{bodyRecordId}", recordId)
-                        .header("X-User-Id", 20L)
+                        .with(authenticatedUser(20L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -157,7 +161,7 @@ class BodyRecordApiIntegrationTest {
         long secondId = json(second).path("id").asLong();
 
         mockMvc.perform(put("/api/body-records/{bodyRecordId}", secondId)
-                        .header("X-User-Id", 21L)
+                        .with(authenticatedUser(21L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -186,7 +190,7 @@ class BodyRecordApiIntegrationTest {
         long recordId = json(created).path("id").asLong();
 
         mockMvc.perform(put("/api/body-records/{bodyRecordId}", recordId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -202,15 +206,15 @@ class BodyRecordApiIntegrationTest {
                 .andExpect(jsonPath("$.memo").value("수정 기록"));
 
         mockMvc.perform(get("/api/body-records/{bodyRecordId}", recordId)
-                        .header("X-User-Id", 2L))
+                        .with(authenticatedUser(2L)))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(delete("/api/body-records/{bodyRecordId}", recordId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/body-records/{bodyRecordId}", recordId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isNotFound());
     }
 
@@ -223,7 +227,7 @@ class BodyRecordApiIntegrationTest {
             String memo) throws Exception {
         String memoJson = memo == null ? "null" : "\"" + memo + "\"";
         return mockMvc.perform(post("/api/body-records")
-                        .header("X-User-Id", userId)
+                        .with(authenticatedUser(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

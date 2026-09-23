@@ -1,5 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.FoodUpsertRequest;
 import com.myfitness.nutrition.presentation.dto.response.FoodResponse;
@@ -21,7 +22,7 @@ public class FoodController {
 
     @GetMapping
     public List<FoodResponse> list(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam(required = false) String query) {
         return nutritionUseCase.listFoods(userId, query)
                 .stream()
@@ -31,7 +32,7 @@ public class FoodController {
 
     @GetMapping("/suggestions")
     public FoodSuggestionsResponse suggestions(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         return FoodSuggestionsResponse.from(
                 nutritionUseCase.suggestions(userId));
     }
@@ -39,7 +40,7 @@ public class FoodController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FoodResponse create(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody FoodUpsertRequest request) {
         return FoodResponse.from(
                 nutritionUseCase.createFood(
@@ -55,7 +56,7 @@ public class FoodController {
 
     @PutMapping("/{foodId}")
     public FoodResponse update(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long foodId,
             @Valid @RequestBody FoodUpsertRequest request) {
         return FoodResponse.from(
@@ -74,7 +75,7 @@ public class FoodController {
     @DeleteMapping("/{foodId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long foodId) {
         nutritionUseCase.deleteFood(userId, foodId);
     }

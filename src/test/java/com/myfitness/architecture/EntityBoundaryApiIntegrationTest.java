@@ -1,5 +1,7 @@
 package com.myfitness.architecture;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,7 +36,9 @@ class EntityBoundaryApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
@@ -43,7 +47,7 @@ class EntityBoundaryApiIntegrationTest {
         long exerciseId = findDefaultExerciseId(WORKOUT_USER, "벤치프레스");
 
         MvcResult created = mockMvc.perform(post("/api/workouts")
-                        .header("X-User-Id", WORKOUT_USER)
+                        .with(authenticatedUser(WORKOUT_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"workoutDate":"2026-09-20","memo":"boundary"}
@@ -54,7 +58,7 @@ class EntityBoundaryApiIntegrationTest {
 
         MvcResult added = mockMvc.perform(post(
                         "/api/workouts/{workoutId}/exercises", workoutId)
-                        .header("X-User-Id", WORKOUT_USER)
+                        .with(authenticatedUser(WORKOUT_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"exerciseType":"DEFAULT","exerciseId":%d}
@@ -68,7 +72,7 @@ class EntityBoundaryApiIntegrationTest {
                         "/api/workouts/{workoutId}/exercises/{workoutExerciseId}/sets",
                         workoutId,
                         workoutExerciseId)
-                        .header("X-User-Id", WORKOUT_USER)
+                        .with(authenticatedUser(WORKOUT_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"weightKg":70,"reps":8,"completed":true}
@@ -76,11 +80,11 @@ class EntityBoundaryApiIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(patch("/api/workouts/{workoutId}/complete", workoutId)
-                        .header("X-User-Id", WORKOUT_USER))
+                        .with(authenticatedUser(WORKOUT_USER)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/workouts/{workoutId}", workoutId)
-                        .header("X-User-Id", WORKOUT_USER))
+                        .with(authenticatedUser(WORKOUT_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.exercises[0].exerciseName")
                         .value("벤치프레스"))
@@ -88,7 +92,7 @@ class EntityBoundaryApiIntegrationTest {
                         .value(70));
 
         mockMvc.perform(get("/api/workouts")
-                        .header("X-User-Id", WORKOUT_USER))
+                        .with(authenticatedUser(WORKOUT_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].exercises[0].sets[0].reps")
                         .value(8));
@@ -96,7 +100,7 @@ class EntityBoundaryApiIntegrationTest {
         mockMvc.perform(get(
                         "/api/exercises/DEFAULT/{exerciseId}/previous-record",
                         exerciseId)
-                        .header("X-User-Id", WORKOUT_USER))
+                        .with(authenticatedUser(WORKOUT_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workoutId").value(workoutId))
                 .andExpect(jsonPath("$.sets[0].weightKg").value(70));
@@ -118,18 +122,18 @@ class EntityBoundaryApiIntegrationTest {
         long latestId = json(latest).path("id").asLong();
 
         mockMvc.perform(get("/api/body-records")
-                        .header("X-User-Id", BODY_USER))
+                        .with(authenticatedUser(BODY_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(latestId))
                 .andExpect(jsonPath("$[0].weightKg").value(72.0));
 
         mockMvc.perform(get("/api/body-records/{id}", latestId)
-                        .header("X-User-Id", BODY_USER))
+                        .with(authenticatedUser(BODY_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.skeletalMuscleKg").value(34.4));
 
         mockMvc.perform(get("/api/body-records/trend")
-                        .header("X-User-Id", BODY_USER)
+                        .with(authenticatedUser(BODY_USER))
                         .param("days", "3650"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.latest.id").value(latestId))
@@ -143,7 +147,7 @@ class EntityBoundaryApiIntegrationTest {
         LocalDate date = LocalDate.of(2026, 9, 20);
 
         MvcResult food = mockMvc.perform(post("/api/foods")
-                        .header("X-User-Id", NUTRITION_USER)
+                        .with(authenticatedUser(NUTRITION_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -161,7 +165,7 @@ class EntityBoundaryApiIntegrationTest {
         long foodId = json(food).path("id").asLong();
 
         mockMvc.perform(put("/api/nutrition-goals/current")
-                        .header("X-User-Id", NUTRITION_USER)
+                        .with(authenticatedUser(NUTRITION_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -174,7 +178,7 @@ class EntityBoundaryApiIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/meals/items")
-                        .header("X-User-Id", NUTRITION_USER)
+                        .with(authenticatedUser(NUTRITION_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -187,17 +191,17 @@ class EntityBoundaryApiIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/foods")
-                        .header("X-User-Id", NUTRITION_USER))
+                        .with(authenticatedUser(NUTRITION_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Boundary Chicken"));
 
         mockMvc.perform(get("/api/nutrition-goals/current")
-                        .header("X-User-Id", NUTRITION_USER))
+                        .with(authenticatedUser(NUTRITION_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.proteinGrams").value(150));
 
         mockMvc.perform(get("/api/meals/daily")
-                        .header("X-User-Id", NUTRITION_USER)
+                        .with(authenticatedUser(NUTRITION_USER))
                         .param("date", date.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.goal.calories").value(2000))
@@ -207,7 +211,7 @@ class EntityBoundaryApiIntegrationTest {
                         .value("Boundary Chicken"));
 
         mockMvc.perform(get("/api/foods/suggestions")
-                        .header("X-User-Id", NUTRITION_USER))
+                        .with(authenticatedUser(NUTRITION_USER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recent[0].name")
                         .value("Boundary Chicken"));
@@ -216,7 +220,7 @@ class EntityBoundaryApiIntegrationTest {
     private long findDefaultExerciseId(long userId, String name)
             throws Exception {
         JsonNode exercises = json(mockMvc.perform(get("/api/exercises")
-                        .header("X-User-Id", userId))
+                        .with(authenticatedUser(userId)))
                 .andExpect(status().isOk())
                 .andReturn());
 
@@ -235,7 +239,7 @@ class EntityBoundaryApiIntegrationTest {
             String muscle,
             String measuredAt) throws Exception {
         return mockMvc.perform(post("/api/body-records")
-                        .header("X-User-Id", BODY_USER)
+                        .with(authenticatedUser(BODY_USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

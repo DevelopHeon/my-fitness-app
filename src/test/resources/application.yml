@@ -10,6 +10,20 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+  session:
+    jdbc:
+      initialize-schema: always
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client
+            client-secret: test-secret
+            scope:
+              - openid
+              - profile
+              - email
   ai:
     model:
       chat: none
@@ -23,6 +37,9 @@ spring:
       api-key: test
 
 app:
+  security:
+    login-success-url: http://localhost:3000
+    allowed-origin: http://localhost:3000
   ai:
     prompt-version: fitness-coach-v1
     history-message-limit: 8

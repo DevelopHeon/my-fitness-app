@@ -1,5 +1,7 @@
 package com.myfitness.nutrition.presentation.controller;
 
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -34,7 +36,9 @@ class NutritionApiIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
@@ -49,7 +53,7 @@ class NutritionApiIntegrationTest {
                 310, 67, 6, 2);
 
         mockMvc.perform(put("/api/nutrition-goals/current")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -65,7 +69,7 @@ class NutritionApiIntegrationTest {
         addMealFood(1L, date, "LUNCH", riceId, 1);
 
         mockMvc.perform(get("/api/meals/daily")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("date", date.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.date").value(date.toString()))
@@ -94,7 +98,7 @@ class NutritionApiIntegrationTest {
         addMealFood(1L, date, "BREAKFAST", foodId, 2);
 
         mockMvc.perform(put("/api/foods/{foodId}", foodId)
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -110,11 +114,11 @@ class NutritionApiIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/foods/{foodId}", foodId)
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/meals/daily")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("date", date.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.consumed.calories").value(380))
@@ -138,13 +142,13 @@ class NutritionApiIntegrationTest {
         addMealFood(1L, today, "SNACK", bananaId, 1);
 
         mockMvc.perform(get("/api/foods/suggestions")
-                        .header("X-User-Id", 1L))
+                        .with(authenticatedUser(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recent[0].name").value("바나나"))
                 .andExpect(jsonPath("$.frequent[0].name").value("닭가슴살"));
 
         mockMvc.perform(get("/api/foods")
-                        .header("X-User-Id", 1L)
+                        .with(authenticatedUser(1L))
                         .param("query", "닭"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(chickenId))
@@ -161,7 +165,7 @@ class NutritionApiIntegrationTest {
         long itemId = addMealFood(1L, date, "SNACK", foodId, 1);
 
         mockMvc.perform(put("/api/foods/{foodId}", foodId)
-                        .header("X-User-Id", 2L)
+                        .with(authenticatedUser(2L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -177,7 +181,7 @@ class NutritionApiIntegrationTest {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(patch("/api/meals/items/{itemId}", itemId)
-                        .header("X-User-Id", 2L)
+                        .with(authenticatedUser(2L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"servings":2}
@@ -195,7 +199,7 @@ class NutritionApiIntegrationTest {
             double proteinGrams,
             double fatGrams) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/foods")
-                        .header("X-User-Id", userId)
+                        .with(authenticatedUser(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -227,7 +231,7 @@ class NutritionApiIntegrationTest {
             long foodId,
             double servings) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/meals/items")
-                        .header("X-User-Id", userId)
+                        .with(authenticatedUser(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

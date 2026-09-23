@@ -1,5 +1,6 @@
 package com.myfitness.workout.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.workout.application.command.WorkoutSetCommand;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
 import com.myfitness.workout.presentation.dto.request.AddWorkoutExerciseRequest;
@@ -28,7 +29,7 @@ public class WorkoutController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public WorkoutResponse start(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody StartWorkoutRequest request) {
         return WorkoutResponse.from(
                 workoutUseCase.startWorkout(
@@ -39,7 +40,7 @@ public class WorkoutController {
 
     @GetMapping("/{workoutId}")
     public WorkoutResponse get(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
                 workoutUseCase.getWorkout(userId, workoutId));
@@ -47,7 +48,7 @@ public class WorkoutController {
 
     @GetMapping
     public List<WorkoutResponse> list(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
         return workoutUseCase
@@ -59,7 +60,7 @@ public class WorkoutController {
 
     @GetMapping("/calendar")
     public List<WorkoutCalendarDayResponse> calendar(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam String month) {
         return workoutUseCase
                 .getCalendar(userId, YearMonth.parse(month))
@@ -70,7 +71,7 @@ public class WorkoutController {
 
     @PostMapping("/{workoutId}/exercises")
     public WorkoutResponse addExercise(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @Valid @RequestBody AddWorkoutExerciseRequest request) {
         return WorkoutResponse.from(
@@ -84,7 +85,7 @@ public class WorkoutController {
 
     @DeleteMapping("/{workoutId}/exercises/{workoutExerciseId}")
     public WorkoutResponse removeExercise(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId) {
         return WorkoutResponse.from(
@@ -94,7 +95,7 @@ public class WorkoutController {
 
     @PostMapping("/{workoutId}/exercises/{workoutExerciseId}/sets")
     public WorkoutResponse addSet(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetRequest request) {
@@ -111,7 +112,7 @@ public class WorkoutController {
 
     @PostMapping("/{workoutId}/exercises/{workoutExerciseId}/sets/batch")
     public WorkoutResponse addSets(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetBatchRequest request) {
@@ -132,7 +133,7 @@ public class WorkoutController {
 
     @PatchMapping("/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}")
     public WorkoutResponse updateSet(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId,
             @PathVariable Long setId,
@@ -151,7 +152,7 @@ public class WorkoutController {
 
     @DeleteMapping("/{workoutId}/exercises/{workoutExerciseId}/sets/{setId}")
     public WorkoutResponse removeSet(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId,
             @PathVariable Long setId) {
@@ -165,7 +166,7 @@ public class WorkoutController {
 
     @PatchMapping("/{workoutId}/complete")
     public WorkoutResponse complete(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
                 workoutUseCase.completeWorkout(
@@ -174,7 +175,7 @@ public class WorkoutController {
 
     @PatchMapping("/{workoutId}/reopen")
     public WorkoutResponse reopen(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
                 workoutUseCase.reopenWorkout(

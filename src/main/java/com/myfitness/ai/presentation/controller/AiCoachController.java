@@ -1,5 +1,6 @@
 package com.myfitness.ai.presentation.controller;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.ai.application.port.in.AiCoachUseCase;
 import com.myfitness.ai.presentation.dto.request.AiConversationRenameRequest;
 import com.myfitness.ai.presentation.dto.request.AiMessageRequest;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,7 +31,7 @@ public class AiCoachController {
 
     @GetMapping
     public List<AiConversationResponse> list(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         return aiCoachUseCase.listConversations(userId).stream()
                 .map(AiConversationResponse::from)
                 .toList();
@@ -40,14 +40,14 @@ public class AiCoachController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AiConversationResponse create(
-            @RequestHeader("X-User-Id") Long userId) {
+            @AuthenticationPrincipal(expression = "userId") Long userId) {
         return AiConversationResponse.from(
                 aiCoachUseCase.createConversation(userId));
     }
 
     @PatchMapping("/{conversationId}")
     public AiConversationResponse rename(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId,
             @Valid @RequestBody AiConversationRenameRequest request) {
         return AiConversationResponse.from(
@@ -60,14 +60,14 @@ public class AiCoachController {
     @DeleteMapping("/{conversationId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId) {
         aiCoachUseCase.deleteConversation(userId, conversationId);
     }
 
     @GetMapping("/{conversationId}/messages")
     public List<AiMessageResponse> messages(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId) {
         return aiCoachUseCase.listMessages(userId, conversationId).stream()
                 .map(AiMessageResponse::from)
@@ -76,7 +76,7 @@ public class AiCoachController {
 
     @PostMapping("/{conversationId}/messages")
     public AiSendMessageResponse send(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId,
             @Valid @RequestBody AiMessageRequest request) {
         return AiSendMessageResponse.from(
