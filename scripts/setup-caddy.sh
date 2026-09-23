@@ -15,7 +15,7 @@ $DOMAIN {
 	encode zstd gzip
 
 	@webmanifest path /manifest.webmanifest
-	header @webmanifest Content-Type "application/manifest+json"
+	header @webmanifest >Content-Type "application/manifest+json"
 
 	reverse_proxy $APP_UPSTREAM
 }
