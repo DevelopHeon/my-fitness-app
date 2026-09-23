@@ -75,6 +75,7 @@ val frontendBuild = tasks.register<Exec>("frontendBuild") {
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 	dependsOn(frontendBuild)
+	archiveFileName.set("app.jar")
 	from(frontendOutputDir) {
 		into("BOOT-INF/classes/static")
 	}
