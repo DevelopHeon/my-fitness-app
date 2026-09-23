@@ -3,10 +3,13 @@ package com.myfitness.user.infrastructure.security;
 import com.myfitness.user.application.command.GoogleLoginCommand;
 import com.myfitness.user.application.port.in.GoogleLoginUseCase;
 import com.myfitness.user.application.result.UserProfileResult;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 
@@ -31,14 +34,40 @@ public class GoogleOidcUserService
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) {
-        OidcUser oidcUser = delegate.loadUser(userRequest);
+        OidcUser oidcUser = requireOidcUser(delegate.loadUser(userRequest));
+        String subject = requireSubject(oidcUser);
+
         UserProfileResult user = googleLoginUseCase.login(
                 new GoogleLoginCommand(
-                        oidcUser.getSubject(),
+                        subject,
                         oidcUser.getEmail(),
                         oidcUser.getFullName(),
                         oidcUser.getPicture()));
 
         return new AuthenticatedOidcUser(user.id(), oidcUser);
+    }
+
+    private static OidcUser requireOidcUser(@Nullable OidcUser oidcUser) {
+        if (oidcUser == null) {
+            throw invalidUserInfo(
+                    "Google OIDC 사용자 정보가 비어 있습니다.");
+        }
+        return oidcUser;
+    }
+
+    private static String requireSubject(OidcUser oidcUser) {
+        String subject = oidcUser.getSubject();
+        if (subject == null || subject.isBlank()) {
+            throw invalidUserInfo(
+                    "Google OIDC 응답에 sub claim이 없습니다.");
+        }
+        return subject;
+    }
+
+    private static OAuth2AuthenticationException invalidUserInfo(
+            String message) {
+        return new OAuth2AuthenticationException(
+                new OAuth2Error("invalid_user_info_response"),
+                message);
     }
 }
