@@ -25,7 +25,7 @@ public class NutritionApplicationService implements NutritionUseCase {
     private final NutritionGoalService nutritionGoalService;
     private final NutritionResultAssembler resultAssembler;
 
-    public NutritionApplicationService(
+    NutritionApplicationService(
             FoodService foodService,
             MealService mealService,
             NutritionGoalService nutritionGoalService,

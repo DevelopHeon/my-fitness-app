@@ -282,9 +282,40 @@ Provider:
 초기에는 Java Router + Context Builder + 단일 모델 호출 구조를 우선한다.
 자유로운 Tool Calling, RAG, Vector DB, Embedding, Streaming SSE는 필요성이 확인된 이후 확장한다.
 
-### Phase 7. 이후 확장
+### Phase 7. Google OAuth2 로그인 및 사용자 인증
 
-Phase 1~6이 실제 사용 가능한 수준으로 안정화된 후 검토한다.
+Phase 1~6의 임시 `X-User-Id` 사용자 컨텍스트를 실제 인증 사용자로 전환한다.
+
+- Spring Security OAuth2 Login
+- Google OpenID Connect 단일 Provider
+- Google `sub` 기반 사용자 식별
+- User 모듈 실제 구현
+- Spring Session JDBC
+- 모든 사용자 API에서 인증 Principal 기반 userId 사용
+- `X-User-Id` 제거
+- 로그인/로그아웃 PWA UX
+
+상세 구현 계획은 `2026-09-23-wed-pr-010-google-oauth2-auth.md`를 기준으로 한다.
+
+### Phase 8. AWS CDK / ECR CI/CD 및 운영 배포
+
+실제 운영 가능한 저비용 AWS 구성을 IaC와 CI/CD로 완성한다.
+
+- EC2 t4g.micro
+- RDS PostgreSQL db.t4g.micro Single-AZ
+- ECR private repository
+- AWS CDK v2 / TypeScript
+- GitHub Actions + OIDC
+- SSM Run Command 배포
+- Route 53 + Caddy HTTPS
+- CloudWatch 기본 모니터링
+- ECR commit SHA 기반 rollback
+
+상세 구현 계획은 `2026-09-23-wed-pr-011-aws-cdk-ecr-cicd.md`를 기준으로 한다.
+
+### Phase 9. 이후 확장
+
+Phase 1~8이 실제 운영 가능한 수준으로 안정화된 후 검토한다.
 
 후보 기능:
 - 식단 사진 업로드
@@ -422,13 +453,17 @@ Base path는 `/api`를 사용한다.
 응답은 화면 중심 DTO를 사용하며 JPA Entity를 API 응답으로 직접 노출하지 않는다.
 ## 8. 사용자 및 인증
 
-초기 사용자는 최대 1~2명으로 가정한다.
+초기 사용자는 소수 사용자로 가정하되 실제 운영 인증을 적용한다.
 
 - 사용자별 데이터는 반드시 분리한다.
-- 인증은 이메일/비밀번호 기반의 단순한 Spring Security 구성을 우선한다.
-- 외부 OAuth 로그인은 초기 범위에서 제외한다.
-- API 요청에서 인증된 사용자 기준으로 데이터 범위를 제한한다.
+- 인증은 Spring Security OAuth2 Login + Google OpenID Connect를 사용한다.
+- Google 계정의 `sub`를 외부 사용자 고유 식별자로 사용하고 이메일은 식별키로 사용하지 않는다.
+- 별도 JWT 발급 서버를 만들지 않고 서버 세션 인증을 사용한다.
+- Spring Session JDBC로 세션을 PostgreSQL에 저장한다.
+- API 요청의 userId는 요청 header/body가 아니라 인증 Principal에서 결정한다.
+- 기존 `X-User-Id` 임시 사용자 컨텍스트는 Phase 7에서 제거한다.
 - AI 요청에서도 userId는 모델 입력이나 Client Context에서 받지 않고 서버 인증 컨텍스트에서 결정한다.
+- Naver/Kakao 및 자체 이메일/비밀번호 가입은 초기 운영 범위에서 제외한다.
 
 ## 9. PWA 및 화면 요구사항
 
@@ -518,18 +553,25 @@ AI 없이도 Workout, Routine, BodyRecord, Dashboard, Nutrition의 핵심 기능
 세부 원칙은 `docs/testing/AUTOMATED_TEST_STRATEGY.md`를 기준으로 한다.
 ## 12. 배포 및 운영
 
-초기 운영은 단순성을 우선한다.
+초기 운영은 실제 배포 가능성과 낮은 고정비를 우선한다.
 
-- Spring Boot 애플리케이션 1개
-- PostgreSQL 1개
-- 초기 AI Provider는 외부 OpenAI API 사용
-- 로컬 개발/향후 전환 Provider로 Ollama 지원
+- Seoul `ap-northeast-2`
+- EC2 `t4g.micro` 1대에서 Spring Boot Docker container 실행
+- RDS PostgreSQL 17 `db.t4g.micro` Single-AZ
+- ECR private repository에 ARM64 Docker image 저장
+- AWS CDK v2 / TypeScript로 VPC, EC2, RDS, ECR, IAM, DNS를 코드화
+- GitHub Actions OIDC로 AWS에 단기 인증
+- main 배포는 ECR push 후 SSM Run Command로 EC2 image 교체
+- Route 53 + Elastic IP + Caddy로 HTTPS 제공
 - 프론트엔드는 Spring Boot 배포물에 포함
-- 환경 변수로 DB, AI Provider, model, API key / base URL 설정을 분리
-- 주기적인 PostgreSQL 백업 방법을 마련
-- 로그는 파일 또는 stdout 기반으로 시작
+- RDS는 public access를 금지하고 EC2 Security Group에서만 5432 허용
+- SSH 22 포트는 열지 않고 SSM으로 관리
+- DB credential은 Secrets Manager, Google/OpenAI secret은 SSM Parameter Store SecureString 사용
+- CloudWatch Logs/metrics와 Actuator health로 기본 운영 상태 확인
+- RDS automated backup 7일
+- ECR commit SHA tag와 이전 SHA를 이용해 health check 실패 시 rollback
 
-트래픽 규모가 작으므로 Redis, 메시지 브로커, 별도 API Gateway는 도입하지 않는다.
+트래픽 규모가 작으므로 NAT Gateway, ALB, ECS/EKS, Redis, 메시지 브로커, Multi-AZ RDS는 초기에는 도입하지 않는다. `t4g.micro`의 1 GiB 메모리는 JVM 제한과 모니터링을 적용하고 OOM/지속 swap이 확인되면 `t4g.small`로 승격한다.
 
 ## 13. MVP 완료 기준
 

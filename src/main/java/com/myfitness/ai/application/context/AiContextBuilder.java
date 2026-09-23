@@ -19,7 +19,7 @@ public class AiContextBuilder {
     private final AiBodyContextBuilder bodyContextBuilder;
     private final AiNutritionContextBuilder nutritionContextBuilder;
 
-    public AiContextBuilder(
+    AiContextBuilder(
             AiContextSelector contextSelector,
             AiWorkoutContextBuilder workoutContextBuilder,
             AiBodyContextBuilder bodyContextBuilder,
