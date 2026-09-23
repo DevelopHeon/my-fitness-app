@@ -1,6 +1,7 @@
 name: Deploy App
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows:
       - CI
@@ -15,17 +16,17 @@ permissions:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.AWS_DEPLOY_ROLE_ARN != '' }}
+    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ap-northeast-2
-      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+      IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
     steps:
       - name: Checkout verified commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
       - name: Set up Java
         uses: actions/setup-java@v4
