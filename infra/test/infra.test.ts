@@ -94,4 +94,15 @@ test("cicd trust uses immutable GitHub subject on main", () => {
       ]),
     },
   });
+
+  Template.fromStack(stack).hasResourceProperties("AWS::IAM::Policy", {
+    PolicyDocument: {
+      Statement: Match.arrayWith([
+        Match.objectLike({
+          Action: "ecr:DescribeImages",
+          Effect: "Allow",
+        }),
+      ]),
+    },
+  });
 });

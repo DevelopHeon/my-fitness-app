@@ -35,6 +35,10 @@ export class CicdStack extends cdk.Stack {
     });
 
     props.repository.grantPullPush(this.deployRole);
+    this.deployRole.addToPolicy(new iam.PolicyStatement({
+      actions: ["ecr:DescribeImages"],
+      resources: [props.repository.repositoryArn],
+    }));
 
     this.deployRole.addToPolicy(new iam.PolicyStatement({
       actions: ["ssm:GetParameter"],
