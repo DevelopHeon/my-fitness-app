@@ -239,7 +239,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
             className="absolute inset-0 bg-black/25"
             onClick={() => setOpen(false)}
           />
-          <section className="absolute inset-x-0 bottom-0 flex h-[88dvh] flex-col overflow-hidden rounded-t-3xl border border-zinc-200 bg-white shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:h-dvh sm:w-[460px] sm:rounded-none sm:rounded-l-3xl">
+          <section className="absolute inset-x-0 bottom-0 flex h-[88dvh] max-h-dvh min-h-0 flex-col overflow-hidden rounded-t-3xl border border-zinc-200 bg-white shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:h-dvh sm:w-[460px] sm:rounded-none sm:rounded-l-3xl">
             <header className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
               <button
                 type="button"
@@ -280,7 +280,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
               />
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto px-4 py-4">
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
                   {initializing ? (
                     <Centered text="AI 대화를 불러오는 중이에요." />
                   ) : messages.length === 0 && pendingMessage === null && !sending ? (
@@ -423,7 +423,7 @@ function ConversationList({
   onDelete: (id: number) => Promise<void>;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <p className="mb-3 text-sm font-bold text-zinc-950">대화 목록</p>
       <div className="space-y-2">
         {conversations.map((conversation) => (

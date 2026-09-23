@@ -43,11 +43,15 @@ export default function CustomExerciseForm({
   const customExercises = useMemo(
     () =>
       exercises
-        .filter((exercise) => exercise.type === "CUSTOM")
+        .filter(
+          (exercise) =>
+            exercise.type === "CUSTOM" &&
+            exercise.category === category,
+        )
         .sort((left, right) =>
           left.name.localeCompare(right.name, "ko"),
         ),
-    [exercises],
+    [category, exercises],
   );
 
   async function handleSubmit(event: FormEvent) {
@@ -58,7 +62,6 @@ export default function CustomExerciseForm({
     const created = await onCreate(trimmed, category);
     if (created) {
       setName("");
-      setCategory("CHEST");
     }
   }
 
@@ -83,7 +86,10 @@ export default function CustomExerciseForm({
       trimmed,
       editingCategory,
     );
-    if (updated) cancelEdit();
+    if (updated) {
+      setCategory(editingCategory);
+      cancelEdit();
+    }
   }
 
   async function removeExercise(exercise: Exercise) {
@@ -117,9 +123,39 @@ export default function CustomExerciseForm({
       {open && (
         <div className="mt-2 space-y-3 rounded-2xl bg-zinc-50 p-3">
           <div>
+            <p className="mb-2 text-xs font-semibold text-zinc-600">
+              카테고리
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {exerciseCategories.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setCategory(item.value);
+                    cancelEdit();
+                  }}
+                  className={
+                    "rounded-xl px-3 py-2 text-xs font-semibold transition " +
+                    (category === item.value
+                      ? "bg-zinc-900 text-white"
+                      : "border border-zinc-200 bg-white text-zinc-500")
+                  }
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] leading-5 text-zinc-400">
+              선택한 카테고리로 새 종목이 등록되고, 같은 카테고리의 내 운동만 표시됩니다.
+            </p>
+          </div>
+
+          <div className="border-t border-zinc-200 pt-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-zinc-600">
-                등록한 종목
+                {categoryLabel(category)} · 등록한 종목
               </p>
               <span className="text-[11px] text-zinc-400">
                 {customExercises.length}개
@@ -128,10 +164,10 @@ export default function CustomExerciseForm({
 
             {customExercises.length === 0 ? (
               <p className="mt-2 rounded-xl border border-dashed border-zinc-200 bg-white px-3 py-4 text-center text-xs text-zinc-400">
-                아직 직접 등록한 운동 종목이 없습니다.
+                {categoryLabel(category)} 카테고리에 등록한 운동이 없습니다.
               </p>
             ) : (
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 max-h-72 space-y-2 overflow-y-auto overscroll-contain pr-1">
                 {customExercises.map((exercise) => {
                   const editing = editingId === exercise.id;
 
@@ -239,28 +275,10 @@ export default function CustomExerciseForm({
             className="border-t border-zinc-200 pt-3"
           >
             <p className="mb-2 text-xs font-semibold text-zinc-600">
-              새 종목 추가
+              {categoryLabel(category)} 종목 추가
             </p>
-            <div className="flex flex-wrap gap-2">
-              {exerciseCategories.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setCategory(item.value)}
-                  className={
-                    "rounded-full px-3 py-1.5 text-xs font-medium " +
-                    (category === item.value
-                      ? "bg-zinc-900 text-white"
-                      : "bg-white text-zinc-500")
-                  }
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
 
-            <div className="mt-3 flex gap-2">
+            <div className="flex gap-2">
               <input
                 type="text"
                 inputMode="text"
