@@ -62,9 +62,18 @@ for (const [fileName, expected] of requiredPngs) {
 
 const indexHtml = await readFile(path.join(outDir, "index.html"), "utf8");
 
+const appleCapableCount =
+  indexHtml.match(/name="apple-mobile-web-app-capable"/g)?.length ?? 0;
+const mobileCapableCount =
+  indexHtml.match(/name="mobile-web-app-capable"/g)?.length ?? 0;
+
 assert(
-  indexHtml.includes('name="apple-mobile-web-app-capable" content="yes"'),
-  "index.html must enable iOS standalone web app mode",
+  appleCapableCount === 1,
+  "index.html must contain one iOS standalone meta tag",
+);
+assert(
+  mobileCapableCount === 1,
+  "index.html must contain one mobile standalone meta tag",
 );
 assert(
   indexHtml.includes('rel="apple-touch-icon" href="/apple-touch-icon.png"'),
