@@ -67,6 +67,17 @@ class UserSecurityIntegrationTest {
                         .value("Security User"));
     }
 
+
+    @Test
+    void authenticatedUserCanRequestCsrfToken() throws Exception {
+        mockMvc.perform(get("/api/auth/csrf")
+                        .with(authenticatedUser(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.headerName").value("X-CSRF-TOKEN"))
+                .andExpect(jsonPath("$.parameterName").value("_csrf"))
+                .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
     @Test
     void logoutRequiresCsrfToken() throws Exception {
         mockMvc.perform(post("/logout")

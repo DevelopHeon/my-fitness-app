@@ -9,6 +9,7 @@ import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
 import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
+import { CurrentUser } from "@/lib/auth-api";
 
 type View =
   | "dashboard"
@@ -17,7 +18,15 @@ type View =
   | "body"
   | "nutrition";
 
-export default function AppShell() {
+export default function AppShell({
+  user,
+  loggingOut,
+  onLogout,
+}: {
+  user: CurrentUser;
+  loggingOut: boolean;
+  onLogout: () => void;
+}) {
   const [view, setView] = useState<View>("dashboard");
   const [workoutDate, setWorkoutDate] = useState(todayString);
   const [nutritionDate, setNutritionDate] = useState(todayString);
@@ -38,6 +47,27 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950">
+      <header className="border-b border-zinc-200 bg-white">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+              My Fitness
+            </p>
+            <p className="truncate text-sm font-semibold text-zinc-900">
+              {user.displayName || user.email || "사용자"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={loggingOut}
+            className="shrink-0 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loggingOut ? "로그아웃 중..." : "로그아웃"}
+          </button>
+        </div>
+      </header>
+
       <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
         <div className="mx-auto grid w-full max-w-3xl grid-cols-5 gap-1 px-3 py-3 sm:px-6">
           <NavButton
