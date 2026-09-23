@@ -55,3 +55,7 @@ The bootstrap installs Docker and jq, enables Docker, creates a 2 GiB swap file 
 ## HTTPS
 
 Caddy and Route 53 application DNS configuration are intentionally deferred until the production domain is chosen. The application container is bound only to `127.0.0.1:8080`; production traffic must eventually enter through the reverse proxy on ports 80/443.
+
+## GitHub OIDC
+
+This repository has GitHub immutable OIDC subjects enabled. The IAM trust policy therefore uses the immutable owner/repository identifiers plus the `main` branch ref rather than only the mutable `owner/repository` name. The CDK test asserts the exact trust condition used by the deployment role.

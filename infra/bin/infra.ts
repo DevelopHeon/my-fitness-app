@@ -37,7 +37,8 @@ new CicdStack(app, "MyFitnessCicd", {
   env,
   repository: application.repository,
   instance: application.instance,
-  githubRepository: "DevelopHeon/my-fitness-app",
+  githubOidcSubject:
+    "repo:DevelopHeon@87063007/my-fitness-app@1375438292:ref:refs/heads/main",
 });
 
 cdk.Tags.of(app).add("Project", "my-fitness");

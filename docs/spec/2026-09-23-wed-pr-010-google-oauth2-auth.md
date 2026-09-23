@@ -321,3 +321,33 @@ Google Client Secret은 git/Docker image에 포함하지 않는다.
 - https://docs.spring.io/spring-security/reference/servlet/oauth2/login/
 - https://developers.google.com/identity/openid-connect/openid-connect
 - https://developers.google.com/identity/openid-connect/reference
+
+## 19. 구현 결과 및 남은 검증
+
+### 구현 완료
+
+- `users` 테이블과 Google `sub` 기반 User 모델
+- Google OAuth2 Client / OIDC User Service
+- Spring Session JDBC 및 Flyway V9 session schema
+- 인증 Principal의 내부 userId 사용
+- 전체 API의 `X-User-Id` 제거
+- `GET /api/users/me`
+- 미인증 API 401 처리
+- CSRF endpoint 및 SPA CSRF 처리
+- Frontend 로그인 gate / Google 로그인 / 로그아웃 UI
+- session cookie 기반 API client
+- 인증 관련 단위/통합/아키텍처 테스트
+
+### 운영 DB 검증
+
+AWS 첫 애플리케이션 배포에서 PostgreSQL 17 RDS에 연결했고 Flyway V1~V9가 정상 적용됐다. Spring Session JDBC 테이블도 V9 migration으로 생성되었다.
+
+### 남은 작업
+
+- 실제 Google Client ID / Secret 연결
+- localhost Google OAuth 로그인 smoke test
+- 운영 도메인 확정
+- HTTPS reverse proxy 구성 후 production redirect URI 등록
+- 실제 Google 로그인 후 세션 유지 / 로그아웃 smoke test
+
+Google Client Secret은 문서나 Git에 기록하지 않고 AWS SSM Parameter Store SecureString으로 주입한다.

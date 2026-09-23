@@ -7,7 +7,7 @@ import { Construct } from "constructs";
 export interface CicdStackProps extends cdk.StackProps {
   repository: ecr.IRepository;
   instance: ec2.IInstance;
-  githubRepository: string;
+  githubOidcSubject: string;
 }
 
 export class CicdStack extends cdk.Stack {
@@ -27,7 +27,7 @@ export class CicdStack extends cdk.Stack {
         StringEquals: {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
           "token.actions.githubusercontent.com:sub":
-            `repo:${props.githubRepository}:ref:refs/heads/main`,
+            props.githubOidcSubject,
         },
       }),
       description: "GitHub Actions deployment role for My Fitness",

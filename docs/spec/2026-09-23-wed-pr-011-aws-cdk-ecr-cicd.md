@@ -609,3 +609,82 @@ micro에서 OOM/지속 swap이 나타나면 억지 JVM 축소보다 `t4g.small` 
 - https://aws.amazon.com/vpc/pricing/
 - https://aws.amazon.com/rds/postgresql/pricing/
 - https://aws.amazon.com/route53/pricing/
+
+## 28. 구현 결과 및 운영 상태
+
+### 실제 생성 완료
+
+2026-09-23 기준 Seoul Region에 다음 리소스를 CDK로 생성했다.
+
+- `MyFitnessNetwork`: VPC, 2 AZ subnet, application/database Security Group
+- `MyFitnessDatabase`: PostgreSQL 17 `db.t4g.micro`, Single-AZ, private RDS
+- `MyFitnessApplication`: `t4g.micro` ARM64 EC2, ECR, Elastic IP, IAM, SSM parameter
+- `MyFitnessCicd`: GitHub OIDC provider 및 deploy IAM role
+- CDK bootstrap stack
+
+EC2는 SSM Managed Instance로 Online 상태이며 SSH 22 port를 열지 않았다. EC2에서 private RDS의 5432 TCP 연결도 확인했다.
+
+### 첫 CI/CD 실제 검증
+
+실제 GitHub Actions pipeline으로 다음 경로를 끝까지 검증했다.
+
+```text
+main CI
+  → GitHub OIDC
+  → AWS IAM Role
+  → ECR ARM64 image push
+  → SSM Run Command
+  → EC2 docker pull / start
+  → RDS 연결
+  → Flyway migrate
+  → /actuator/health
+```
+
+첫 성공 배포에서 애플리케이션 health status는 `UP`이었고 PostgreSQL 17 RDS에 Flyway V1~V9가 모두 적용되었다.
+
+### 구현 중 발견 및 수정
+
+Amazon Linux 2023 기본 `curl-minimal`과 full `curl` package가 충돌해 최초 UserData의 DNF bootstrap이 중단됐다.
+
+- 현재 EC2는 SSM으로 Docker / jq / 2 GiB swap 구성을 복구했다.
+- CDK UserData에서는 full `curl` 설치를 제거했다.
+- 이후 신규 EC2 생성에는 수정된 bootstrap이 적용된다.
+
+GitHub repository는 immutable OIDC subject를 사용한다. 따라서 IAM trust도 단순 repository name이 아니라 GitHub가 발급하는 immutable repository/owner ID 기반 subject와 main branch 조건을 정확히 사용한다. 이 조건은 CDK test로 검증한다.
+
+### 남은 운영 작업
+
+- 운영 도메인 확정
+- Caddy 설치 및 systemd 관리
+- Route 53 DNS 연결
+- Let's Encrypt HTTPS
+- Google production callback 연결
+- Google/OpenAI SecureString parameter 입력
+- CloudWatch Agent memory/disk/log 구성
+- CloudWatch alarm
+- micro 실제 메모리/CPU 부하 측정
+
+현재 애플리케이션 container는 `127.0.0.1:8080`에만 bind되어 있으며 외부 HTTP/HTTPS 공개는 reverse proxy 구성 이후 진행한다.
+
+### micro 초기 실측 기준선
+
+첫 배포 직후 idle/낮은 트래픽 상태를 측정했다.
+
+EC2:
+
+- OS memory: 약 916 MiB
+- used: 약 559 MiB
+- available: 약 276 MiB
+- application container: 약 387 MiB / 700 MiB limit
+- swap: 약 18 MiB / 2 GiB
+- JVM: `-Xms128m -Xmx512m -XX:+UseG1GC`
+- load average: 매우 낮은 상태
+
+RDS:
+
+- 최근 CPU: 대략 4~9% 범위
+- application 연결 후 DatabaseConnections: 2
+- FreeableMemory: 대략 180~200 MB
+- SwapUsage: 약 0.5 MiB
+
+현재는 `t4g.micro + db.t4g.micro`를 유지한다. 다만 두 리소스 모두 메모리 여유가 크지 않으므로 실제 로그인/AI 동시 요청과 부하 테스트 후 다시 판단한다. CPU credit은 생성 직후 값이므로 충분한 운영 시간이 지난 후 추세로 판단한다.
