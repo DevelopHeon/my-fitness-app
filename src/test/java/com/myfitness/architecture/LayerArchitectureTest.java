@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 
 class LayerArchitectureTest {
@@ -171,6 +172,27 @@ class LayerArchitectureTest {
                 .should().resideInAPackage("..application.service..");
 
         rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Application In Port 구현 Service는 read-only transaction을 기본 경계로 선언한다")
+    void inputPortServicesDeclareReadOnlyTransactionBoundary() {
+        classes.stream()
+                .filter(javaClass -> javaClass.isAnnotatedWith(Service.class))
+                .filter(javaClass -> javaClass.getAllRawInterfaces().stream()
+                        .anyMatch(type -> type.getPackageName()
+                                .contains(".application.port.in")))
+                .forEach(javaClass -> {
+                    assertThat(javaClass.isAnnotatedWith(Transactional.class))
+                            .as("%s transaction boundary", javaClass.getName())
+                            .isTrue();
+
+                    Transactional transaction =
+                            javaClass.getAnnotationOfType(Transactional.class);
+                    assertThat(transaction.readOnly())
+                            .as("%s default transaction", javaClass.getName())
+                            .isTrue();
+                });
     }
 
     @Test

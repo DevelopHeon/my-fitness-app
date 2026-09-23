@@ -93,6 +93,19 @@ export const workoutApi = {
       method: "POST",
       body: JSON.stringify({ name, category }),
     }),
+  updateExercise: (
+    exerciseId: number,
+    name: string,
+    category: ExerciseCategory,
+  ) =>
+    request<Exercise>("/api/exercises/custom/" + exerciseId, {
+      method: "PATCH",
+      body: JSON.stringify({ name, category }),
+    }),
+  deleteExercise: (exerciseId: number) =>
+    request<void>("/api/exercises/custom/" + exerciseId, {
+      method: "DELETE",
+    }),
   getPreviousRecord: (exerciseType: ExerciseType, exerciseId: number) =>
     request<PreviousExerciseRecord | null>(
       "/api/exercises/" + exerciseType + "/" + exerciseId + "/previous-record",

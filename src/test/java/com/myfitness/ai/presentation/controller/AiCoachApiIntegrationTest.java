@@ -27,13 +27,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
-@Transactional
 @Import(AiCoachApiIntegrationTest.FakeAiConfiguration.class)
 class AiCoachApiIntegrationTest {
     @Autowired WebApplicationContext context;
@@ -48,6 +46,9 @@ class AiCoachApiIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(context)
                 .apply(springSecurity())
                 .build();
+        jdbcTemplate.update("delete from ai_request_logs");
+        jdbcTemplate.update("delete from ai_messages");
+        jdbcTemplate.update("delete from ai_conversations");
         fakeGateway.reset();
     }
 

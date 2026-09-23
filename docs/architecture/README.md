@@ -208,9 +208,24 @@ Application Service는 Domain Entity를 내부에서 사용하되 In Port 경계
 
 Application Service 자체는 Use Case orchestration과 transaction boundary에 집중한다. 계산, 응답 조립, AI Context 생성처럼 독립적으로 설명할 수 있는 책임이 커지면 같은 Application 계층의 전용 collaborator로 분리한다.
 
+### Transaction boundary 규칙
+
+DB를 사용하는 In Port 구현 Application Service는 transaction 경계를 명시한다.
+
+- 클래스 기본값은 `@Transactional(readOnly = true)`로 두어 조회 Use Case의 의도를 드러낸다.
+- 생성/수정/삭제처럼 상태를 바꾸는 public Use Case 메서드는 `@Transactional`로 override한다.
+- `WorkoutService`, `RoutineService`, `FoodService`처럼 Application Service 내부에서 호출되는 도메인 작업 collaborator는 독립 transaction 경계를 만들지 않고 호출한 Use Case transaction에 참여한다.
+- Repository Adapter나 Spring Data의 암묵적 transaction을 Application transaction boundary의 대체 수단으로 사용하지 않는다.
+
+외부 네트워크 호출이 포함되는 Use Case는 DB transaction을 네트워크 대기 시간 동안 유지하지 않는다. AI 메시지 전송이 이 예외에 해당한다.
+
+- `AiCoachService.sendMessage()`는 `Propagation.NOT_SUPPORTED`로 Provider 호출을 포함한 전체 orchestration에 DB transaction을 열지 않는다.
+- User Message 저장과 Conversation 갱신, OUT_OF_SCOPE 응답 저장, Provider 성공/실패 결과 저장은 `AiMessageTransactionService`의 짧은 `@Transactional` 메서드로 각각 커밋한다.
+- 따라서 Provider 호출 전에 User Message가 먼저 커밋되는 기존 제품 동작을 유지하면서도, 각 DB 변경 경계는 Application 계층에서 명시적으로 보인다.
+
 현재 예:
 
-- `AiCoachService` → `AiHistorySelector`, `AiProviderExecutor`
+- `AiCoachService` → `AiHistorySelector`, `AiProviderExecutor`, `AiMessageTransactionService`
 - `AiContextBuilder` → `AiWorkoutContextBuilder`, `AiBodyContextBuilder`, `AiNutritionContextBuilder`
 - `NutritionApplicationService` → `NutritionResultAssembler`
 - `DashboardService` → `DashboardResultAssembler`

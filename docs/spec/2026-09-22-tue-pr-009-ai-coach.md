@@ -1307,7 +1307,7 @@ AppShell에 AI Coach를 한 번 마운트해 모든 주요 페이지에서 우�
 - Conversation 사용자 격리
 - OUT_OF_SCOPE Provider 미호출
 - 최근 Conversation History 전달 및 다른 영역 History 제외
-- Provider 응답 대기 중에도 User Message가 먼저 커밋되는 비트랜잭션 저장 경계
+- Provider 호출 전체는 transaction 밖에서 실행하고 User Message/Conversation 갱신과 Provider 성공·실패 저장을 짧은 Application transaction으로 분리해 User Message가 먼저 커밋되는 저장 경계
 - Provider 실패 시 FAILED RequestLog와 User Message 보존
 - bounded Body/Workout/Nutrition Insight 조회
 - RequestLog token usage 저장

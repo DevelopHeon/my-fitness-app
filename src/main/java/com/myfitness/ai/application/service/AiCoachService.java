@@ -19,14 +19,15 @@ import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
-import com.myfitness.ai.domain.model.AiRequestLog;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class AiCoachService implements AiCoachUseCase {
     private static final String OUT_OF_SCOPE_MESSAGE =
             "My Fitness AI Coach에서는 운동, 신체 기록, 식단 및 영양과 관련된 질문을 도와드릴 수 있습니다.";
@@ -38,6 +39,7 @@ public class AiCoachService implements AiCoachUseCase {
     private final AiContextBuilder contextBuilder;
     private final AiHistorySelector historySelector;
     private final AiProviderExecutor providerExecutor;
+    private final AiMessageTransactionService transactionService;
     private final AiCoachProperties properties;
     private final Clock clock;
 
@@ -50,6 +52,7 @@ public class AiCoachService implements AiCoachUseCase {
             AiContextBuilder contextBuilder,
             AiHistorySelector historySelector,
             AiProviderExecutor providerExecutor,
+            AiMessageTransactionService transactionService,
             AiCoachProperties properties) {
         this(
                 conversationRepository,
@@ -59,6 +62,7 @@ public class AiCoachService implements AiCoachUseCase {
                 contextBuilder,
                 historySelector,
                 providerExecutor,
+                transactionService,
                 properties,
                 Clock.systemUTC());
     }
@@ -71,6 +75,7 @@ public class AiCoachService implements AiCoachUseCase {
             AiContextBuilder contextBuilder,
             AiHistorySelector historySelector,
             AiProviderExecutor providerExecutor,
+            AiMessageTransactionService transactionService,
             AiCoachProperties properties,
             Clock clock) {
         this.conversationRepository = conversationRepository;
@@ -80,6 +85,7 @@ public class AiCoachService implements AiCoachUseCase {
         this.contextBuilder = contextBuilder;
         this.historySelector = historySelector;
         this.providerExecutor = providerExecutor;
+        this.transactionService = transactionService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -92,6 +98,7 @@ public class AiCoachService implements AiCoachUseCase {
     }
 
     @Override
+    @Transactional
     public AiConversationResult createConversation(Long userId) {
         AiConversation conversation = conversationRepository.save(
                 AiConversation.create(userId, clock.instant()));
@@ -99,6 +106,7 @@ public class AiCoachService implements AiCoachUseCase {
     }
 
     @Override
+    @Transactional
     public AiConversationResult renameConversation(
             Long userId,
             Long conversationId,
@@ -110,6 +118,7 @@ public class AiCoachService implements AiCoachUseCase {
     }
 
     @Override
+    @Transactional
     public void deleteConversation(Long userId, Long conversationId) {
         AiConversation conversation = getOwned(userId, conversationId);
         requestLogRepository.deleteAllByConversationId(conversationId);
@@ -129,34 +138,47 @@ public class AiCoachService implements AiCoachUseCase {
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiSendMessageResult sendMessage(
             Long userId,
             Long conversationId,
             AiMessageCommand command) {
-        AiConversation conversation = getOwned(userId, conversationId);
         String message = validateMessage(
                 command == null ? null : command.message());
         AiClientContext clientContext =
                 command == null ? null : command.clientContext();
 
         List<AiMessage> previousMessages =
-                messageRepository.findAllByConversationId(conversationId);
+                transactionService.loadMessagesForOwnedConversation(
+                        userId,
+                        conversationId);
         AiQueryType queryType = queryRouter.route(
                 message,
                 clientContext,
                 historySelector.latestUserQueryType(previousMessages));
 
-        AiMessage userMessage = saveUserMessage(
-                conversation,
-                queryType,
-                message);
+        AiMessageTransactionService.UserMessageWrite userWrite =
+                transactionService.saveUserMessage(
+                        userId,
+                        conversationId,
+                        queryType,
+                        message);
+        AiConversation conversation = userWrite.conversation();
+        AiMessage userMessage = userWrite.userMessage();
 
         if (queryType == AiQueryType.OUT_OF_SCOPE) {
-            return respondOutOfScope(
-                    userId,
+            AiMessage assistantMessage =
+                    transactionService.saveRejectedResponse(
+                            userId,
+                            conversationId,
+                            userMessage,
+                            queryType,
+                            OUT_OF_SCOPE_MESSAGE);
+            return result(
                     conversation,
                     userMessage,
-                    queryType);
+                    assistantMessage,
+                    false);
         }
 
         AiContextBundle context = contextBuilder.build(
@@ -178,47 +200,6 @@ public class AiCoachService implements AiCoachUseCase {
                 userMessage,
                 assistantMessage,
                 true);
-    }
-
-    private AiMessage saveUserMessage(
-            AiConversation conversation,
-            AiQueryType queryType,
-            String message) {
-        Instant now = clock.instant();
-        AiMessage userMessage = messageRepository.save(
-                AiMessage.user(
-                        conversation.getId(),
-                        queryType,
-                        message,
-                        now));
-        updateConversationForMessage(conversation, message, now);
-        return userMessage;
-    }
-
-    private AiSendMessageResult respondOutOfScope(
-            Long userId,
-            AiConversation conversation,
-            AiMessage userMessage,
-            AiQueryType queryType) {
-        AiMessage assistantMessage = messageRepository.save(
-                AiMessage.assistant(
-                        conversation.getId(),
-                        queryType,
-                        OUT_OF_SCOPE_MESSAGE,
-                        clock.instant()));
-        requestLogRepository.save(AiRequestLog.rejected(
-                userId,
-                conversation.getId(),
-                userMessage.getId(),
-                queryType,
-                properties.getPromptVersion(),
-                clock.instant()));
-
-        return result(
-                conversation,
-                userMessage,
-                assistantMessage,
-                false);
     }
 
     private AiConversation getOwned(
@@ -244,31 +225,6 @@ public class AiCoachService implements AiCoachUseCase {
                             + "자 이하로 입력해 주세요.");
         }
         return normalized;
-    }
-
-    private void updateConversationForMessage(
-            AiConversation conversation,
-            String message,
-            Instant now) {
-        if (conversation.hasDefaultTitle()) {
-            conversation.rename(titleFrom(message), now);
-        } else {
-            conversation.touch(now);
-        }
-        conversationRepository.save(conversation);
-    }
-
-    private String titleFrom(String message) {
-        String normalized = message
-                .replaceAll("\\s+", " ")
-                .trim();
-        int limit = Math.min(
-                properties.getTitleMaxLength(),
-                100);
-        if (normalized.length() <= limit) {
-            return normalized;
-        }
-        return normalized.substring(0, limit);
     }
 
     private static AiSendMessageResult result(

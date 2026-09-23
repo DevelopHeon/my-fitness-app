@@ -4,6 +4,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
 import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.exercise.presentation.dto.request.CreateExerciseRequest;
+import com.myfitness.exercise.presentation.dto.request.UpdateExerciseRequest;
 import com.myfitness.exercise.presentation.dto.response.ExerciseResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -38,5 +39,25 @@ public class ExerciseController {
             @Valid @RequestBody CreateExerciseRequest request) {
         return ExerciseResponse.from(exerciseManagementUseCase.createCustom(
                 userId, request.name(), request.category()));
+    }
+
+    @PatchMapping("/custom/{exerciseId}")
+    public ExerciseResponse updateCustom(
+            @AuthenticationPrincipal(expression = "userId") Long userId,
+            @PathVariable Long exerciseId,
+            @Valid @RequestBody UpdateExerciseRequest request) {
+        return ExerciseResponse.from(exerciseManagementUseCase.updateCustom(
+                userId,
+                exerciseId,
+                request.name(),
+                request.category()));
+    }
+
+    @DeleteMapping("/custom/{exerciseId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCustom(
+            @AuthenticationPrincipal(expression = "userId") Long userId,
+            @PathVariable Long exerciseId) {
+        exerciseManagementUseCase.deleteCustom(userId, exerciseId);
     }
 }

@@ -69,6 +69,76 @@ class WorkoutApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("사용자는 자신의 커스텀 운동을 수정하고 삭제할 수 있으며 기존 운동 기록은 유지된다")
+    void updatesAndDeletesOwnedCustomExerciseWithoutChangingWorkoutSnapshot()
+            throws Exception {
+        JsonNode custom = createCustomExercise("잘못 등록한 프레스", "CHEST");
+        long exerciseId = custom.path("id").asLong();
+
+        MvcResult workoutCreated = mockMvc.perform(post("/api/workouts")
+                        .with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long workoutId = json(workoutCreated).path("id").asLong();
+
+        mockMvc.perform(post(
+                        "/api/workouts/{workoutId}/exercises", workoutId)
+                        .with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"exerciseType":"CUSTOM","exerciseId":%d}
+                                """.formatted(exerciseId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].exerciseName")
+                        .value("잘못 등록한 프레스"))
+                .andExpect(jsonPath("$.exercises[0].category")
+                        .value("CHEST"));
+
+        mockMvc.perform(patch("/api/exercises/custom/{exerciseId}", exerciseId)
+                        .with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"수정한 프레스","category":"SHOULDER"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("수정한 프레스"))
+                .andExpect(jsonPath("$.category").value("SHOULDER"));
+
+        mockMvc.perform(patch("/api/exercises/custom/{exerciseId}", exerciseId)
+                        .with(authenticatedUser(2L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"다른 사용자 수정","category":"BACK"}
+                                """))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/workouts/{workoutId}", workoutId)
+                        .with(authenticatedUser(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].exerciseName")
+                        .value("잘못 등록한 프레스"))
+                .andExpect(jsonPath("$.exercises[0].category")
+                        .value("CHEST"));
+
+        mockMvc.perform(delete("/api/exercises/custom/{exerciseId}", exerciseId)
+                        .with(authenticatedUser(1L)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/exercises")
+                        .with(authenticatedUser(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.name == '수정한 프레스')]").isEmpty());
+
+        mockMvc.perform(get("/api/workouts/{workoutId}", workoutId)
+                        .with(authenticatedUser(1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exercises[0].exerciseName")
+                        .value("잘못 등록한 프레스"));
+    }
+
+    @Test
     @DisplayName("Workout 생성부터 기본 운동 세트 기록, 완료, 이전 기록 조회까지 수행한다")
     void completesWorkoutFlowAndReadsPreviousRecord() throws Exception {
         long exerciseId = findDefaultExerciseId("벤치프레스");

@@ -602,6 +602,45 @@ export default function WorkoutScreen({
     return true;
   }
 
+  async function handleUpdateCustomExercise(
+    exercise: Exercise,
+    name: string,
+    category: ExerciseCategory,
+  ) {
+    const updated = await run(() =>
+      workoutApi.updateExercise(exercise.id, name, category),
+    );
+    if (!updated) return false;
+
+    setExercises((current) =>
+      current.map((item) =>
+        item.type === "CUSTOM" && item.id === updated.id
+          ? updated
+          : item,
+      ),
+    );
+    return true;
+  }
+
+  async function handleDeleteCustomExercise(exercise: Exercise) {
+    const deleted = await run(async () => {
+      await workoutApi.deleteExercise(exercise.id);
+      return true;
+    });
+    if (!deleted) return false;
+
+    setExercises((current) =>
+      current.filter(
+        (item) =>
+          !(
+            item.type === "CUSTOM" &&
+            item.id === exercise.id
+          ),
+      ),
+    );
+    return true;
+  }
+
   async function handleAddExercise(exercise: Exercise) {
     await attachExercise(exercise);
   }
@@ -1121,7 +1160,10 @@ export default function WorkoutScreen({
             </div>
             <CustomExerciseForm
               busy={busy}
+              exercises={exercises}
               onCreate={handleCreateCustomExercise}
+              onUpdate={handleUpdateCustomExercise}
+              onDelete={handleDeleteCustomExercise}
             />
           </section>
 

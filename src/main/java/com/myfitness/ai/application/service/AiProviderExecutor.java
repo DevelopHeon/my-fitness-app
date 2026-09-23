@@ -7,50 +7,25 @@ import com.myfitness.ai.application.port.out.AiChatGateway;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
-import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
-import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
 import com.myfitness.ai.application.prompt.AiSystemPrompt;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
-import com.myfitness.ai.domain.model.AiRequestLog;
-import java.time.Clock;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AiProviderExecutor {
     private final AiChatGateway chatGateway;
-    private final AiMessageRepositoryPort messageRepository;
-    private final AiRequestLogRepositoryPort requestLogRepository;
+    private final AiMessageTransactionService transactionService;
     private final AiCoachProperties properties;
-    private final Clock clock;
 
-    @Autowired
     public AiProviderExecutor(
             AiChatGateway chatGateway,
-            AiMessageRepositoryPort messageRepository,
-            AiRequestLogRepositoryPort requestLogRepository,
+            AiMessageTransactionService transactionService,
             AiCoachProperties properties) {
-        this(
-                chatGateway,
-                messageRepository,
-                requestLogRepository,
-                properties,
-                Clock.systemUTC());
-    }
-
-    AiProviderExecutor(
-            AiChatGateway chatGateway,
-            AiMessageRepositoryPort messageRepository,
-            AiRequestLogRepositoryPort requestLogRepository,
-            AiCoachProperties properties,
-            Clock clock) {
         this.chatGateway = chatGateway;
-        this.messageRepository = messageRepository;
-        this.requestLogRepository = requestLogRepository;
+        this.transactionService = transactionService;
         this.properties = properties;
-        this.clock = clock;
     }
 
     public AiMessage generate(
@@ -65,27 +40,23 @@ public class AiProviderExecutor {
         try {
             AiModelResponse response = chatGateway.chat(
                     request(context, history, message));
-            AiMessage assistantMessage = saveAssistant(
-                    conversationId,
-                    queryType,
-                    response);
-            saveSuccessLog(
+            return transactionService.saveProviderSuccess(
                     userId,
                     conversationId,
                     userMessage,
-                    assistantMessage,
                     queryType,
                     context,
                     response,
                     elapsedMillis(started));
-            return assistantMessage;
         } catch (RuntimeException exception) {
-            saveFailureLog(
+            transactionService.saveProviderFailure(
                     userId,
                     conversationId,
                     userMessage,
                     queryType,
                     context,
+                    chatGateway.provider(),
+                    chatGateway.model(),
                     exception,
                     elapsedMillis(started));
             throw providerException(exception);
@@ -101,66 +72,6 @@ public class AiProviderExecutor {
                 context.text(),
                 history,
                 message);
-    }
-
-    private AiMessage saveAssistant(
-            Long conversationId,
-            AiQueryType queryType,
-            AiModelResponse response) {
-        return messageRepository.save(
-                AiMessage.assistant(
-                        conversationId,
-                        queryType,
-                        response.content(),
-                        clock.instant()));
-    }
-
-    private void saveSuccessLog(
-            Long userId,
-            Long conversationId,
-            AiMessage userMessage,
-            AiMessage assistantMessage,
-            AiQueryType queryType,
-            AiContextBundle context,
-            AiModelResponse response,
-            long latencyMs) {
-        requestLogRepository.save(AiRequestLog.success(
-                userId,
-                conversationId,
-                userMessage.getId(),
-                assistantMessage.getId(),
-                queryType,
-                response.provider(),
-                response.model(),
-                properties.getPromptVersion(),
-                response.inputTokens(),
-                response.outputTokens(),
-                response.totalTokens(),
-                latencyMs,
-                context.typeNames(),
-                clock.instant()));
-    }
-
-    private void saveFailureLog(
-            Long userId,
-            Long conversationId,
-            AiMessage userMessage,
-            AiQueryType queryType,
-            AiContextBundle context,
-            RuntimeException exception,
-            long latencyMs) {
-        requestLogRepository.save(AiRequestLog.failed(
-                userId,
-                conversationId,
-                userMessage.getId(),
-                queryType,
-                chatGateway.provider(),
-                chatGateway.model(),
-                properties.getPromptVersion(),
-                latencyMs,
-                exception.getClass().getSimpleName(),
-                context.typeNames(),
-                clock.instant()));
     }
 
     private static AiProviderUnavailableException providerException(

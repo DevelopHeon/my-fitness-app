@@ -9,4 +9,8 @@ interface SpringDataCustomExerciseRepository extends JpaRepository<CustomExercis
     List<CustomExercise> findAllByUserIdOrderByCategoryAscNameAsc(Long userId);
     Optional<CustomExercise> findByIdAndUserId(Long id, Long userId);
     boolean existsByUserIdAndNameIgnoreCase(Long userId, String name);
+    boolean existsByUserIdAndNameIgnoreCaseAndIdNot(
+            Long userId,
+            String name,
+            Long exerciseId);
 }

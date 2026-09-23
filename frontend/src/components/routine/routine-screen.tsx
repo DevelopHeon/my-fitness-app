@@ -159,6 +159,58 @@ export default function RoutineScreen({
     return true;
   }
 
+  async function handleUpdateCustomExercise(
+    exercise: Exercise,
+    exerciseName: string,
+    category: ExerciseCategory,
+  ) {
+    const updated = await run(() =>
+      workoutApi.updateExercise(
+        exercise.id,
+        exerciseName,
+        category,
+      ),
+    );
+    if (!updated) return false;
+
+    setExercises((current) =>
+      current.map((item) =>
+        item.type === "CUSTOM" && item.id === updated.id
+          ? updated
+          : item,
+      ),
+    );
+    return true;
+  }
+
+  async function handleDeleteCustomExercise(exercise: Exercise) {
+    const deleted = await run(async () => {
+      await workoutApi.deleteExercise(exercise.id);
+      return true;
+    });
+    if (!deleted) return false;
+
+    setExercises((current) =>
+      current.filter(
+        (item) =>
+          !(
+            item.type === "CUSTOM" &&
+            item.id === exercise.id
+          ),
+      ),
+    );
+    setSelectedExercises((current) =>
+      current.filter(
+        (item) =>
+          !(
+            item.exerciseType === "CUSTOM" &&
+            item.exerciseId === exercise.id
+          ),
+      ),
+    );
+    return true;
+  }
+
   function moveExercise(
     index: number,
     offset: -1 | 1,
@@ -191,6 +243,22 @@ export default function RoutineScreen({
     ) {
       setError(
         "루틴 이름과 하나 이상의 운동 종목이 필요합니다.",
+      );
+      return;
+    }
+
+    const unavailableExercise = selectedExercises.some(
+      (exercise) =>
+        !exerciseByKey.has(
+          exerciseKey(
+            exercise.exerciseType,
+            exercise.exerciseId,
+          ),
+        ),
+    );
+    if (unavailableExercise) {
+      setError(
+        "삭제된 운동 종목이 포함되어 있습니다. 해당 종목을 루틴에서 제거한 뒤 저장해주세요.",
       );
       return;
     }
@@ -386,9 +454,9 @@ export default function RoutineScreen({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           {exercise?.name ??
-                            "운동 종목"}
+                            "삭제된 운동 종목"}
                         </p>
-                        {exercise && (
+                        {exercise ? (
                           <p className="mt-0.5 text-[11px] text-zinc-400">
                             {categoryLabel(
                               exercise.category,
@@ -397,6 +465,10 @@ export default function RoutineScreen({
                             "CUSTOM"
                               ? " · 내 운동"
                               : ""}
+                          </p>
+                        ) : (
+                          <p className="mt-0.5 text-[11px] text-red-500">
+                            루틴 저장 전 제거해주세요.
                           </p>
                         )}
                       </div>
@@ -475,7 +547,10 @@ export default function RoutineScreen({
         <CustomExerciseForm
           key={"routine-custom-" + editorVersion}
           busy={busy}
+          exercises={exercises}
           onCreate={handleCreateCustomExercise}
+          onUpdate={handleUpdateCustomExercise}
+          onDelete={handleDeleteCustomExercise}
         />
       </section>
       )}

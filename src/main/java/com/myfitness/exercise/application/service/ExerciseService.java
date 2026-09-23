@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatalogQuery {
     private final ExerciseRepositoryPort exerciseRepository;
     private final CustomExerciseRepositoryPort customExerciseRepository;
@@ -35,18 +37,38 @@ public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatal
         this.clock = clock;
     }
 
+    @Override
+    @Transactional
     public ExerciseReference createCustom(
             Long userId,
             String name,
             ExerciseCategory category) {
         validateUserId(userId);
-        if (exerciseRepository.existsByNameIgnoreCase(name)
-                || customExerciseRepository.existsByUserIdAndNameIgnoreCase(userId, name)) {
-            throw new ExerciseRuleException("이미 등록된 운동 종목입니다.");
-        }
+        validateDuplicateName(userId, null, name);
         return customExerciseRepository.save(
                 CustomExercise.create(userId, name, category, clock.instant()))
                 .toReference();
+    }
+
+    @Override
+    @Transactional
+    public ExerciseReference updateCustom(
+            Long userId,
+            Long exerciseId,
+            String name,
+            ExerciseCategory category) {
+        validateUserId(userId);
+        CustomExercise exercise = getOwnedCustom(userId, exerciseId);
+        validateDuplicateName(userId, exerciseId, name);
+        exercise.update(name, category);
+        return customExerciseRepository.save(exercise).toReference();
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustom(Long userId, Long exerciseId) {
+        validateUserId(userId);
+        customExerciseRepository.delete(getOwnedCustom(userId, exerciseId));
     }
 
     public List<ExerciseReference> list(Long userId) {
@@ -72,6 +94,36 @@ public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatal
         return customExerciseRepository.findByIdAndUserId(exerciseId, userId)
                 .map(CustomExercise::toReference)
                 .orElseThrow(() -> new ExerciseNotFoundException("커스텀 운동 종목"));
+    }
+
+    private CustomExercise getOwnedCustom(Long userId, Long exerciseId) {
+        if (exerciseId == null || exerciseId <= 0) {
+            throw new ExerciseNotFoundException("커스텀 운동 종목");
+        }
+        return customExerciseRepository.findByIdAndUserId(exerciseId, userId)
+                .orElseThrow(() -> new ExerciseNotFoundException("커스텀 운동 종목"));
+    }
+
+    private void validateDuplicateName(
+            Long userId,
+            Long exerciseId,
+            String name) {
+        if (name == null || name.isBlank()) {
+            return;
+        }
+        boolean duplicated = exerciseRepository.existsByNameIgnoreCase(name)
+                || (exerciseId == null
+                        ? customExerciseRepository.existsByUserIdAndNameIgnoreCase(
+                                userId,
+                                name)
+                        : customExerciseRepository
+                                .existsByUserIdAndNameIgnoreCaseAndIdNot(
+                                        userId,
+                                        name,
+                                        exerciseId));
+        if (duplicated) {
+            throw new ExerciseRuleException("이미 등록된 운동 종목입니다.");
+        }
     }
 
     private static void validateUserId(Long userId) {

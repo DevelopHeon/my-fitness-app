@@ -8,4 +8,12 @@ public interface ExerciseManagementUseCase {
             Long userId,
             String name,
             ExerciseCategory category);
+
+    ExerciseReference updateCustom(
+            Long userId,
+            Long exerciseId,
+            String name,
+            ExerciseCategory category);
+
+    void deleteCustom(Long userId, Long exerciseId);
 }

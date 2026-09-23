@@ -30,7 +30,24 @@ public class CustomExerciseRepositoryAdapter implements CustomExerciseRepository
     }
 
     @Override
+    public boolean existsByUserIdAndNameIgnoreCaseAndIdNot(
+            Long userId,
+            String name,
+            Long exerciseId) {
+        return repository.existsByUserIdAndNameIgnoreCaseAndIdNot(
+                userId,
+                name,
+                exerciseId);
+    }
+
+    @Override
     public CustomExercise save(CustomExercise exercise) {
         return repository.saveAndFlush(exercise);
+    }
+
+    @Override
+    public void delete(CustomExercise exercise) {
+        repository.delete(exercise);
+        repository.flush();
     }
 }
