@@ -289,9 +289,6 @@ export default function RoutineScreen({
               카테고리별 운동을 골라 자주 쓰는 조합과 순서를 저장하세요.
             </p>
           </div>
-          <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
-            Phase 2
-          </span>
         </div>
       </header>
 

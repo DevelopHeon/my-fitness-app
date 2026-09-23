@@ -367,9 +367,6 @@ export default function NutritionScreen({ onSelectedDateChange }: Props) {
               자주 먹는 음식을 재사용하고 하루 칼로리와 탄단지를 기록하세요.
             </p>
           </div>
-          <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
-            Phase 5
-          </span>
         </div>
       </header>
 

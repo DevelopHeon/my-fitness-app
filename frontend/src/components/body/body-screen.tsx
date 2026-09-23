@@ -230,9 +230,6 @@ export default function BodyScreen() {
               체중과 체성분을 측정 시각 기준으로 기록하고 변화를 확인하세요.
             </p>
           </div>
-          <span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white">
-            Phase 3
-          </span>
         </div>
       </header>
 
