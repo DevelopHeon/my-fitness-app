@@ -5,12 +5,14 @@ import org.springframework.security.web.csrf.CsrfToken;
 public record CsrfTokenResponse(
         String headerName,
         String parameterName,
-        String token
+        String cookieName
 ) {
+    private static final String SPA_CSRF_COOKIE_NAME = "XSRF-TOKEN";
+
     public static CsrfTokenResponse from(CsrfToken csrfToken) {
         return new CsrfTokenResponse(
                 csrfToken.getHeaderName(),
                 csrfToken.getParameterName(),
-                csrfToken.getToken());
+                SPA_CSRF_COOKIE_NAME);
     }
 }

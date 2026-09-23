@@ -88,10 +88,37 @@ async function getCsrfToken() {
     );
   }
 
-  const token = await response.json() as {
+  const metadata = await response.json() as {
     headerName: string;
-    token: string;
+    cookieName: string;
   };
-  csrfToken = token;
-  return token;
+  const token = readCookie(metadata.cookieName);
+
+  if (!token) {
+    throw new ApiError(
+      "보안 토큰 쿠키를 확인하지 못했습니다.",
+      response.status,
+    );
+  }
+
+  csrfToken = {
+    headerName: metadata.headerName,
+    token,
+  };
+  return csrfToken;
+}
+
+function readCookie(name: string) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const prefix = encodeURIComponent(name) + "=";
+  const cookie = document.cookie
+    .split("; ")
+    .find((value) => value.startsWith(prefix));
+
+  return cookie
+    ? decodeURIComponent(cookie.slice(prefix.length))
+    : null;
 }

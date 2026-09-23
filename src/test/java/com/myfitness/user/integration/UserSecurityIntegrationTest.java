@@ -1,21 +1,29 @@
 package com.myfitness.user.integration;
 
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.myfitness.user.application.port.out.UserRepositoryPort;
 import com.myfitness.user.domain.model.User;
+import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -67,29 +75,55 @@ class UserSecurityIntegrationTest {
                         .value("Security User"));
     }
 
-
     @Test
-    void authenticatedUserCanRequestCsrfToken() throws Exception {
+    void authenticatedUserCanBootstrapSpaCsrfToken() throws Exception {
         mockMvc.perform(get("/api/auth/csrf")
-                        .with(authenticatedUser(1L)))
+                        .session(authenticatedSession()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.headerName").value("X-CSRF-TOKEN"))
+                .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"))
                 .andExpect(jsonPath("$.parameterName").value("_csrf"))
-                .andExpect(jsonPath("$.token").isNotEmpty());
+                .andExpect(jsonPath("$.cookieName").value("XSRF-TOKEN"))
+                .andExpect(cookie().exists("XSRF-TOKEN"));
     }
 
     @Test
     void logoutRequiresCsrfToken() throws Exception {
         mockMvc.perform(post("/logout")
-                        .with(user("test-user")))
+                        .session(authenticatedSession()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void authenticatedLogoutWithCsrfReturnsNoContent()
+    void authenticatedLogoutWithSpaCsrfCookieReturnsNoContent()
             throws Exception {
+        MockHttpSession session = authenticatedSession();
+        MvcResult csrfResult = mockMvc.perform(get("/api/auth/csrf")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Cookie csrfCookie = csrfResult.getResponse().getCookie("XSRF-TOKEN");
+        assertNotNull(csrfCookie);
+
         mockMvc.perform(post("/logout")
-                        .with(authenticatedUser(1L)))
+                        .session(session)
+                        .cookie(csrfCookie)
+                        .header("X-XSRF-TOKEN", csrfCookie.getValue()))
                 .andExpect(status().isNoContent());
+    }
+
+    private static MockHttpSession authenticatedSession() {
+        var securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(
+                        "test-user",
+                        "credentials",
+                        List.of()));
+
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                securityContext);
+        return session;
     }
 }
