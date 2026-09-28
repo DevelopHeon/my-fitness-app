@@ -35,3 +35,10 @@ YYYY-MM-DD-요일-pr-NNN-주제.md
 7. 구현 결과 및 후속 과제
 
 장기 제품 요구사항은 [PRODUCT_SPEC.md](./PRODUCT_SPEC.md)를 기준으로 한다.
+
+## AI 질문 정책 설계
+
+- [AI 질문 정책 검증과 Jev 도입 spec](2026-09-28-mon-pr-012-ai-policy-validation.md): 이전 설계 기록. 현재 운영 계약은 2026-09-29 문서를 따른다.
+- [AI 질문 정책 검증 구현 계획](2026-09-28-mon-pr-012-ai-policy-validation-plan.md): 이전 단계별 설계 기록.
+
+- [JEV 단일 정책 경로 계약](2026-09-29-tue-pr-012-jev-single-path.md) 및 [구현 계획](2026-09-29-tue-pr-012-jev-single-path-plan.md): 현재 운영·검사·배포 설정 기준.

@@ -1,0 +1,11 @@
+{
+  "datasetStatus": "draft-single-author",
+  "caseCount": 24,
+  "targetDevCount": 400,
+  "targetHoldoutCount": 600,
+  "datasetSha256": "a45b49e919765fb3faf24ebeb7d0977ceb59f82308c7ae050bf2b42a8392bdc2",
+  "baselineCommit": "0bd9787b7577b4d5d808f4b8d63d73e830476291",
+  "originalRouterSha256": "46a45d9941c37785f2aa41478a86cbb2ade96e2fc24ffd97e5c7c5e2abac000e",
+  "legacySourceSha256": "4549b4c1561e7a798021a341df413922addb50624bbb1aa857997cbe9b2590c3",
+  "independentReviewComplete": false
+}

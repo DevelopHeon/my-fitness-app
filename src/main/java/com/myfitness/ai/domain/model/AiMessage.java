@@ -88,6 +88,11 @@ public class AiMessage {
                 createdAt);
     }
 
+    public void classify(AiQueryType type) {
+        if (type == null || role != AiMessageRole.USER) throw new AiRuleException("사용자 메시지의 질문 유형이 필요합니다.");
+        queryType = type;
+    }
+
     public Long getId() { return id; }
     public Long getConversationId() { return conversationId; }
     public AiMessageRole getRole() { return role; }

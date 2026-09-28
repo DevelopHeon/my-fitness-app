@@ -1,13 +1,11 @@
-package com.myfitness.ai.application.router;
+package com.myfitness.ai.evaluation.legacy;
 
 import com.myfitness.ai.application.command.AiClientContext;
 import com.myfitness.ai.domain.model.AiQueryType;
 import java.util.Locale;
 import java.util.Set;
-import org.springframework.stereotype.Component;
 
-@Component
-public class AiQueryRouter {
+public class LegacyAiQueryRouter {
     private static final Set<String> WORKOUT = Set.of(
             "운동", "헬스", "웨이트", "루틴", "세트", "반복", "횟수",
             "중량", "벤치", "스쿼트", "데드", "프레스", "로우", "컬",

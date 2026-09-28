@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import java.time.Instant;
 
 @Entity
@@ -67,6 +68,33 @@ public class AiRequestLog {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "policy_mode", length = 20)
+    private String policyMode;
+
+    @Column(name = "policy_version", length = 50)
+    private String policyVersion;
+
+    @Column(name = "policy_decision", length = 30)
+    private String policyDecision;
+
+    @Column(name = "policy_reason", length = 50)
+    private String policyReason;
+
+    @Column(name = "policy_model", length = 100)
+    private String policyModel;
+
+    @Column(name = "policy_latency_ms")
+    private Long policyLatencyMs;
+
+    @Column(name = "policy_input_tokens")
+    private Integer policyInputTokens;
+
+    @Column(name = "policy_error_code", length = 80)
+    private String policyErrorCode;
+
+    @Column(name = "policy_result_json", columnDefinition = "text")
+    private String policyResultJson;
+
     protected AiRequestLog() {}
 
     private AiRequestLog(
@@ -120,10 +148,22 @@ public class AiRequestLog {
             String contextTypes,
             Instant createdAt) {
         return new AiRequestLog(
-                userId, conversationId, userMessageId, assistantMessageId,
-                queryType, provider, model, promptVersion,
-                inputTokens, outputTokens, totalTokens, latencyMs,
-                AiRequestStatus.SUCCESS, null, contextTypes, createdAt);
+                userId,
+                conversationId,
+                userMessageId,
+                assistantMessageId,
+                queryType,
+                provider,
+                model,
+                promptVersion,
+                inputTokens,
+                outputTokens,
+                totalTokens,
+                latencyMs,
+                AiRequestStatus.SUCCESS,
+                null,
+                contextTypes,
+                createdAt);
     }
 
     public static AiRequestLog rejected(
@@ -134,11 +174,22 @@ public class AiRequestLog {
             String promptVersion,
             Instant createdAt) {
         return new AiRequestLog(
-                userId, conversationId, userMessageId, null,
-                queryType, null, null, promptVersion,
-                null, null, null, 0L,
+                userId,
+                conversationId,
+                userMessageId,
+                null,
+                queryType,
+                null,
+                null,
+                promptVersion,
+                null,
+                null,
+                null,
+                0L,
                 AiRequestStatus.REJECTED_OUT_OF_SCOPE,
-                null, null, createdAt);
+                null,
+                null,
+                createdAt);
     }
 
     public static AiRequestLog failed(
@@ -154,27 +205,114 @@ public class AiRequestLog {
             String contextTypes,
             Instant createdAt) {
         return new AiRequestLog(
-                userId, conversationId, userMessageId, null,
-                queryType, provider, model, promptVersion,
-                null, null, null, latencyMs,
-                AiRequestStatus.FAILED, errorCode, contextTypes, createdAt);
+                userId,
+                conversationId,
+                userMessageId,
+                null,
+                queryType,
+                provider,
+                model,
+                promptVersion,
+                null,
+                null,
+                null,
+                latencyMs,
+                AiRequestStatus.FAILED,
+                errorCode,
+                contextTypes,
+                createdAt);
     }
 
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public Long getConversationId() { return conversationId; }
-    public Long getUserMessageId() { return userMessageId; }
-    public Long getAssistantMessageId() { return assistantMessageId; }
-    public AiQueryType getQueryType() { return queryType; }
-    public String getProvider() { return provider; }
-    public String getModel() { return model; }
-    public String getPromptVersion() { return promptVersion; }
-    public Integer getInputTokens() { return inputTokens; }
-    public Integer getOutputTokens() { return outputTokens; }
-    public Integer getTotalTokens() { return totalTokens; }
-    public Long getLatencyMs() { return latencyMs; }
-    public AiRequestStatus getStatus() { return status; }
-    public String getErrorCode() { return errorCode; }
-    public String getContextTypes() { return contextTypes; }
-    public Instant getCreatedAt() { return createdAt; }
+    public void recordPolicy(
+            String version,
+            String decision,
+            String reason,
+            String policyModel,
+            long policyLatencyMs,
+            Integer policyInputTokens,
+            String policyErrorCode,
+            String policyResultJson) {
+        this.policyMode = "jev";
+        this.policyVersion = version;
+        this.policyDecision = decision;
+        this.policyReason = reason;
+        this.policyModel = policyModel;
+        this.policyLatencyMs = policyLatencyMs;
+        this.policyInputTokens = policyInputTokens;
+        this.policyErrorCode = policyErrorCode;
+        this.policyResultJson = policyResultJson;
+    }
+
+    public void recordRejectedAssistant(Long assistantMessageId, AiRequestStatus status) {
+        this.assistantMessageId = assistantMessageId;
+        this.status = status;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Long getConversationId() {
+        return conversationId;
+    }
+
+    public Long getUserMessageId() {
+        return userMessageId;
+    }
+
+    public Long getAssistantMessageId() {
+        return assistantMessageId;
+    }
+
+    public AiQueryType getQueryType() {
+        return queryType;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public String getPromptVersion() {
+        return promptVersion;
+    }
+
+    public Integer getInputTokens() {
+        return inputTokens;
+    }
+
+    public Integer getOutputTokens() {
+        return outputTokens;
+    }
+
+    public Integer getTotalTokens() {
+        return totalTokens;
+    }
+
+    public Long getLatencyMs() {
+        return latencyMs;
+    }
+
+    public AiRequestStatus getStatus() {
+        return status;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public String getContextTypes() {
+        return contextTypes;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

@@ -88,3 +88,11 @@ app:
     history-char-limit: ${AI_HISTORY_CHAR_LIMIT:4000}
     max-message-length: ${AI_MAX_MESSAGE_LENGTH:1000}
     title-max-length: ${AI_TITLE_MAX_LENGTH:60}
+    policy:
+      model: ${AI_POLICY_MODEL:jev-1.13.0}
+      version: ${AI_POLICY_VERSION:fitness-policy-v1}
+      api-key: ${TYPESAFE_API_KEY:}
+      request-timeout: ${AI_POLICY_TIMEOUT:1500ms}
+      review-threshold: ${AI_POLICY_REVIEW_THRESHOLD:0.35}
+      action-threshold: ${AI_POLICY_ACTION_THRESHOLD:0.70}
+      topic-confidence: ${AI_POLICY_TOPIC_CONFIDENCE:0.60}

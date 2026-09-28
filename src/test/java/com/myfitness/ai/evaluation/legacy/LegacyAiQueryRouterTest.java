@@ -1,4 +1,4 @@
-package com.myfitness.ai.application.router;
+package com.myfitness.ai.evaluation.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,8 +8,8 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class AiQueryRouterTest {
-    private final AiQueryRouter router = new AiQueryRouter();
+class LegacyAiQueryRouterTest {
+    private final LegacyAiQueryRouter router = new LegacyAiQueryRouter();
 
     @Test
     @DisplayName("벤치 중량 질문은 Workout 질문으로 분류한다")

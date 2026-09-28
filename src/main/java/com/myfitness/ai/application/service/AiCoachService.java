@@ -7,6 +7,10 @@ import com.myfitness.ai.application.context.AiContextBuilder;
 import com.myfitness.ai.application.context.AiContextBundle;
 import com.myfitness.ai.application.exception.AiConversationAccessException;
 import com.myfitness.ai.application.exception.AiConversationNotFoundException;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.policy.AiPolicyDecision;
+import com.myfitness.ai.application.policy.AiPolicyGuard;
+import com.myfitness.ai.application.policy.AiPolicyRun;
 import com.myfitness.ai.application.port.in.AiCoachUseCase;
 import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
 import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
@@ -14,17 +18,18 @@ import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
 import com.myfitness.ai.application.result.AiConversationResult;
 import com.myfitness.ai.application.result.AiMessageResult;
 import com.myfitness.ai.application.result.AiSendMessageResult;
-import com.myfitness.ai.application.router.AiQueryRouter;
 import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
-import java.time.Clock;
-import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -35,7 +40,7 @@ public class AiCoachService implements AiCoachUseCase {
     private final AiConversationRepositoryPort conversationRepository;
     private final AiMessageRepositoryPort messageRepository;
     private final AiRequestLogRepositoryPort requestLogRepository;
-    private final AiQueryRouter queryRouter;
+    private final AiPolicyGuard policyGuard;
     private final AiContextBuilder contextBuilder;
     private final AiHistorySelector historySelector;
     private final AiProviderExecutor providerExecutor;
@@ -48,7 +53,7 @@ public class AiCoachService implements AiCoachUseCase {
             AiConversationRepositoryPort conversationRepository,
             AiMessageRepositoryPort messageRepository,
             AiRequestLogRepositoryPort requestLogRepository,
-            AiQueryRouter queryRouter,
+            AiPolicyGuard policyGuard,
             AiContextBuilder contextBuilder,
             AiHistorySelector historySelector,
             AiProviderExecutor providerExecutor,
@@ -58,7 +63,7 @@ public class AiCoachService implements AiCoachUseCase {
                 conversationRepository,
                 messageRepository,
                 requestLogRepository,
-                queryRouter,
+                policyGuard,
                 contextBuilder,
                 historySelector,
                 providerExecutor,
@@ -71,7 +76,7 @@ public class AiCoachService implements AiCoachUseCase {
             AiConversationRepositoryPort conversationRepository,
             AiMessageRepositoryPort messageRepository,
             AiRequestLogRepositoryPort requestLogRepository,
-            AiQueryRouter queryRouter,
+            AiPolicyGuard policyGuard,
             AiContextBuilder contextBuilder,
             AiHistorySelector historySelector,
             AiProviderExecutor providerExecutor,
@@ -81,7 +86,7 @@ public class AiCoachService implements AiCoachUseCase {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.requestLogRepository = requestLogRepository;
-        this.queryRouter = queryRouter;
+        this.policyGuard = policyGuard;
         this.contextBuilder = contextBuilder;
         this.historySelector = historySelector;
         this.providerExecutor = providerExecutor;
@@ -100,21 +105,17 @@ public class AiCoachService implements AiCoachUseCase {
     @Override
     @Transactional
     public AiConversationResult createConversation(Long userId) {
-        AiConversation conversation = conversationRepository.save(
-                AiConversation.create(userId, clock.instant()));
+        AiConversation conversation =
+                conversationRepository.save(AiConversation.create(userId, clock.instant()));
         return AiConversationResult.from(conversation);
     }
 
     @Override
     @Transactional
-    public AiConversationResult renameConversation(
-            Long userId,
-            Long conversationId,
-            String title) {
+    public AiConversationResult renameConversation(Long userId, Long conversationId, String title) {
         AiConversation conversation = getOwned(userId, conversationId);
         conversation.rename(title, clock.instant());
-        return AiConversationResult.from(
-                conversationRepository.save(conversation));
+        return AiConversationResult.from(conversationRepository.save(conversation));
     }
 
     @Override
@@ -127,12 +128,9 @@ public class AiCoachService implements AiCoachUseCase {
     }
 
     @Override
-    public List<AiMessageResult> listMessages(
-            Long userId,
-            Long conversationId) {
+    public List<AiMessageResult> listMessages(Long userId, Long conversationId) {
         getOwned(userId, conversationId);
-        return messageRepository.findAllByConversationId(conversationId)
-                .stream()
+        return messageRepository.findAllByConversationId(conversationId).stream()
                 .map(AiMessageResult::from)
                 .toList();
     }
@@ -140,74 +138,79 @@ public class AiCoachService implements AiCoachUseCase {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiSendMessageResult sendMessage(
-            Long userId,
-            Long conversationId,
-            AiMessageCommand command) {
-        String message = validateMessage(
-                command == null ? null : command.message());
-        AiClientContext clientContext =
-                command == null ? null : command.clientContext();
+            Long userId, Long conversationId, AiMessageCommand command) {
+        String message = validateMessage(command == null ? null : command.message());
+        AiClientContext clientContext = command == null ? null : command.clientContext();
 
         List<AiMessage> previousMessages =
-                transactionService.loadMessagesForOwnedConversation(
-                        userId,
-                        conversationId);
-        AiQueryType queryType = queryRouter.route(
-                message,
-                clientContext,
-                historySelector.latestUserQueryType(previousMessages));
-
+                transactionService.loadMessagesForOwnedConversation(userId, conversationId);
         AiMessageTransactionService.UserMessageWrite userWrite =
-                transactionService.saveUserMessage(
-                        userId,
-                        conversationId,
-                        queryType,
-                        message);
+                transactionService.saveUserMessage(userId, conversationId, message);
         AiConversation conversation = userWrite.conversation();
         AiMessage userMessage = userWrite.userMessage();
 
-        if (queryType == AiQueryType.OUT_OF_SCOPE) {
+        AiPolicyRun.Success policy =
+                switch (policyGuard.evaluate(message, clientContext, previousMessages)) {
+                    case AiPolicyRun.Success success -> success;
+                    case AiPolicyRun.Failure failure -> {
+                        transactionService.savePolicyFailure(
+                                userId, conversationId, userMessage, failure);
+                        throw new AiPolicyUnavailableException(failure.errorCode());
+                    }
+                };
+        AiPolicyDecision decision = policy.decision();
+        AiQueryType queryType = decision.storedQueryType();
+        userMessage =
+                transactionService.classifyUserMessage(
+                        userId, conversationId, userMessage, queryType);
+        if (decision.action() != AiPolicyDecision.Action.ALLOW) {
             AiMessage assistantMessage =
                     transactionService.saveRejectedResponse(
                             userId,
                             conversationId,
                             userMessage,
                             queryType,
-                            OUT_OF_SCOPE_MESSAGE);
+                            policyMessage(decision),
+                            policy);
             return result(
-                    conversation,
-                    userMessage,
-                    assistantMessage,
-                    false);
+                    conversation, userMessage, assistantMessage, false, decision.action().name());
         }
 
-        AiContextBundle context = contextBuilder.build(
-                userId,
-                queryType,
-                clientContext,
-                message);
-        AiMessage assistantMessage = providerExecutor.generate(
-                userId,
-                conversationId,
-                userMessage,
-                queryType,
-                context,
-                historySelector.select(previousMessages, queryType),
-                message);
+        AiContextBundle context = contextBuilder.build(userId, queryType, clientContext, message);
+        AiMessage assistantMessage =
+                providerExecutor.generate(
+                        userId,
+                        conversationId,
+                        userMessage,
+                        queryType,
+                        context,
+                        historySelector.select(previousMessages, queryType),
+                        message,
+                        policy);
 
-        return result(
-                conversation,
-                userMessage,
-                assistantMessage,
-                true);
+        return result(conversation, userMessage, assistantMessage, true, decision.action().name());
     }
 
-    private AiConversation getOwned(
-            Long userId,
-            Long conversationId) {
-        AiConversation conversation = conversationRepository
-                .findById(conversationId)
-                .orElseThrow(AiConversationNotFoundException::new);
+    private static String policyMessage(AiPolicyDecision decision) {
+        return switch (decision.action()) {
+            case SAFE_REDIRECT ->
+                    "의료 진단, 치료·약물·질병 식단 처방이나 위험한 운동·식단 실행은 도와드릴 수 없습니다. 심한 통증, 실신 또는 심각한 부상이 있으면"
+                        + " 운동을 계속하지 말고 전문 의료진의 확인을 받아 주세요.";
+            case CLARIFY -> "어떤 운동, 신체 기록 또는 식단·영양에 대해 질문하시는지 조금 더 구체적으로 알려 주세요.";
+            case BLOCK ->
+                    decision.reason().equals("OUT_OF_SCOPE")
+                            ? OUT_OF_SCOPE_MESSAGE
+                            : "앱의 안전 규칙을 우회하거나 내부 지시를 공개하는 요청은 도와드릴 수 없습니다. 운동, 신체 기록, 식단·영양에 대해"
+                                  + " 질문해 주세요.";
+            case ALLOW -> throw new IllegalArgumentException("허용 질문에는 거절 안내를 만들지 않습니다.");
+        };
+    }
+
+    private AiConversation getOwned(Long userId, Long conversationId) {
+        AiConversation conversation =
+                conversationRepository
+                        .findById(conversationId)
+                        .orElseThrow(AiConversationNotFoundException::new);
         if (!conversation.belongsTo(userId)) {
             throw new AiConversationAccessException();
         }
@@ -220,9 +223,7 @@ public class AiCoachService implements AiCoachUseCase {
         }
         String normalized = message.trim();
         if (normalized.length() > properties.getMaxMessageLength()) {
-            throw new AiRuleException(
-                    "질문은 " + properties.getMaxMessageLength()
-                            + "자 이하로 입력해 주세요.");
+            throw new AiRuleException("질문은 " + properties.getMaxMessageLength() + "자 이하로 입력해 주세요.");
         }
         return normalized;
     }
@@ -231,11 +232,13 @@ public class AiCoachService implements AiCoachUseCase {
             AiConversation conversation,
             AiMessage userMessage,
             AiMessage assistantMessage,
-            boolean providerCalled) {
+            boolean providerCalled,
+            String policyDecision) {
         return new AiSendMessageResult(
                 AiConversationResult.from(conversation),
                 AiMessageResult.from(userMessage),
                 AiMessageResult.from(assistantMessage),
-                providerCalled);
+                providerCalled,
+                policyDecision);
     }
 }

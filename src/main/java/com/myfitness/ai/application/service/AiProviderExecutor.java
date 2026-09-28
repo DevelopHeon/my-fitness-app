@@ -11,6 +11,7 @@ import com.myfitness.ai.application.prompt.AiSystemPrompt;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
 import java.util.List;
+import com.myfitness.ai.application.policy.AiPolicyRun;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -35,7 +36,8 @@ public class AiProviderExecutor {
             AiQueryType queryType,
             AiContextBundle context,
             List<HistoryMessage> history,
-            String message) {
+            String message,
+            AiPolicyRun.Success policy) {
         long started = System.nanoTime();
         try {
             AiModelResponse response = chatGateway.chat(
@@ -47,7 +49,7 @@ public class AiProviderExecutor {
                     queryType,
                     context,
                     response,
-                    elapsedMillis(started));
+                    elapsedMillis(started), policy);
         } catch (RuntimeException exception) {
             transactionService.saveProviderFailure(
                     userId,
@@ -58,7 +60,7 @@ public class AiProviderExecutor {
                     chatGateway.provider(),
                     chatGateway.model(),
                     exception,
-                    elapsedMillis(started));
+                    elapsedMillis(started), policy);
             throw providerException(exception);
         }
     }

@@ -4,5 +4,6 @@ public record AiSendMessageResult(
         AiConversationResult conversation,
         AiMessageResult userMessage,
         AiMessageResult assistantMessage,
-        boolean providerCalled
+        boolean providerCalled,
+        String policyDecision
 ) {}

@@ -100,3 +100,26 @@ Phase는 다음 조건을 모두 만족해야 완료로 본다.
 - 한글 커밋 및 GitHub push
 
 수동 테스트는 사용자가 요청하거나 자동화가 어려운 UX/PWA/Ollama 검증이 필요한 경우 별도 문서로 작성한다.
+
+## AI 정책 평가 (PR-012)
+
+기본 `./gradlew test`는 외부 API 평가 tag를 제외하고 로컬 HTTP 계약·임계값·실패·생성 차단·이력·영속성 검증을 실행한다. 운영 아키텍처 검사 대상에는 테스트 fixture가 포함되지 않는다. 컨벤션·구조 검증 후 정책 동작 테스트를 실행하고 전체 backend/frontend 빌드를 확인한다.
+
+Java 21 환경에서 명시적으로 실행한다:
+
+```bash
+./gradlew checkstyleMain checkstyleTest
+./gradlew test --tests 'com.myfitness.architecture.*'
+./gradlew test --tests 'com.myfitness.ai.*'
+./gradlew aiPolicyEval -PaiPolicyEval.mode=legacy
+./gradlew aiPolicyEval -PaiPolicyEval.mode=jev-live -PaiPolicyEval.runs=3
+./gradlew aiPolicyEval -PaiPolicyEval.mode=replay -PaiPolicyEval.replay=/absolute/path/to/cases.jsonl
+```
+
+live는 서버 환경의 `TYPESAFE_API_KEY`가 없으면 실패하며 대역으로 대체하지 않는다. custom dataset은 `-PaiPolicyEval.dataset=/absolute/path/to/corpus.jsonl`로 지정하고 두 검토자의 reviewed 라벨이 필요하다. 기본 seed는 24개 초안이며 승격 근거가 아니다. 1000개 합성 기준선도 초안이므로 `-PaiPolicyEval.allowDraft=true`를 명시해 실행한다. 50 family ×20 표현 변형이며 독립 표본 1000개로 해석하지 않는다. 저장된 [변경 전 판정](ai-policy/baseline-1000-v1/comparison.md)을 일반 테스트에서 hash와 판정별로 재현한다.
+
+`build/reports/ai-policy/<batch-id>/run-N/`에 manifest/cases/metrics/comparison, batch root에 aggregate.json을 저장한다. 코드 SHA와 미커밋 source hash, dataset/questions/policy hash, 모델, 임계값, runtime, 실패와 unknown 사용량을 보존한다. 한국어와 위험 유형 slice, topic F1, coverage, 보정 오차, Wilson·family bootstrap CI와 같은 case의 반복 변동을 보고한다. replay에는 원격 지연·비용을 보고하지 않는다. 현재 도구 범위는 입력 gate이며 실제 생성 비용·E2E 노출 답변 위반률은 미측정이다.
+
+마이그레이션 호환 테스트는 변경하지 않은 V6와 신규 V10 SQL을 H2에서 실행한다. TIMESTAMPTZ alias를 사용하는 H2 검증이며 실제 PostgreSQL/Flyway staging 검증을 대신하지 않는다.
+
+Java var 금지는 가독성 컨벤션이다. `config/checkstyle/checkstyle.xml`의 MatchXpath가 `//TYPE/IDENT[@text='var']`를 검사한다. `JavaConventionTest`가 local/final/for/enhanced-for/resource/lambda 위반과 이름·주석·문자열의 정상 사례를 검증한다. Checkstyle은 test 선행 작업과 check/build/CI에 연결된다. ArchUnit/Modulith 규칙과 예외를 완화하지 않는다. 배포 parameter 연결은 `python3 scripts/test-ai-policy-deploy.py`로 AWS/Docker 없이 검증한다.

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.myfitness.ai.application.port.out.AiChatGateway;
+import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import java.util.concurrent.CompletableFuture;
@@ -119,6 +120,13 @@ class AiMessagePersistenceIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     static class BlockingAiConfiguration {
+        @Bean
+        @Primary
+        AiPolicyGateway policyGateway() {
+            return request -> new AiPolicyGateway.AiPolicyAssessment("jev-1.13.0",0,0,0,0,
+                    new AiPolicyGateway.TopicAssessment("WORKOUT",AiPolicyGateway.TOPICS.stream().collect(
+                            java.util.stream.Collectors.toMap(topic -> topic, topic -> topic.equals("WORKOUT") ? 1.0 : 0.0)),1),1,1);
+        }
         @Bean
         @Primary
         BlockingAiChatGateway blockingAiChatGateway() {

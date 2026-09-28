@@ -491,7 +491,7 @@ Browser
   ↓
 Spring Boot AI Coach API
   ↓
-Java Router / Context Builder
+AiPolicyGuard (필수 JEV 평가) / Context Builder
   ↓
 AiChatGateway
   ↓
@@ -603,3 +603,11 @@ MVP는 Phase 1~6 완료 시점으로 정의한다.
 - MSA 및 분산 인프라
 - RAG
 - 의료 진단 및 치료 목적 기능
+
+## AI 질문 사전 검증 구현 상태 (PR-012)
+
+모든 정상 AI 메시지는 답변 생성 전에 TypeSafe JEV 정책 평가를 거친다. 의료 판단·위험 실행 요청은 SAFE_REDIRECT, 정책 우회·범위 밖은 BLOCK, 위험/주제 불확실성은 CLARIFY로 고정 안내를 저장한다. ALLOW에만 개인 Context 조회와 답변 생성이 발생한다. JEV 시간 초과·통신 오류·응답 오류·key 누락은 AI_POLICY_UNAVAILABLE / 503으로 끝나며 답변을 생성하지 않는다. 주제는 JEV 결과를 사용한다.
+
+운영 legacy/shadow 모드와 Router는 제거했다. 과거 migration/log는 보존하고 기존 방식은 test-only 비교군에만 남긴다. API의 policyDecision과 providerCalled, 정책/생성 추적 정보 분리 계약을 유지한다. 모델 변수는 AI_POLICY_MODEL이다.
+
+변경 전에 합성 50 family ×20 표현 변형의 1000개 기존 판정을 보존했다. 제한 누락 340/400(85%), 정상 오차단 40/400(10%)이며 독립 사람 정답·1000개 독립 표본·실제 JEV 성능을 뜻하지 않는다. 실제 JEV 변경 후 품질·비용·지연·가용성·E2E 안전성은 미측정이다. [최신 계약](2026-09-29-tue-pr-012-jev-single-path.md)과 [검증 결과](../testing/ai-policy/2026-09-29-jev-single-path-results.md)를 참조한다.

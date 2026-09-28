@@ -6,7 +6,8 @@ public record AiSendMessageResponse(
         AiConversationResponse conversation,
         AiMessageResponse userMessage,
         AiMessageResponse assistantMessage,
-        boolean providerCalled
+        boolean providerCalled,
+        String policyDecision
 ) {
     public static AiSendMessageResponse from(
             AiSendMessageResult result) {
@@ -14,6 +15,6 @@ public record AiSendMessageResponse(
                 AiConversationResponse.from(result.conversation()),
                 AiMessageResponse.from(result.userMessage()),
                 AiMessageResponse.from(result.assistantMessage()),
-                result.providerCalled());
+                result.providerCalled(), result.policyDecision());
     }
 }

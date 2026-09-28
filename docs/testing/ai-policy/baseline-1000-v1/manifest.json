@@ -1,0 +1,45 @@
+{
+  "mode": "legacy",
+  "scope": "INPUT_GATE_ONLY",
+  "dataset": "src/test/resources/ai-policy/synthetic-baseline-1000-v1.jsonl",
+  "datasetHash": "e0bce629e9ddd2d7a2c033bd911443cf0dc8000d238f023b259b487c3a913286",
+  "labelStatus": "draft-synthetic",
+  "caseCount": 1000,
+  "run": 1,
+  "requestedModel": "jev-1.13.0",
+  "actualModels": [],
+  "policyVersion": "fitness-policy-v1",
+  "questionsHash": "97f72cee2b22878f6696ae3987b15d627e2ee949f85c2beace135abc154e4f51",
+  "thresholds": {
+    "topicConfidence": 0.6,
+    "action": 0.7,
+    "review": 0.35
+  },
+  "policyHash": "84709f8a167ba0ff03b6f31187bb260cabaf3f03659bb97fb3e4321be0815af9",
+  "pricePerMillionInputUsd": null,
+  "priceStatus": "published-rate-estimate; confirm account billing before promotion",
+  "concurrency": 1,
+  "retries": 0,
+  "timeoutMs": 1500,
+  "bootstrapIterations": 2000,
+  "bootstrapSeed": 20260928,
+  "generatedAt": "2026-09-28T15:04:56.804038Z",
+  "sourceHash": "138f43881265f9d20901608534328c4b4f9a8e877038433fb9b2b8410420458d",
+  "runtime": {
+    "java": "21.0.11",
+    "os": "Mac OS X"
+  },
+  "codeSha": "0bd9787b7577b4d5d808f4b8d63d73e830476291",
+  "workingTreeDirty": true,
+  "promotionReady": false,
+  "unmeasured": [
+    "independent holdout quality if draft",
+    "E2E response safety",
+    "generation cost",
+    "whole HTTP latency",
+    "staging availability"
+  ],
+  "semanticFamilies": 50,
+  "variantsPerFamily": 20,
+  "capture": "Before single-path production changes; immutable test-only original Router"
+}

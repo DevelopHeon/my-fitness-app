@@ -3,7 +3,6 @@ package com.myfitness.ai.application.service;
 import com.myfitness.ai.application.config.AiCoachProperties;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
 import com.myfitness.ai.domain.model.AiMessage;
-import com.myfitness.ai.domain.model.AiMessageRole;
 import com.myfitness.ai.domain.model.AiQueryType;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,15 +14,6 @@ public class AiHistorySelector {
 
     public AiHistorySelector(AiCoachProperties properties) {
         this.properties = properties;
-    }
-
-    public AiQueryType latestUserQueryType(List<AiMessage> messages) {
-        return messages.stream()
-                .filter(message ->
-                        message.getRole() == AiMessageRole.USER)
-                .map(AiMessage::getQueryType)
-                .reduce((first, second) -> second)
-                .orElse(null);
     }
 
     public List<HistoryMessage> select(

@@ -2,6 +2,7 @@
 
 이 디렉터리는 프로젝트의 테스트 전략과 요청 시 사람이 직접 검증할 수 있는 수동 테스트 절차를 기록한다.
 
+- AI 정책 평가·검증 결과: [구현 검증 기록](./ai-policy/2026-09-29-jev-single-path-results.md)
 - 자동 테스트 원칙: [AUTOMATED_TEST_STRATEGY.md](./AUTOMATED_TEST_STRATEGY.md)
 - 수동 테스트 템플릿: [MANUAL_TEST_TEMPLATE.md](./MANUAL_TEST_TEMPLATE.md)
 

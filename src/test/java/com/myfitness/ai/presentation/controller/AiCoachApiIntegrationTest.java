@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.myfitness.ai.application.port.out.AiChatGateway;
+import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +39,7 @@ class AiCoachApiIntegrationTest {
     @Autowired ObjectMapper objectMapper;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired FakeAiChatGateway fakeGateway;
+    @Autowired StubPolicyGateway policyGateway;
 
     private MockMvc mockMvc;
 
@@ -50,6 +52,7 @@ class AiCoachApiIntegrationTest {
         jdbcTemplate.update("delete from ai_messages");
         jdbcTemplate.update("delete from ai_conversations");
         fakeGateway.reset();
+        policyGateway.topic = "WORKOUT";
     }
 
     @Test
@@ -68,6 +71,7 @@ class AiCoachApiIntegrationTest {
     @Test
     @DisplayName("앱 범위 밖 질문은 AI Provider를 호출하지 않고 안내 메시지를 저장한다")
     void rejectsOutOfScopeQuestionWithoutProviderCall() throws Exception {
+        policyGateway.topic = "OUT_OF_SCOPE";
         long conversationId = createConversation(1L);
 
         mockMvc.perform(post(
@@ -99,6 +103,7 @@ class AiCoachApiIntegrationTest {
     @Test
     @DisplayName("Nutrition 질문은 개인 영양 Context와 함께 Provider를 호출하고 토큰 사용량을 저장한다")
     void sendsNutritionContextAndStoresProviderUsage() throws Exception {
+        policyGateway.topic = "NUTRITION";
         long conversationId = createConversation(1L);
 
         mockMvc.perform(post(
@@ -158,7 +163,9 @@ class AiCoachApiIntegrationTest {
     void excludesUnrelatedConversationHistory() throws Exception {
         long conversationId = createConversation(1L);
 
+        policyGateway.topic = "NUTRITION";
         send(conversationId, "오늘 식단 평가해줘", 1L);
+        policyGateway.topic = "WORKOUT";
         send(conversationId, "오늘 운동 어떻게 할까?", 1L);
 
         assertThat(fakeGateway.calls()).isEqualTo(2);
@@ -266,11 +273,26 @@ class AiCoachApiIntegrationTest {
     static class FakeAiConfiguration {
         @Bean
         @Primary
+        StubPolicyGateway stubPolicyGateway() {
+            return new StubPolicyGateway();
+        }
+        @Bean
+        @Primary
         FakeAiChatGateway fakeAiChatGateway() {
             return new FakeAiChatGateway();
         }
     }
 
+    static class StubPolicyGateway implements AiPolicyGateway {
+        private String topic = "WORKOUT";
+        @Override
+        public AiPolicyAssessment assess(AiPolicyRequest request) {
+            java.util.Map<String,Double> probabilities = TOPICS.stream().collect(
+                    java.util.stream.Collectors.toMap(option -> option, option -> option.equals(topic) ? 1.0 : 0.0));
+            return new AiPolicyAssessment("jev-1.13.0",0,0,0,0,
+                    new TopicAssessment(topic,probabilities,1),1,1);
+        }
+    }
     static class FakeAiChatGateway implements AiChatGateway {
         private final AtomicInteger calls = new AtomicInteger();
         private AiModelRequest lastRequest;
