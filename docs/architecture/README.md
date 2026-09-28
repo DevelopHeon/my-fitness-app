@@ -146,6 +146,30 @@ flowchart LR
 
 이 규칙은 package-info.java의 Spring Modulith allowedDependencies로 검증합니다.
 
+### 모듈 간 통신: Direct Call과 Event
+
+현재 모듈 간 통신은 **공개 Named Interface의 In Port를 동기 호출**하는 방식을 기본으로 사용합니다.
+
+이 선택은 모듈 경계를 느슨하게 만들기 위한 것이 아니라, 호출자가 같은 요청 안에서 결과를 바로 필요로 하는 흐름에 맞춘 것입니다.
+
+- Routine → Workout: 루틴으로 Workout을 시작하고 생성 결과와 이전 기록을 즉시 반환해야 합니다.
+- Dashboard → Workout / Body: 화면을 만들기 위한 조회 결과가 즉시 필요합니다.
+- AI → Workout / Body / Nutrition: Prompt Context를 만들기 위한 조회 결과가 즉시 필요합니다.
+
+따라서 현재 구조는 Domain 구현이나 Repository를 직접 호출하지 않고 다음처럼 공개 계약을 사용합니다.
+
+~~~text
+Consumer Application
+        ↓
+Named Interface / In Port
+        ↓
+Provider Application Service
+~~~
+
+Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사용합니다. 예를 들어 향후 Workout 완료 이후 알림, 통계 사전 집계, 감사 기록처럼 eventual consistency를 허용할 수 있는 기능이 생기면 event 기반 분리를 검토합니다.
+
+현재 흐름을 event로 바꾸면 request/reply, retry, idempotency, event persistence 같은 복잡도가 추가되지만 얻는 이점이 크지 않아 도입하지 않았습니다.
+
 ---
 
 ## 5. 모듈 내부 구조
@@ -305,15 +329,40 @@ Dashboard와 AI는 다른 기능의 Repository를 직접 읽지 않고 읽기 �
 
 ---
 
-## 9. 경계 검증
+## 9. 경계 검증과 자동 문서화
 
 아키텍처 규칙은 설명 문서에만 의존하지 않습니다.
 
-- Spring Modulith: application module과 Named Interface 검증
-- ArchUnit: 계층과 annotation 위치 검증
+- Spring Modulith `ApplicationModules.verify()`: application module, 공개 Named Interface, 순환 의존 검증
+- ArchUnit: 계층, annotation 위치, transaction boundary 검증
 - Integration Test: HTTP, transaction, persistence 경계 검증
+- Spring Modulith `Documenter`: 실제 코드에서 감지한 Backend application module 관계와 module canvas 생성
 
-구조를 바꿀 때는 package-info.java, architecture test, 이 문서를 같은 변경 단위에서 갱신합니다.
+자동 문서는 다음 테스트로 생성합니다.
+
+~~~bash
+./gradlew test --tests com.myfitness.architecture.ModulithDocumentationTest
+~~~
+
+생성 위치:
+
+~~~text
+build/spring-modulith-docs/
+~~~
+
+Documenter가 생성하는 C4 스타일 component diagram은 **Spring Boot 내부 application module 관계**를 코드에서 자동 추출한 결과입니다. 이 문서의 System Context / Container 다이어그램처럼 Browser, Caddy, RDS, Google, OpenAI, AWS runtime까지 포함하는 전체 C4 모델을 대체하지 않습니다.
+
+따라서 역할을 다음처럼 구분합니다.
+
+~~~text
+docs/architecture/README.md
+  → 사람이 설명하는 System Context / Container / 설계 판단
+
+build/spring-modulith-docs
+  → 테스트가 실제 코드에서 생성하는 Backend Module 구조
+~~~
+
+구조를 바꿀 때는 package-info.java, architecture test, 자동 생성 결과, 이 문서를 같은 변경 단위에서 확인합니다.
 
 ---
 

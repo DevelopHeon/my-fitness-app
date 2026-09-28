@@ -19,13 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 
 class LayerArchitectureTest {
-    private static final List<String> IMPLEMENTED_MODULES = List.of(
+    private static final List<String> FEATURE_MODULES = List.of(
             "exercise",
             "workout",
             "routine",
             "body",
             "nutrition",
-            "dashboard");
+            "dashboard",
+            "ai",
+            "user");
 
     private final JavaClasses classes =
             new ClassFileImporter().importPackages("com.myfitness");
@@ -228,8 +230,8 @@ class LayerArchitectureTest {
     @Test
     @DisplayName("기능 모듈의 Presentation은 다른 기능 모듈 Presentation을 직접 참조하지 않는다")
     void featurePresentationsDoNotDependOnOtherPresentations() {
-        for (String module : IMPLEMENTED_MODULES) {
-            String[] otherPresentationPackages = IMPLEMENTED_MODULES.stream()
+        for (String module : FEATURE_MODULES) {
+            String[] otherPresentationPackages = FEATURE_MODULES.stream()
                     .filter(other -> !other.equals(module))
                     .map(other -> "com.myfitness." + other + ".presentation..")
                     .toArray(String[]::new);
@@ -247,8 +249,8 @@ class LayerArchitectureTest {
     @Test
     @DisplayName("기능 모듈의 Infrastructure는 다른 기능 모듈 Infrastructure를 직접 참조하지 않는다")
     void featureInfrastructuresDoNotDependOnOtherInfrastructures() {
-        for (String module : IMPLEMENTED_MODULES) {
-            String[] otherInfrastructurePackages = IMPLEMENTED_MODULES.stream()
+        for (String module : FEATURE_MODULES) {
+            String[] otherInfrastructurePackages = FEATURE_MODULES.stream()
                     .filter(other -> !other.equals(module))
                     .map(other -> "com.myfitness." + other + ".infrastructure..")
                     .toArray(String[]::new);
@@ -266,7 +268,7 @@ class LayerArchitectureTest {
     @Test
     @DisplayName("Exercise 기반 모듈은 다른 기능 모듈에 의존하지 않는다")
     void exerciseModuleDoesNotDependOnFeatureModules() {
-        String[] forbiddenPackages = IMPLEMENTED_MODULES.stream()
+        String[] forbiddenPackages = FEATURE_MODULES.stream()
                 .filter(module -> !module.equals("exercise"))
                 .map(module -> "com.myfitness." + module + "..")
                 .toArray(String[]::new);
