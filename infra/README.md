@@ -1,61 +1,82 @@
-# My Fitness AWS Infrastructure
+# My Fitness AWS CDK
 
-AWS CDK v2 / TypeScript infrastructure for the production environment.
+production AWS 인프라를 정의하는 CDK v2 / TypeScript 프로젝트입니다.
+
+전체 인프라 구조와 운영 방법은 아래 문서를 먼저 참고합니다.
+
+- [Infrastructure Overview](../docs/infra/README.md)
+- [Operations](../docs/infra/OPERATIONS.md)
 
 ## Stacks
 
-- `MyFitnessNetwork`: VPC, public/isolated subnets, application/database security groups
-- `MyFitnessDatabase`: PostgreSQL 17 `db.t4g.micro`, Single-AZ, encrypted gp3 storage
-- `MyFitnessApplication`: `t4g.micro` EC2, ECR, Elastic IP, runtime SSM parameters
-- `MyFitnessCicd`: GitHub Actions OIDC provider and least-privilege deploy role
+- MyFitnessNetwork: VPC, public / isolated subnet, security group
+- MyFitnessDatabase: PostgreSQL RDS와 generated secret
+- MyFitnessApplication: EC2, Elastic IP, ECR, EC2 IAM Role, runtime SSM parameter
+- MyFitnessCicd: GitHub Actions OIDC와 deploy IAM Role
 
-## Region
+Region은 ap-northeast-2를 기본으로 사용합니다.
 
-Production targets `ap-northeast-2` (Seoul).
+## Verify
 
-## Verification
-
-```bash
+~~~bash
 npm ci
 npm run build
 npm test -- --runInBand
 npx cdk synth
 npx cdk diff
-```
+~~~
 
-## Deployment
+## Deploy
 
-```bash
-AWS_DEFAULT_REGION=ap-northeast-2 npx cdk deploy \
-  MyFitnessNetwork \
-  MyFitnessDatabase \
-  MyFitnessApplication \
-  MyFitnessCicd
-```
+항상 cdk diff를 먼저 확인하고 필요한 Stack만 배포합니다.
 
-## Runtime deployment
+~~~bash
+npx cdk deploy <StackName> --exclusively
+~~~
 
-Application releases are not built on EC2.
+EC2 UserData나 네트워크 변경은 resource replacement로 이어질 수 있으므로 전체 Stack을 습관적으로 배포하지 않습니다.
 
-1. GitHub Actions builds a `linux/arm64` image.
-2. The image is pushed to ECR with the Git commit SHA.
-3. GitHub assumes the AWS deploy role through OIDC.
-4. SSM Run Command invokes `scripts/deploy-ec2.sh`.
-5. EC2 pulls the image, starts one Spring Boot container and checks `/actuator/health`.
-6. A failed health check restores the previous image.
+## Application Release
 
-SSH is not required or opened.
+애플리케이션 release는 CDK deploy와 별개입니다.
 
-## EC2 bootstrap note
+GitHub Actions가 다음 순서로 처리합니다.
 
-Amazon Linux 2023 includes `curl-minimal`. Do not install the full `curl` package in the bootstrap package set because DNF can stop on a `curl-minimal` package conflict.
+~~~text
+CI
+ → ARM64 Docker image
+ → ECR
+ → SSM Run Command
+ → scripts/deploy-ec2.sh
+ → EC2 health check
+ → success 또는 previous image rollback
+~~~
 
-The bootstrap installs Docker and jq, enables Docker, creates a 2 GiB swap file and stores the AWS region under `/opt/my-fitness/region`.
+EC2에서 애플리케이션을 직접 build하지 않습니다.
+
+SSH도 사용하지 않습니다.
 
 ## HTTPS
 
-Caddy and Route 53 application DNS configuration are intentionally deferred until the production domain is chosen. The application container is bound only to `127.0.0.1:8080`; production traffic must eventually enter through the reverse proxy on ports 80/443.
+production DNS는 Route 53의 dev-heon.com을 사용하고, EC2의 Caddy가 TLS와 reverse proxy를 담당합니다.
 
-## GitHub OIDC
+Caddy 설정 스크립트:
 
-This repository has GitHub immutable OIDC subjects enabled. The IAM trust policy therefore uses the immutable owner/repository identifiers plus the `main` branch ref rather than only the mutable `owner/repository` name. The CDK test asserts the exact trust condition used by the deployment role.
+~~~bash
+scripts/setup-caddy.sh dev-heon.com
+~~~
+
+Spring Boot container는 외부에 8080을 노출하지 않고 127.0.0.1:8080에만 bind합니다.
+
+## Bootstrap
+
+Amazon Linux 2023 bootstrap은 다음을 준비합니다.
+
+- Docker
+- jq
+- AWS CLI
+- /opt/my-fitness
+- 2 GiB swap
+- region file
+
+Amazon Linux 2023의 curl-minimal과 충돌할 수 있으므로 bootstrap package에 full curl을 별도로 설치하지 않습니다.

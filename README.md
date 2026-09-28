@@ -1,117 +1,119 @@
-# my-fitness-app
+# My Fitness
 
-개인 운동, 신체, 식단 기록과 기록 기반 AI Coach를 위한 개인용 피트니스 애플리케이션입니다.
+개인 운동, 신체, 식단 기록과 기록 기반 AI Coach를 제공하는 개인용 피트니스 애플리케이션입니다.
 
 ## 기술 스택
 
-- Backend: Java 21, Spring Boot 4.1.1, Spring Data JPA, Spring Security
+- Backend: Java 21, Spring Boot 4.1.1, Spring Data JPA, Spring Security, Spring Modulith
 - Frontend: Next.js 16.3.3, TypeScript, Tailwind CSS, PWA
-- Database: PostgreSQL 17
-- AI: Spring AI 2.0.1 + OpenAI / Ollama ChatModel Provider
-- Architecture: Modular Monolith + 4-layer In/Out Port + Spring Modulith + ArchUnit
-- Build: Gradle + npm
+- Database: PostgreSQL 17, Flyway
+- Authentication: Google OAuth2 / OIDC, Spring Session JDBC
+- AI: Spring AI 2.0.1, OpenAI 또는 Ollama ChatModel
+- Architecture: Modular Monolith, 4-layer, In/Out Port
+- Infrastructure: AWS CDK, EC2, RDS, ECR, SSM, GitHub Actions OIDC
 
 ## 프로젝트 구조
 
-```text
+~~~text
 .
-├── src/                # Spring Boot
-│   └── main/java/com/myfitness
-│       ├── exercise
-│       ├── workout
-│       ├── routine
-│       ├── body
-│       ├── nutrition
-│       ├── dashboard
-│       ├── user
-│       └── ai
-├── frontend/           # Next.js PWA
+├── src/                    Spring Boot backend
+├── frontend/               Next.js PWA
+├── infra/                  AWS CDK source
+├── scripts/                EC2 deploy / Caddy scripts
 ├── docs/
-│   ├── spec/
-│   ├── architecture/
-│   └── testing/
-├── docker-compose.yml
-└── build.gradle.kts
-```
+│   ├── architecture/       현재 소프트웨어 구조
+│   ├── infra/              현재 AWS 구성과 운영 방법
+│   ├── spec/               제품 스펙과 구현 이력
+│   └── testing/            테스트 전략과 수동 테스트
+└── README.md
+~~~
 
 ## 로컬 실행
 
-PostgreSQL 실행:
+PostgreSQL을 실행합니다.
 
-```bash
+~~~bash
 docker compose up -d postgres
-```
+~~~
 
-백엔드 실행:
+백엔드를 실행합니다.
 
-```bash
+~~~bash
 ./gradlew bootRun
-```
+~~~
 
-AI Coach를 OpenAI로 사용할 때는 실행 전에 Provider와 API key를 설정합니다.
+프론트엔드 개발 서버를 별도로 실행할 때는 다음을 사용합니다.
 
-```bash
-export AI_PROVIDER=openai
-export OPENAI_API_KEY=...
-export AI_OPENAI_MODEL=gpt-4o-mini
-./gradlew bootRun
-```
-
-로컬 Ollama로 전환할 때는 Application 코드 변경 없이 설정만 바꿉니다.
-
-```bash
-export AI_PROVIDER=ollama
-export OLLAMA_BASE_URL=http://localhost:11434
-export AI_OLLAMA_MODEL=qwen3:1.7b
-./gradlew bootRun
-```
-
-AI Provider를 설정하지 않으면 기본값은 `none`이며, 나머지 앱 기능은 정상 동작하고 AI Provider 호출만 비활성화됩니다.
-
-프론트엔드 개발 서버:
-
-```bash
+~~~bash
 cd frontend
 npm install
 npm run dev
-```
+~~~
 
-## 통합 빌드
+Google 로그인은 로컬 OAuth Client 설정이 필요합니다.
 
-```bash
-./gradlew bootJar
-```
+~~~bash
+export GOOGLE_CLIENT_ID=...
+export GOOGLE_CLIENT_SECRET=...
+~~~
 
-통합 빌드 시 Next.js 정적 export 결과가 Spring Boot JAR의 정적 리소스에 포함됩니다.
+AI Coach는 Provider를 설정하지 않으면 비활성화되고 나머지 기능은 정상 동작합니다.
 
-## 문서
+OpenAI:
 
-- 제품 스펙: `docs/spec/PRODUCT_SPEC.md`
-- 구현 PR 스펙: `docs/spec/`
-- 아키텍처: `docs/architecture/README.md`
-- 수동 테스트: `docs/testing/`
+~~~bash
+export AI_PROVIDER=openai
+export OPENAI_API_KEY=...
+./gradlew bootRun
+~~~
 
-## 개발 원칙
+로컬 Ollama:
 
-기능 개발은 Phase 단위로 진행합니다.
+~~~bash
+export AI_PROVIDER=ollama
+export OLLAMA_BASE_URL=http://localhost:11434
+./gradlew bootRun
+~~~
 
-1. 해당 Phase의 핵심 비즈니스 규칙을 테스트로 정의
-2. 자동 테스트를 작성하면서 기능 구현
-3. 관련 spec / architecture 문서 업데이트
-4. 전체 테스트, 프론트 lint/build, 통합 bootJar 확인
-5. 한글 커밋
-6. GitHub push
-7. 작업 중단
+## 빌드와 검증
 
-## 현재 진행 상태
+전체 검증:
 
-- [x] Phase 1 Workout 기록
-- [x] Phase 2 Routine
-- [x] Phase 3 BodyRecord
-- [x] Phase 4 Dashboard
-- [x] Phase 5 Nutrition
-- [x] Phase 6 AI Coach
+~~~bash
+./gradlew test --no-daemon
+./gradlew build --no-daemon
+~~~
 
-현재 개발 환경에서는 인증 구현 전까지 `X-User-Id: 1`을 임시 사용자 컨텍스트로 사용합니다.
+프론트엔드:
 
-Phase 6 AI Coach는 여러 Conversation, 기록 기반 개인화 Context, 범위 제한, 사용량 로그, Spring AI Provider 전환과 전역 FAB UI까지 구현되어 있습니다.
+~~~bash
+cd frontend
+npm run lint
+npm run build
+~~~
+
+CDK:
+
+~~~bash
+cd infra
+npm ci
+npm run build
+npm test -- --runInBand
+npx cdk synth
+npx cdk diff
+~~~
+
+Gradle 애플리케이션 빌드는 Next.js 정적 export를 포함하며 최종 Spring Boot JAR에서 같은 origin으로 제공합니다.
+
+## 문서 읽는 순서
+
+문서 전체 안내는 [docs/README.md](docs/README.md)를 기준으로 합니다.
+
+1. [Architecture](docs/architecture/README.md) - 시스템과 모듈 구조
+2. [Infrastructure](docs/infra/README.md) - AWS 운영 구성
+3. [Operations](docs/infra/OPERATIONS.md) - 배포, 접속, 로그, 장애 확인
+4. [Product Spec](docs/spec/PRODUCT_SPEC.md) - 제품 기능 범위
+5. [Testing](docs/testing/README.md) - 테스트 기준
+6. [Implementation Specs](docs/spec/README.md) - 구현 시점별 설계 기록
+
+구현 시점의 PR 스펙은 이력 문서입니다. 현재 구조가 궁금할 때는 Architecture와 Infrastructure 문서를 우선합니다.
