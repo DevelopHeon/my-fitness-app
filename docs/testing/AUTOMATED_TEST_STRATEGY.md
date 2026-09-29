@@ -93,6 +93,8 @@ Legacy 비교 fixture는 변경 전 Router의 바이트와 소스 hash를 보존
 - 임시 운영 소스 5개로 Support → Service, Presentation → Support, 구 DTO 위치, Command/Result 위치, Response DTO Entity 노출을 넣어 6개 검사 실패를 확인한 뒤 제거했다. 허용 모듈 의존성과 Named Interface는 변경하지 않았다.
 - 실제 JEV 호출, 원격 CI/CD와 배포는 실행하지 않았다.
 
+Infrastructure 후속 정리도 Java 21에서 검증했다. `./gradlew checkstyleMain checkstyleTest test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --tests 'com.myfitness.ai.infrastructure.*' --no-daemon`으로 59개 검사를 통과했고, `./gradlew build modulithDocs --no-daemon`으로 전체 209개와 문서 생성을 확인했다. AI SDK뿐 아니라 새 client 패키지의 JEV 구현 직접 참조도 금지 fixture로 탐지한다. JAR에는 새 client/module 경로만 포함되며 기존 springai/typesafe/query 경로는 없다. Client의 요청·응답 구현과 Named Interface·모듈 허용 의존성은 유지했다.
+
 ## 3. 작성하지 않아도 되는 테스트
 
 다음은 가치가 낮으면 억지로 작성하지 않는다.

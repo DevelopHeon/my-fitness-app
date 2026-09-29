@@ -53,7 +53,7 @@ class LayerArchitectureTest {
                     .dependOnClassesThat()
                     .resideInAnyPackage(
                             "org.springframework.ai..",
-                            "com.myfitness.ai.infrastructure.typesafe..")
+                            "com.myfitness.ai.infrastructure.client..")
                     .because("외부 AI 연동은 Infrastructure에 두고 Application Out Port로 호출한다.");
 
     static final ArchRule SUPPORT_RULE =
@@ -86,7 +86,7 @@ class LayerArchitectureTest {
                 .isTrue();
         assertThat(
                         CLASSES.contain(
-                                com.myfitness.ai.infrastructure.springai.SpringAiChatGateway.class))
+                                com.myfitness.ai.infrastructure.client.SpringAiChatGateway.class))
                 .isTrue();
         assertThat(CLASSES.contain(LayerArchitectureTest.class)).isFalse();
         for (String layer : List.of("domain", "application", "presentation", "infrastructure")) {
@@ -102,7 +102,7 @@ class LayerArchitectureTest {
     }
 
     @Test
-    @DisplayName("AI의 내부 계층은 Spring AI SDK와 외부 정책 Adapter를 직접 참조하지 않는다")
+    @DisplayName("AI의 내부 계층은 Spring AI SDK와 외부 AI Client를 직접 참조하지 않는다")
     void aiInnerLayersDoNotDependOnProviderImplementations() {
         AI_PROVIDER_RULE.check(CLASSES);
     }

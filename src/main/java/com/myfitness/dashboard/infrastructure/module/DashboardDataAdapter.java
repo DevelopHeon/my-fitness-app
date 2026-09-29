@@ -1,4 +1,4 @@
-package com.myfitness.dashboard.infrastructure.query;
+package com.myfitness.dashboard.infrastructure.module;
 
 import com.myfitness.body.application.port.in.insight.BodyInsightQuery;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort;

@@ -197,11 +197,15 @@ Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사�
 │   └── exception
 └── infrastructure
     ├── persistence
-    ├── query
-    └── external
+    ├── module
+    └── client
 ~~~
 
 기본 호출 흐름:
+
+Infrastructure의 `persistence`는 자신의 DB 저장·조회 구현, `module`은 다른 모듈의 공개 계약 호출·데이터 변환, `client`는 외부 API 연동 구현을 묶습니다. DashboardDataAdapter는 module에, AI의 SpringAiChatGateway와 JevAiPolicyGateway는 client에 둡니다. Spring AI의 답변 생성과 JEV의 정책 평가는 서로 다른 Out Port 계약을 유지합니다. query라는 이름으로 Command/Query 실행 경로를 분리하거나 SDK명과 공급자명을 최상위 패키지 분류 기준으로 섞지 않습니다. 인증·설정·초기 데이터처럼 별도 책임이 있는 security/config/bootstrap 패키지는 유지합니다.
+
+Spring Data Repository는 Infrastructure의 기술적 인터페이스이며 Application RepositoryPort와 다릅니다. Repository Adapter와 같은 persistence 패키지에 두고 package-private 접근을 유지합니다. 구현을 폴더로 분리하기 위해 public으로 노출하지 않습니다.
 
 Application의 `dto/request`는 Command와 입력 보조 데이터를, `dto/response`는 Result와 출력 보조 데이터를 둡니다. 클래스의 Command/Result 접미사는 유지하며 HTTP Request/Response는 기존 Presentation DTO에 둡니다. Port에 선언된 중첩 record는 해당 공개 계약의 일부이므로 별도 DTO로 분리하지 않습니다.
 

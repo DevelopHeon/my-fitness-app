@@ -11,7 +11,7 @@ import com.myfitness.ai.application.support.policy.AiPolicyEvaluator;
 import com.myfitness.ai.domain.model.AiMessageRole;
 import com.myfitness.ai.domain.model.AiQueryType;
 import com.myfitness.ai.evaluation.legacy.LegacyAiQueryRouter;
-import com.myfitness.ai.infrastructure.typesafe.JevAiPolicyGateway;
+import com.myfitness.ai.infrastructure.client.JevAiPolicyGateway;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;

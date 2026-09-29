@@ -1,4 +1,4 @@
-package com.myfitness.ai.infrastructure.typesafe;
+package com.myfitness.ai.infrastructure.client;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;

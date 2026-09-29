@@ -1,4 +1,4 @@
-package com.myfitness.ai.infrastructure.springai;
+package com.myfitness.ai.infrastructure.client;
 
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway;

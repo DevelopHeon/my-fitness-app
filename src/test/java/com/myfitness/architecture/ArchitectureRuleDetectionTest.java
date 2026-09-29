@@ -16,12 +16,13 @@ import org.junit.jupiter.api.Test;
 
 class ArchitectureRuleDetectionTest {
     @Test
-    @DisplayName("AI SDK 직접 의존 fixture는 실제 운영 검사 rule을 위반한다")
-    void detectsDirectAiSdkDependency() {
+    @DisplayName("AI SDK와 외부 Client 직접 의존 fixture는 실제 운영 검사 rule을 위반한다")
+    void detectsDirectAiProviderDependency() {
         JavaClasses fixture =
                 new ClassFileImporter()
                         .importClasses(
-                                com.myfitness.ai.application.fixture.ForbiddenSdkConsumer.class);
+                                com.myfitness.ai.application.fixture.ForbiddenSdkConsumer.class,
+                                com.myfitness.ai.application.fixture.ForbiddenClientConsumer.class);
         assertThat(
                         LayerArchitectureTest.AI_PROVIDER_RULE
                                 .evaluate(fixture)
@@ -29,6 +30,13 @@ class ArchitectureRuleDetectionTest {
                                 .getDetails())
                 .anySatisfy(
                         detail -> assertThat(detail).contains("ForbiddenSdkConsumer", "ChatModel"));
+        assertThat(
+                        LayerArchitectureTest.AI_PROVIDER_RULE
+                                .evaluate(fixture)
+                                .getFailureReport()
+                                .getDetails())
+                .anySatisfy(
+                        detail -> assertThat(detail).contains("ForbiddenClientConsumer", "JevAiPolicyGateway"));
     }
 
     @Test
