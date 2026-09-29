@@ -1,8 +1,9 @@
 package com.myfitness.dashboard.application.service;
 
+import com.myfitness.dashboard.application.dto.response.DashboardResult;
 import com.myfitness.dashboard.application.port.in.DashboardQueryUseCase;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort;
-import com.myfitness.dashboard.application.result.DashboardResult;
+import com.myfitness.dashboard.application.support.DashboardResultAssembler;
 import java.time.Clock;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;

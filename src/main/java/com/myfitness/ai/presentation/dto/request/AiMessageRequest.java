@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.request;
 
-import com.myfitness.ai.application.command.AiMessageCommand;
+import com.myfitness.ai.application.dto.request.AiMessageCommand;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

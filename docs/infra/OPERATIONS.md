@@ -230,3 +230,21 @@ ECR에서 Git commit SHA와 같은 tag가 있는지 확인하면 build/push 여�
 - 최근 배포에서 rollback이 발생하지 않았는가
 - ECR lifecycle이 정상적으로 오래된 image를 정리하는가
 - AWS 비용이 예상 범위에 있는가
+
+## AI 정책 설정과 승격 보류 (PR-012)
+
+운영 AI 질문은 JEV 평가를 반드시 거친다. `scripts/deploy-ec2.sh`는 `/my-fitness/prod/` Parameter Store에서 아래 값을 읽어 권한 600의 runtime.env에 기록한다. AWS parameter 등록과 CI/CD 실행은 사용자가 수동으로 진행한다.
+
+| 전체 parameter 이름 | 타입 | 환경 변수 | 입력값 / 기본값 |
+| --- | --- | --- | --- |
+| /my-fitness/prod/typesafe-api-key | SecureString | TYPESAFE_API_KEY | TypeSafe 계정에서 발급한 실제 JEV API key, 필수 |
+| /my-fitness/prod/ai-policy-model | String | AI_POLICY_MODEL | jev-1.13.0, 미등록 시 같은 기본값 |
+| /my-fitness/prod/ai-policy-version | String | AI_POLICY_VERSION | fitness-policy-v1, 미등록 시 같은 기본값 |
+
+키 누락·빈 값이나 SSM 접근 오류는 환경 파일과 실행 중 container를 교체하기 전에 배포를 중단한다. 모델/버전의 ParameterNotFound만 기본값으로 처리한다. 신규 코드에서 AI_POLICY_MODE와 TYPESAFE_MODEL을 읽지 않으며 이전 ai-policy-mode parameter가 남아 있어도 경로 선택에 사용하지 않는다. key와 runtime.env를 로그에 출력하지 않는다. 고객 관리 KMS 키를 쓰면 EC2 role의 해당 키 decrypt 권한을 확인한다.
+
+로컬 서버에도 TYPESAFE_API_KEY를 주입한다. API key가 없는 서버는 AI 요청에서 AI_POLICY_UNAVAILABLE / 503을 반환하며 keyword 판정이나 답변 생성으로 우회하지 않는다. timeout은 1500ms, review/action/topic 임계값은 0.35/0.70/0.60이다. 자동 재시도와 다른 provider failover는 없다.
+
+실제 key로 모델 접근·응답 계약을 확인하고, 독립 holdout·실제 모델 3회 평가·120개 E2E 사람 검토·전송/보존 조건·budget·staging 1000회·PostgreSQL migration을 확인한다. 로컬 대역 통과가 모델 품질 검증을 뜻하지 않는다. rollback은 검증한 이전 이미지와 모델/정책 설정을 함께 복원한다. version 문자열 변경만으로 규칙이 복원되지는 않는다. 이전 legacy/shadow 이미지로 되돌리면 안전 정책 경로도 바뀌므로 기록한다. 이번 작업에서 실제 배포와 staging rollback은 실행하지 않았다.
+
+배포 설정 로컬 검증: `bash -n scripts/deploy-ec2.sh` 및 `python3 scripts/test-ai-policy-deploy.py`. 실제 AWS/Docker 호출을 하지 않는 stub 검사다. [최신 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md)과 [검증 기록](../testing/ai-policy/2026-09-29-jev-single-path-results.md)을 참조한다.

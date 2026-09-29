@@ -31,6 +31,18 @@ get_optional_parameter() {
     --output text 2>/dev/null || true
 }
 
+get_policy_parameter() {
+  local result
+  if result="$(aws ssm get-parameter --region "$REGION" --name "$1" --with-decryption --query "Parameter.Value" --output text 2>&1)"; then
+    printf '%s' "$result"
+  elif [[ "$result" == *ParameterNotFound* ]]; then
+    return 0
+  else
+    echo "Unable to load AI policy parameter: $1" >&2
+    return 1
+  fi
+}
+
 REPOSITORY_URI="$(get_parameter "$PARAM_PREFIX/ecr-repository-uri")"
 DB_HOST="$(get_parameter "$PARAM_PREFIX/db-host")"
 DB_SECRET_ARN="$(get_parameter "$PARAM_PREFIX/db-secret-arn")"
@@ -48,6 +60,16 @@ OPENAI_API_KEY="$(get_optional_parameter "$PARAM_PREFIX/openai-api-key")"
 APP_BASE_URL="$(get_optional_parameter "$PARAM_PREFIX/app-base-url")"
 AI_PROVIDER="$(get_optional_parameter "$PARAM_PREFIX/ai-provider")"
 
+TYPESAFE_API_KEY="$(get_policy_parameter "$PARAM_PREFIX/typesafe-api-key")"
+if [[ -z "$TYPESAFE_API_KEY" ]]; then
+  echo "AI policy key is required for JEV policy validation" >&2
+  exit 1
+fi
+AI_POLICY_MODEL="$(get_policy_parameter "$PARAM_PREFIX/ai-policy-model")"
+AI_POLICY_VERSION="$(get_policy_parameter "$PARAM_PREFIX/ai-policy-version")"
+: "${AI_POLICY_MODEL:=jev-1.13.0}"
+: "${AI_POLICY_VERSION:=fitness-policy-v1}"
+
 : "${AI_PROVIDER:=none}"
 
 install -m 600 /dev/null "$ENV_FILE"
@@ -59,6 +81,11 @@ install -m 600 /dev/null "$ENV_FILE"
   printf 'DB_POOL_MAX_SIZE=5\n'
   printf 'DB_POOL_MIN_IDLE=1\n'
   printf 'AI_PROVIDER=%s\n' "$AI_PROVIDER"
+  printf 'AI_POLICY_MODEL=%s\n' "$AI_POLICY_MODEL"
+  printf 'AI_POLICY_VERSION=%s\n' "$AI_POLICY_VERSION"
+  if [[ -n "$TYPESAFE_API_KEY" ]]; then
+    printf 'TYPESAFE_API_KEY=%s\n' "$TYPESAFE_API_KEY"
+  fi
   printf 'JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -XX:+UseG1GC\n'
 
   if [[ -n "$GOOGLE_CLIENT_ID" ]]; then

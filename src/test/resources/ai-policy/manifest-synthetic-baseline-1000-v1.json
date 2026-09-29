@@ -1,0 +1,17 @@
+{
+  "caseCount": 1000,
+  "semanticFamilies": 50,
+  "variantsPerFamily": 20,
+  "datasetSha256": "e0bce629e9ddd2d7a2c033bd911443cf0dc8000d238f023b259b487c3a913286",
+  "labelStatus": "draft-synthetic",
+  "independentReviewComplete": false,
+  "split": "unassigned; not dev/holdout",
+  "baselineCommit": "0bd9787b7577b4d5d808f4b8d63d73e830476291",
+  "originalRouterSha256": "46a45d9941c37785f2aa41478a86cbb2ade96e2fc24ffd97e5c7c5e2abac000e",
+  "goldCounts": {
+    "ALLOW": 400,
+    "SAFE_REDIRECT": 280,
+    "BLOCK": 120,
+    "CLARIFY": 200
+  }
+}

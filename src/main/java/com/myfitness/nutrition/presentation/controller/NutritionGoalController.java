@@ -1,11 +1,11 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
-import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import com.myfitness.nutrition.presentation.dto.request.NutritionGoalUpsertRequest;
 import com.myfitness.nutrition.presentation.dto.response.NutritionGoalResponse;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

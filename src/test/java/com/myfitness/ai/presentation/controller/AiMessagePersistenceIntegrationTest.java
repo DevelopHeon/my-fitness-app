@@ -1,14 +1,15 @@
 package com.myfitness.ai.presentation.controller;
 
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.myfitness.ai.application.port.out.AiChatGateway;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
+import com.myfitness.ai.application.port.out.AiChatGateway;
+import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
@@ -27,6 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
@@ -121,6 +123,13 @@ class AiMessagePersistenceIntegrationTest {
     static class BlockingAiConfiguration {
         @Bean
         @Primary
+        AiPolicyGateway policyGateway() {
+            return request -> new AiPolicyGateway.AiPolicyAssessment("jev-1.13.0",0,0,0,0,
+                    new AiPolicyGateway.TopicAssessment("WORKOUT",AiPolicyGateway.TOPICS.stream().collect(
+                            java.util.stream.Collectors.toMap(topic -> topic, topic -> topic.equals("WORKOUT") ? 1.0 : 0.0)),1),1,1);
+        }
+        @Bean
+        @Primary
         BlockingAiChatGateway blockingAiChatGateway() {
             return new BlockingAiChatGateway();
         }
@@ -132,6 +141,7 @@ class AiMessagePersistenceIntegrationTest {
 
         @Override
         public AiModelResponse chat(AiModelRequest request) {
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
             requested.countDown();
             try {
                 if (!released.await(5, TimeUnit.SECONDS)) {

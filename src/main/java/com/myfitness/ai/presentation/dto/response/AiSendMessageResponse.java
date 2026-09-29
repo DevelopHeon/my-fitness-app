@@ -1,12 +1,13 @@
 package com.myfitness.ai.presentation.dto.response;
 
-import com.myfitness.ai.application.result.AiSendMessageResult;
+import com.myfitness.ai.application.dto.response.AiSendMessageResult;
 
 public record AiSendMessageResponse(
         AiConversationResponse conversation,
         AiMessageResponse userMessage,
         AiMessageResponse assistantMessage,
-        boolean providerCalled
+        boolean providerCalled,
+        String policyDecision
 ) {
     public static AiSendMessageResponse from(
             AiSendMessageResult result) {
@@ -14,6 +15,6 @@ public record AiSendMessageResponse(
                 AiConversationResponse.from(result.conversation()),
                 AiMessageResponse.from(result.userMessage()),
                 AiMessageResponse.from(result.assistantMessage()),
-                result.providerCalled());
+                result.providerCalled(), result.policyDecision());
     }
 }

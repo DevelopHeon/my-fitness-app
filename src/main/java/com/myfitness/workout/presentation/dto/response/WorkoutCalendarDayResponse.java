@@ -1,6 +1,6 @@
 package com.myfitness.workout.presentation.dto.response;
 
-import com.myfitness.workout.application.result.WorkoutCalendarDayResult;
+import com.myfitness.workout.application.dto.response.WorkoutCalendarDayResult;
 import java.time.LocalDate;
 import java.util.List;
 

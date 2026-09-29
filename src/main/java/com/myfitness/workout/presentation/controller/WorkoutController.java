@@ -1,7 +1,6 @@
 package com.myfitness.workout.presentation.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.myfitness.workout.application.command.WorkoutSetCommand;
+import com.myfitness.workout.application.dto.request.WorkoutSetCommand;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
 import com.myfitness.workout.presentation.dto.request.AddWorkoutExerciseRequest;
 import com.myfitness.workout.presentation.dto.request.StartWorkoutRequest;
@@ -14,6 +13,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

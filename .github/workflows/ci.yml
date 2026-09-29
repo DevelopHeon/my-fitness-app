@@ -34,6 +34,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Java source conventions
+        run: ./gradlew checkstyleMain checkstyleTest --no-daemon
+
+      - name: Deployment parameter contract
+        run: |
+          bash -n scripts/deploy-ec2.sh
+          python3 scripts/test-ai-policy-deploy.py
+
       - name: Backend test
         run: ./gradlew test --no-daemon
 

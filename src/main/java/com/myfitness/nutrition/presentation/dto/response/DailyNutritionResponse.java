@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.result.DailyNutritionResult;
+import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
 import java.time.LocalDate;
 import java.util.List;
 

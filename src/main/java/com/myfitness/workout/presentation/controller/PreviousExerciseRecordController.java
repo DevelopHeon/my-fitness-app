@@ -1,10 +1,10 @@
 package com.myfitness.workout.presentation.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.workout.application.dto.response.PreviousExerciseRecordResult;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
-import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
 import com.myfitness.workout.presentation.dto.response.PreviousExerciseRecordResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

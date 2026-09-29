@@ -35,11 +35,13 @@ flowchart LR
     Google["Google Identity<br/>OAuth2 / OIDC"]
     OpenAI["OpenAI API<br/>AI Coach Provider"]
     Ollama["Ollama<br/>로컬 개발 Provider"]
+    Jev["TypeSafe Jev<br/>질문 정책 평가"]
 
     User -->|"HTTPS"| System
     System -->|"로그인"| Google
     System -->|"운영 AI 요청"| OpenAI
     System -.->|"로컬 선택"| Ollama
+    System -.->|"필수 정책 평가"| Jev
 ~~~
 
 My Fitness는 사용자의 피트니스 기록을 저장하고 이를 기반으로 통계와 AI Coach 응답을 제공합니다.
@@ -185,19 +187,29 @@ Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사�
 │   ├── port
 │   │   ├── in
 │   │   └── out
+│   ├── dto
+│   │   ├── request
+│   │   └── response
 │   ├── service
-│   ├── command
-│   └── result
+│   └── support
 ├── domain
 │   ├── model
 │   └── exception
 └── infrastructure
     ├── persistence
-    ├── query
-    └── external
+    ├── module
+    └── client
 ~~~
 
 기본 호출 흐름:
+
+Infrastructure의 `persistence`는 자신의 DB 저장·조회 구현, `module`은 다른 모듈의 공개 계약 호출·데이터 변환, `client`는 외부 API 연동 구현을 묶습니다. DashboardDataAdapter는 module에, AI의 SpringAiChatGateway와 JevAiPolicyGateway는 client에 둡니다. Spring AI의 답변 생성과 JEV의 정책 평가는 서로 다른 Out Port 계약을 유지합니다. query라는 이름으로 Command/Query 실행 경로를 분리하거나 SDK명과 공급자명을 최상위 패키지 분류 기준으로 섞지 않습니다. 인증·설정·초기 데이터처럼 별도 책임이 있는 security/config/bootstrap 패키지는 유지합니다.
+
+Spring Data Repository는 Infrastructure의 기술적 인터페이스이며 Application RepositoryPort와 다릅니다. Repository Adapter와 같은 persistence 패키지에 두고 package-private 접근을 유지합니다. 구현을 폴더로 분리하기 위해 public으로 노출하지 않습니다.
+
+Application의 `dto/request`는 Command와 입력 보조 데이터를, `dto/response`는 Result와 출력 보조 데이터를 둡니다. 클래스의 Command/Result 접미사는 유지하며 HTTP Request/Response는 기존 Presentation DTO에 둡니다. Port에 선언된 중첩 record는 해당 공개 계약의 일부이므로 별도 DTO로 분리하지 않습니다.
+
+`service`에는 유스케이스 조율과 DB 처리·transaction 서비스를 둡니다. `support`에는 내부 협력 기능을 두며 Service에 역방향 의존하지 않습니다. AI는 support 아래 context/policy/prompt와 이력 선택·Provider 호출을, Dashboard는 요약 Builder·Result Assembler를, Nutrition은 Result Assembler를 둡니다. 해당 역할이 없는 모듈에는 빈 패키지를 만들지 않습니다. Presentation은 Service와 Support를 직접 참조하지 않습니다.
 
 ~~~mermaid
 flowchart LR
@@ -269,6 +281,8 @@ Assistant / Request Log 저장
 
 AiCoachService.sendMessage는 Provider 호출 동안 DB transaction을 유지하지 않고, AiMessageTransactionService가 짧은 DB transaction을 담당합니다.
 
+AiProviderExecutor는 Support에서 프롬프트를 구성하고 AiChatGateway Out Port를 호출합니다. 성공·실패 저장, 오류 변환과 지연 시간 기록은 AiCoachService가 조율하므로 Support가 transaction Service를 호출하지 않습니다.
+
 ---
 
 ## 7. 주요 데이터 경계
@@ -338,10 +352,10 @@ Dashboard와 AI는 다른 기능의 Repository를 직접 읽지 않고 읽기 �
 - Integration Test: HTTP, transaction, persistence 경계 검증
 - Spring Modulith `Documenter`: 실제 코드에서 감지한 Backend application module 관계와 module canvas 생성
 
-자동 문서는 다음 테스트로 생성합니다.
+자동 문서는 검증 테스트와 분리된 다음 Gradle 작업으로 생성합니다.
 
 ~~~bash
-./gradlew test --tests com.myfitness.architecture.ModulithDocumentationTest
+./gradlew modulithDocs --no-daemon
 ~~~
 
 생성 위치:
@@ -373,3 +387,37 @@ build/spring-modulith-docs
 - [Operations](../infra/OPERATIONS.md)
 - [Product Spec](../spec/PRODUCT_SPEC.md)
 - [Testing](../testing/README.md)
+
+## AI 질문 정책 경계 (PR-012 구현)
+
+`AiCoachService`는 사용자 메시지 커밋 후 `AiPolicyGuard`를 반드시 호출한다. `AiPolicyGateway` Out Port 뒤의 `JevAiPolicyGateway`만 TypeSafe HTTP 계약을 알고, `AiPolicyEvaluator`가 ALLOW/BLOCK/SAFE_REDIRECT/CLARIFY를 결정한다. ALLOW만 Context Builder와 답변 생성으로 진행한다. 제한은 고정 안내를 저장하고, 평가 장애는 사용자 메시지·FAILED 로그를 보존한 뒤 AI_POLICY_UNAVAILABLE / 503을 반환한다.
+
+운영 mode 선택·legacy/shadow 분기·키워드 Router는 제거했다. 기존 판정은 테스트 평가용 fixture에만 남는다. `AiPolicyRun.Success`는 필수 decision/assessment, `Failure`는 errorCode를 가진다. candidate/effective 이중 판정과 JSON 중복은 저장하지 않는다. 기존 V10과 과거 policy_mode/null 로그를 보존하며 신규 policy_mode는 jev 감사 표식이다. 사용자 메시지의 초기 OUT_OF_SCOPE는 기존 non-null DB 컬럼의 미판정 placeholder이고, 성공한 JEV 결과로 갱신한다.
+
+허용 이력은 SUCCESS 및 ALLOW(과거 null 포함) 요청 로그의 실제 사용자/답변 ID로 쌍을 구성한다. 거절·명확화·실패 턴은 평가와 생성 이력에서 제외한다. 정책과 답변 외부 호출은 NOT_SUPPORTED 유스케이스 경계 안에서 DB transaction 없이 실행하고, 기록은 별도 transaction으로 저장한다.
+
+ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스/허용 의존성은 유지했다. Java 가독성 컨벤션은 main/test 소스에서 var 선언을 금지한다. Checkstyle MatchXpath가 TYPE/IDENT AST 노드를 검사하며 문자열·주석·변수 이름을 검색하지 않는다. `test`와 `check`/`build`, CI가 같은 검사를 실행한다. [최신 정책 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md), [검증 기록](../testing/ai-policy/2026-09-29-jev-single-path-results.md)을 따른다.
+
+
+## 아키텍처·컨벤션 검사의 책임
+
+모듈 간 경계는 ModulithArchitectureTest가 담당한다. closed 모듈·허용 의존성·Named Interface의 이름과 실제 공개 패키지를 고정하고 verify()로 순환과 내부 접근을 검증한다. LayerArchitectureTest의 중복 모듈 규칙 4개를 제거했으며 허용 목록과 모듈 metadata는 바꾸지 않았다.
+
+| 검사 | 역할 |
+| --- | --- |
+| ModulithArchitectureTest | 모듈 간 의존·순환·공개 API와 허용 정책 고정 |
+| LayerArchitectureTest | 내부 계층 의존성 방향·Port 계약·Support의 Service 역참조 금지·Presentation의 구현 직접 참조 금지 |
+| PersistenceBoundaryArchitectureTest | Response DTO/HTTP/In Port의 Entity 비노출·JPA 배치·기본 transaction 선언 |
+| ArchitectureRuleDetectionTest | 정상/금지 의존과 빈 검사 대상 탐지 확인 |
+| EntityBoundaryApiIntegrationTest | 실제 요청 종료 후 projection 조회 |
+| convention.ComponentConventionTest | Spring 컴포넌트 어노테이션·Application 역할별 패키지·Command/Result DTO 배치 |
+| convention.JavaConventionTest | Checkstyle AST 규칙의 정상/금지 fixture |
+
+아키텍처와 컨벤션 검사는 Java 21에서 함께 실행한다.
+
+```bash
+./gradlew checkstyleMain checkstyleTest test \
+  --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --no-daemon
+```
+
+EntityBoundaryApiIntegrationTest는 테스트 수준 transaction을 열지 않고 요청마다 종료된 뒤 projection을 확인하므로 유지한다. 파일 존재만 검사하던 PackageDocumentationTest를 제거했지만 package-info 문서와 실제 Modulith metadata 검사는 유지한다. 문서 생성은 modulithDocs 작업이다. 이 정리는 운영 의존성·기존 DTO 허용 방향을 변경하지 않는다.

@@ -1,10 +1,10 @@
 package com.myfitness.nutrition.application.port.in;
 
-import com.myfitness.nutrition.application.result.DailyNutritionResult;
-import com.myfitness.nutrition.application.result.FoodResult;
-import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
-import com.myfitness.nutrition.application.result.MealFoodResult;
-import com.myfitness.nutrition.application.result.NutritionGoalResult;
+import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.dto.response.FoodResult;
+import com.myfitness.nutrition.application.dto.response.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.dto.response.MealFoodResult;
+import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
 import com.myfitness.nutrition.domain.model.MealType;
 import com.myfitness.nutrition.domain.model.ServingUnit;
 import java.math.BigDecimal;

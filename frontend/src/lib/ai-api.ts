@@ -32,6 +32,7 @@ export type AiSendMessageResponse = {
   userMessage: AiMessage;
   assistantMessage: AiMessage;
   providerCalled: boolean;
+  policyDecision: "ALLOW" | "BLOCK" | "SAFE_REDIRECT" | "CLARIFY";
 };
 
 export const aiApi = {

@@ -1,7 +1,7 @@
 package com.myfitness.body.application.service;
 
-import com.myfitness.body.application.result.BodyRecordResult;
-import com.myfitness.body.application.result.BodyTrendResult;
+import com.myfitness.body.application.dto.response.BodyRecordResult;
+import com.myfitness.body.application.dto.response.BodyTrendResult;
 import com.myfitness.body.application.port.in.BodyRecordUseCase;
 import com.myfitness.body.domain.model.BodyRecord;
 import java.math.BigDecimal;

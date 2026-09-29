@@ -3,6 +3,7 @@ package com.myfitness.common.presentation.exception;
 import com.myfitness.ai.application.exception.AiConversationAccessException;
 import com.myfitness.ai.application.exception.AiConversationNotFoundException;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.body.application.exception.BodyRecordAccessException;
 import com.myfitness.body.application.exception.BodyRecordNotFoundException;
@@ -142,6 +143,12 @@ public class GlobalExceptionHandler {
         return ApiErrorResponse.of(
                 "AI_RULE_VIOLATION",
                 exception.getMessage());
+    }
+
+    @ExceptionHandler(AiPolicyUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiErrorResponse handleAiPolicyUnavailable(AiPolicyUnavailableException exception) {
+        return ApiErrorResponse.of("AI_POLICY_UNAVAILABLE", exception.getMessage());
     }
 
     @ExceptionHandler(AiProviderUnavailableException.class)

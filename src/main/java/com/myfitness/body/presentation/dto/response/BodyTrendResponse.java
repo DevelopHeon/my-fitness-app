@@ -1,6 +1,6 @@
 package com.myfitness.body.presentation.dto.response;
 
-import com.myfitness.body.application.result.BodyTrendResult;
+import com.myfitness.body.application.dto.response.BodyTrendResult;
 import java.math.BigDecimal;
 import java.util.List;
 

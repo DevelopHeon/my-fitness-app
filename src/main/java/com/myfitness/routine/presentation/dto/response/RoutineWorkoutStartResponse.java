@@ -1,7 +1,7 @@
 package com.myfitness.routine.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
+import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.ExerciseView;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.PreviousRecordView;
 import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.SetView;

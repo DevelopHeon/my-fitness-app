@@ -1,7 +1,7 @@
 package com.myfitness.workout.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.application.result.WorkoutResult;
+import com.myfitness.workout.application.dto.response.WorkoutResult;
 import com.myfitness.workout.domain.model.WorkoutStatus;
 import java.math.BigDecimal;
 import java.time.Instant;

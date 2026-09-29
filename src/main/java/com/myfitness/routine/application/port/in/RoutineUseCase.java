@@ -1,8 +1,8 @@
 package com.myfitness.routine.application.port.in;
 
-import com.myfitness.routine.application.command.ExerciseSelection;
-import com.myfitness.routine.application.result.RoutineResult;
-import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
+import com.myfitness.routine.application.dto.request.ExerciseSelection;
+import com.myfitness.routine.application.dto.response.RoutineResult;
+import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
 import java.time.LocalDate;
 import java.util.List;
 

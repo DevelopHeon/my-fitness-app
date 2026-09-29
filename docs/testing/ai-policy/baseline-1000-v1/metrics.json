@@ -1,0 +1,536 @@
+{
+  "requests" : 1000,
+  "validPredictions" : 1000,
+  "unavailable" : 0,
+  "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+  "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+  "confusionMatrix" : [ [ 360, 40, 0, 0, 0 ], [ 80, 40, 0, 0, 0 ], [ 260, 20, 0, 0, 0 ], [ 0, 200, 0, 0, 0 ] ],
+  "validRestrictedCases" : 400,
+  "validNormalCases" : 400,
+  "allNormalCases" : 400,
+  "restrictedMissRate" : 0.85,
+  "restrictedMiss95CI" : [ 0.8116863892693679, 0.8816550046966246 ],
+  "restrictedCorrectRate" : 0.1,
+  "normalFalseBlockRate" : 0.1,
+  "normalFalseBlock95CI" : [ 0.07429925914003437, 0.13331057632740284 ],
+  "unnecessaryClarifyRate" : 0.0,
+  "normalSuccessRate" : 0.9,
+  "clarifyRecall" : 0.0,
+  "allRestrictedCases" : 400,
+  "effectiveRestrictedMissRate" : 0.85,
+  "restrictedUnavailableRate" : 0.0,
+  "effectiveRestrictedCorrectRate" : 0.1,
+  "automaticDecisionCoverage" : 1.0,
+  "abstentionRate" : 0.0,
+  "unavailableRate" : 0.0,
+  "topicMacroF1" : 0.7849572649572649,
+  "macroF1" : 0.21125541125541125,
+  "macroF1FamilyBootstrap95CI" : [ 0.14285714285714285, 0.28273809523809523 ],
+  "calibration" : {
+    "policy_bypass" : {
+      "samples" : 0,
+      "brier" : null,
+      "ece10Bins" : null
+    },
+    "urgent_signal" : {
+      "samples" : 0,
+      "brier" : null,
+      "ece10Bins" : null
+    },
+    "unsafe_action" : {
+      "samples" : 0,
+      "brier" : null,
+      "ece10Bins" : null
+    },
+    "medical_decision" : {
+      "samples" : 0,
+      "brier" : null,
+      "ece10Bins" : null
+    }
+  },
+  "policyP50Ms" : null,
+  "policyP95Ms" : null,
+  "policyP99Ms" : null,
+  "policyCostUsd" : null,
+  "policyCostPerInputUsd" : null,
+  "generationCostUsd" : null,
+  "endToEndLatencyMs" : null,
+  "exposedAnswerViolationRate" : null,
+  "slices" : {
+    "synthetic" : {
+      "requests" : 1000,
+      "validPredictions" : 1000,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 360, 40, 0, 0, 0 ], [ 80, 40, 0, 0, 0 ], [ 260, 20, 0, 0, 0 ], [ 0, 200, 0, 0, 0 ] ],
+      "validRestrictedCases" : 400,
+      "validNormalCases" : 400,
+      "allNormalCases" : 400,
+      "restrictedMissRate" : 0.85,
+      "restrictedMiss95CI" : [ 0.8116863892693679, 0.8816550046966246 ],
+      "restrictedCorrectRate" : 0.1,
+      "normalFalseBlockRate" : 0.1,
+      "normalFalseBlock95CI" : [ 0.07429925914003437, 0.13331057632740284 ],
+      "unnecessaryClarifyRate" : 0.0,
+      "normalSuccessRate" : 0.9,
+      "clarifyRecall" : 0.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.85,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.1,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : 0.7849572649572649,
+      "macroF1" : 0.21125541125541125,
+      "macroF1FamilyBootstrap95CI" : [ 0.14285714285714285, 0.28273809523809523 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "expression-variant" : {
+      "requests" : 1000,
+      "validPredictions" : 1000,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 360, 40, 0, 0, 0 ], [ 80, 40, 0, 0, 0 ], [ 260, 20, 0, 0, 0 ], [ 0, 200, 0, 0, 0 ] ],
+      "validRestrictedCases" : 400,
+      "validNormalCases" : 400,
+      "allNormalCases" : 400,
+      "restrictedMissRate" : 0.85,
+      "restrictedMiss95CI" : [ 0.8116863892693679, 0.8816550046966246 ],
+      "restrictedCorrectRate" : 0.1,
+      "normalFalseBlockRate" : 0.1,
+      "normalFalseBlock95CI" : [ 0.07429925914003437, 0.13331057632740284 ],
+      "unnecessaryClarifyRate" : 0.0,
+      "normalSuccessRate" : 0.9,
+      "clarifyRecall" : 0.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.85,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.1,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : 0.7849572649572649,
+      "macroF1" : 0.21125541125541125,
+      "macroF1FamilyBootstrap95CI" : [ 0.14285714285714285, 0.28273809523809523 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "ko" : {
+      "requests" : 999,
+      "validPredictions" : 999,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 360, 39, 0, 0, 0 ], [ 80, 40, 0, 0, 0 ], [ 260, 20, 0, 0, 0 ], [ 0, 200, 0, 0, 0 ] ],
+      "validRestrictedCases" : 400,
+      "validNormalCases" : 399,
+      "allNormalCases" : 399,
+      "restrictedMissRate" : 0.85,
+      "restrictedMiss95CI" : [ 0.8116863892693679, 0.8816550046966246 ],
+      "restrictedCorrectRate" : 0.1,
+      "normalFalseBlockRate" : 0.09774436090225563,
+      "normalFalseBlock95CI" : [ 0.07232806412126092, 0.1308324026794563 ],
+      "unnecessaryClarifyRate" : 0.0,
+      "normalSuccessRate" : 0.9022556390977443,
+      "clarifyRecall" : 0.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.85,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.1,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : 0.7855512655512655,
+      "macroF1" : 0.2115179562240353,
+      "macroF1FamilyBootstrap95CI" : [ 0.14285714285714285, 0.2831151434418966 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "non-ko" : {
+      "requests" : 1,
+      "validPredictions" : 1,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 1, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 0,
+      "validNormalCases" : 1,
+      "allNormalCases" : 1,
+      "restrictedMissRate" : null,
+      "restrictedMiss95CI" : null,
+      "restrictedCorrectRate" : null,
+      "normalFalseBlockRate" : 1.0,
+      "normalFalseBlock95CI" : [ 0.20654931437723745, 1.0 ],
+      "unnecessaryClarifyRate" : 0.0,
+      "normalSuccessRate" : 0.0,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 0,
+      "effectiveRestrictedMissRate" : null,
+      "restrictedUnavailableRate" : null,
+      "effectiveRestrictedCorrectRate" : null,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : 0.0,
+      "macroF1" : 0.0,
+      "macroF1FamilyBootstrap95CI" : [ 0.0, 0.0 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "medical_decision" : {
+      "requests" : 160,
+      "validPredictions" : 160,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 140, 20, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 160,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.875,
+      "restrictedMiss95CI" : [ 0.814809889465813, 0.9176054641555581 ],
+      "restrictedCorrectRate" : 0.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 160,
+      "effectiveRestrictedMissRate" : 0.875,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.0,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : null,
+      "macroF1" : 0.0,
+      "macroF1FamilyBootstrap95CI" : [ 0.0, 0.0 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "unsafe_action" : {
+      "requests" : 80,
+      "validPredictions" : 80,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 80, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 80,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 1.0,
+      "restrictedMiss95CI" : [ 0.9541818704644728, 0.9999999999999999 ],
+      "restrictedCorrectRate" : 0.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 80,
+      "effectiveRestrictedMissRate" : 1.0,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.0,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : null,
+      "macroF1" : 0.0,
+      "macroF1FamilyBootstrap95CI" : [ 0.0, 0.0 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "urgent_signal" : {
+      "requests" : 40,
+      "validPredictions" : 40,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 40, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 40,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 1.0,
+      "restrictedMiss95CI" : [ 0.9123783988027135, 1.0 ],
+      "restrictedCorrectRate" : 0.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 40,
+      "effectiveRestrictedMissRate" : 1.0,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.0,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : null,
+      "macroF1" : 0.0,
+      "macroF1FamilyBootstrap95CI" : [ 0.0, 0.0 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "policy_bypass" : {
+      "requests" : 60,
+      "validPredictions" : 60,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 40, 20, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 60,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.6666666666666666,
+      "restrictedMiss95CI" : [ 0.5405686645211968, 0.7727073847647731 ],
+      "restrictedCorrectRate" : 0.3333333333333333,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 60,
+      "effectiveRestrictedMissRate" : 0.6666666666666666,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 0.3333333333333333,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : null,
+      "macroF1" : 0.125,
+      "macroF1FamilyBootstrap95CI" : [ 0.0, 0.25 ],
+      "calibration" : {
+        "policy_bypass" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "urgent_signal" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "unsafe_action" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        },
+        "medical_decision" : {
+          "samples" : 0,
+          "brier" : null,
+          "ece10Bins" : null
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    }
+  },
+  "warmupRequests" : 0,
+  "warmupPolicyCostUsd" : null,
+  "totalPolicyCostIncludingWarmupUsd" : null
+}

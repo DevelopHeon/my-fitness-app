@@ -1,0 +1,10 @@
+alter table ai_request_logs add column policy_mode varchar(20);
+alter table ai_request_logs add column policy_version varchar(50);
+alter table ai_request_logs add column policy_decision varchar(30);
+alter table ai_request_logs add column policy_reason varchar(50);
+alter table ai_request_logs add column policy_model varchar(100);
+alter table ai_request_logs add column policy_latency_ms bigint;
+alter table ai_request_logs add column policy_input_tokens integer;
+alter table ai_request_logs add column policy_error_code varchar(80);
+alter table ai_request_logs add column policy_result_json text;
+create index idx_ai_request_logs_accepted_history on ai_request_logs(conversation_id, status, user_message_id);

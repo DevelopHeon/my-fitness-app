@@ -1,5 +1,6 @@
 plugins {
 	java
+	checkstyle
 	id("org.springframework.boot") version "4.1.1"
 	id("io.spring.dependency-management") version "1.1.7"
 }
@@ -44,14 +45,46 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("com.puppycrawl.tools:checkstyle:10.21.1")
 	testImplementation("com.tngtech.archunit:archunit-junit5:1.4.2")
 	testImplementation("org.springframework.modulith:spring-modulith-core")
 	testImplementation("org.springframework.modulith:spring-modulith-docs")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+checkstyle {
+	toolVersion = "10.21.1"
+}
+
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+tasks.named<Test>("test") {
+	dependsOn("checkstyleMain", "checkstyleTest")
+	useJUnitPlatform { excludeTags("ai-policy-eval") }
+}
+
+val aiPolicyEval = tasks.register<Test>("aiPolicyEval") {
+	description = "Run opt-in test-only baseline, live or replay AI policy evaluation"
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform { includeTags("ai-policy-eval") }
+	outputs.upToDateWhen { false }
+	listOf("mode", "dataset", "model", "runs", "replay", "policyInputUsdPerMillion", "allowDraft").forEach { key ->
+		providers.gradleProperty("aiPolicyEval.$key").orNull?.let {
+			systemProperty("aiPolicyEval.$key", it)
+		}
+	}
+}
+
+tasks.register<JavaExec>("modulithDocs") {
+	description = "Generate Spring Modulith diagrams and module canvases without running tests"
+	group = "documentation"
+	dependsOn(tasks.named("testClasses"))
+	classpath = sourceSets["test"].runtimeClasspath
+	mainClass.set("com.myfitness.architecture.documentation.ModulithDocumentation")
 }
 
 val frontendDir = layout.projectDirectory.dir("frontend")

@@ -6,5 +6,6 @@ import java.util.List;
 public interface AiMessageRepositoryPort {
     AiMessage save(AiMessage message);
     List<AiMessage> findAllByConversationId(Long conversationId);
+    List<AiMessage> findAcceptedByConversationId(Long conversationId);
     void deleteAllByConversationId(Long conversationId);
 }
