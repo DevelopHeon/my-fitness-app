@@ -1,4 +1,4 @@
-package com.myfitness.architecture;
+package com.myfitness.convention;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

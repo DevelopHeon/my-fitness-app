@@ -340,10 +340,10 @@ Dashboard와 AI는 다른 기능의 Repository를 직접 읽지 않고 읽기 �
 - Integration Test: HTTP, transaction, persistence 경계 검증
 - Spring Modulith `Documenter`: 실제 코드에서 감지한 Backend application module 관계와 module canvas 생성
 
-자동 문서는 다음 테스트로 생성합니다.
+자동 문서는 검증 테스트와 분리된 다음 Gradle 작업으로 생성합니다.
 
 ~~~bash
-./gradlew test --tests com.myfitness.architecture.ModulithDocumentationTest
+./gradlew modulithDocs --no-daemon
 ~~~
 
 생성 위치:
@@ -385,3 +385,27 @@ build/spring-modulith-docs
 허용 이력은 SUCCESS 및 ALLOW(과거 null 포함) 요청 로그의 실제 사용자/답변 ID로 쌍을 구성한다. 거절·명확화·실패 턴은 평가와 생성 이력에서 제외한다. 정책과 답변 외부 호출은 NOT_SUPPORTED 유스케이스 경계 안에서 DB transaction 없이 실행하고, 기록은 별도 transaction으로 저장한다.
 
 ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스/허용 의존성은 유지했다. Java 가독성 컨벤션은 main/test 소스에서 var 선언을 금지한다. Checkstyle MatchXpath가 TYPE/IDENT AST 노드를 검사하며 문자열·주석·변수 이름을 검색하지 않는다. `test`와 `check`/`build`, CI가 같은 검사를 실행한다. [최신 정책 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md), [검증 기록](../testing/ai-policy/2026-09-29-jev-single-path-results.md)을 따른다.
+
+
+## 아키텍처·컨벤션 검사의 책임
+
+모듈 간 경계는 ModulithArchitectureTest가 담당한다. closed 모듈·허용 의존성·Named Interface의 이름과 실제 공개 패키지를 고정하고 verify()로 순환과 내부 접근을 검증한다. LayerArchitectureTest의 중복 모듈 규칙 4개를 제거했으며 허용 목록과 모듈 metadata는 바꾸지 않았다.
+
+| 검사 | 역할 |
+| --- | --- |
+| ModulithArchitectureTest | 모듈 간 의존·순환·공개 API와 허용 정책 고정 |
+| LayerArchitectureTest | 내부 계층 의존성 방향·Port 계약 |
+| PersistenceBoundaryArchitectureTest | Entity 비노출·JPA 배치·기본 transaction 선언 |
+| ArchitectureRuleDetectionTest | 정상/금지 의존과 빈 검사 대상 탐지 확인 |
+| EntityBoundaryApiIntegrationTest | 실제 요청 종료 후 projection 조회 |
+| convention.ComponentConventionTest | Spring 컴포넌트 어노테이션의 패키지 배치 |
+| convention.JavaConventionTest | Checkstyle AST 규칙의 정상/금지 fixture |
+
+아키텍처와 컨벤션 검사는 Java 21에서 함께 실행한다.
+
+```bash
+./gradlew checkstyleMain checkstyleTest test \
+  --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --no-daemon
+```
+
+EntityBoundaryApiIntegrationTest는 테스트 수준 transaction을 열지 않고 요청마다 종료된 뒤 projection을 확인하므로 유지한다. 파일 존재만 검사하던 PackageDocumentationTest를 제거했지만 package-info 문서와 실제 Modulith metadata 검사는 유지한다. 문서 생성은 modulithDocs 작업이다. 이 정리는 운영 의존성·기존 DTO 허용 방향을 변경하지 않는다.

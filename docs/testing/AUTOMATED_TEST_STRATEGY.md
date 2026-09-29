@@ -56,23 +56,27 @@ Spring Modulith `ModulithArchitectureTest`:
 - 허용 의존성 목록과 Named Interface 이름 자체를 기대값으로 검증해 경계가 무심코 넓어지는 것을 막는다.
 
 ArchUnit `LayerArchitectureTest`:
-- Domain은 Application / Presentation / Infrastructure에 의존하지 않는다.
-- Application은 Presentation / Infrastructure에 의존하지 않는다.
-- Presentation은 Infrastructure에 직접 의존하지 않는다.
-- Spring Data JpaRepository는 Infrastructure에만 존재한다.
-- Repository Out Port는 `application.port.out`에 두며 Spring Data에 의존하지 않고 interface로 선언한다.
-- Presentation은 Application Service 구현체를 직접 참조하지 않고 In Port를 호출한다.
-- Presentation과 Application In Port는 JPA Entity에 직접 의존하지 않는다.
-- Application Result field에는 JPA Entity를 포함하지 않는다.
-- JPA Entity / Spring Service / REST Controller / Repository Adapter는 각 지정 계층에만 둔다.
-- 다른 기능 모듈의 Presentation/Infrastructure를 직접 참조하지 않는다.
-- Exercise 기반 모듈은 다른 기능 모듈에 역으로 의존하지 않는다.
+- Domain → 외부 계층, Application → Adapter, Presentation → Infrastructure/Service 구현 직접 의존을 금지한다.
+- AI 내부의 외부 SDK/Adapter 직접 사용을 금지한다.
+- Repository Out Port의 interface 선언과 Spring Data 비의존을 검증한다.
+- 운영 클래스만 import하고 필수 검사 대상의 비어 있음을 확인한다.
 
-`PackageDocumentationTest`:
-- 각 기능 모듈의 루트와 4계층 `package-info.java` 존재를 검증한다.
-- 구현된 모듈은 `application.port` / `port.in` / `port.out` `package-info.java`를 유지한다.
-- Application Result를 사용하는 모듈은 `application.result/package-info.java`에 Entity 비노출 projection 규칙을 문서화한다.
-- package-info Javadoc은 개발자가 책임과 규칙을 코드 가까이에서 확인하기 위한 문서다.
+`PersistenceBoundaryArchitectureTest`:
+- Presentation/In Port의 Entity 직접 의존과 Result 필드의 Entity 노출을 금지한다.
+- Entity는 Domain model, JpaRepository는 Infrastructure에 배치한다.
+- In Port 구현 Service의 기본 read-only transaction 선언을 확인한다.
+
+`convention.ComponentConventionTest` / `convention.JavaConventionTest`:
+- Spring Service/Controller/Repository 어노테이션의 지정 패키지 배치를 검증한다.
+- Java var 선언 금지는 Checkstyle Main/Test AST 검사로 강제하고 정상/위반 fixture로 규칙 자체를 확인한다.
+
+`ArchitectureRuleDetectionTest` / `EntityBoundaryApiIntegrationTest`:
+- 실제 운영 규칙으로 정상·금지 fixture와 빈 대상 실패를 확인한다.
+- 테스트 수준 @Transactional 없이 요청 종료 뒤 projection을 확인해 lazy-loading 경계를 검증한다.
+
+중복 모듈 규칙 4개는 Modulith 검증으로 통합했다. closed 모듈과 실제 공개 Named Interface 패키지를 고정해 Presentation/Infrastructure가 추가로 공개되지 않게 한다. package-info 파일 존재만 확인하는 문서 테스트는 제거하며 문서 파일과 module metadata는 유지한다. 다이어그램/canvas는 `./gradlew modulithDocs --no-daemon`으로 생성한다.
+
+2026-09-29 정리 검증: 아키텍처 24개 + 컨벤션 10개, 전체 build 205개 모두 통과했다. 이전 44개에서 중복 모듈 4개·문서 파일 존재 5개·문서 생성 1개를 분리/제거한 결과다. 보존한 17개 ArchUnit 검사 조건은 동일하다. 임시 금지 의존과 추가 공개 API로 Modulith의 실제 실패를 확인한 후 probe를 제거했다. 독립 문서 생성 작업도 테스트 실행 없이 19개 파일을 생성했다. 원격 CI/CD·배포는 실행하지 않았다.
 
 ### 6순위: AI Coach 테스트
 LLM 자연어 문장 자체가 아니라 Router 분류, 선택 Context, In/Out Port 호출, Provider Gateway 호출 여부와 데이터 근거를 검증한다.
@@ -109,7 +113,7 @@ Java 21 환경에서 명시적으로 실행한다:
 
 ```bash
 ./gradlew checkstyleMain checkstyleTest
-./gradlew test --tests 'com.myfitness.architecture.*'
+./gradlew test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*'
 ./gradlew test --tests 'com.myfitness.ai.*'
 ./gradlew aiPolicyEval -PaiPolicyEval.mode=legacy
 ./gradlew aiPolicyEval -PaiPolicyEval.mode=jev-live -PaiPolicyEval.runs=3
@@ -122,4 +126,4 @@ live는 서버 환경의 `TYPESAFE_API_KEY`가 없으면 실패하며 대역으�
 
 마이그레이션 호환 테스트는 변경하지 않은 V6와 신규 V10 SQL을 H2에서 실행한다. TIMESTAMPTZ alias를 사용하는 H2 검증이며 실제 PostgreSQL/Flyway staging 검증을 대신하지 않는다.
 
-Java var 금지는 가독성 컨벤션이다. `config/checkstyle/checkstyle.xml`의 MatchXpath가 `//TYPE/IDENT[@text='var']`를 검사한다. `JavaConventionTest`가 local/final/for/enhanced-for/resource/lambda 위반과 이름·주석·문자열의 정상 사례를 검증한다. Checkstyle은 test 선행 작업과 check/build/CI에 연결된다. ArchUnit/Modulith 규칙과 예외를 완화하지 않는다. 배포 parameter 연결은 `python3 scripts/test-ai-policy-deploy.py`로 AWS/Docker 없이 검증한다.
+Java var 금지는 가독성 컨벤션이다. `config/checkstyle/checkstyle.xml`의 MatchXpath가 `//TYPE/IDENT[@text='var']`를 검사한다. `convention.JavaConventionTest`가 local/final/for/enhanced-for/resource/lambda 위반과 이름·주석·문자열의 정상 사례를 검증한다. Checkstyle은 test 선행 작업과 check/build/CI에 연결된다. ArchUnit/Modulith 규칙과 예외를 완화하지 않는다. 배포 parameter 연결은 `python3 scripts/test-ai-policy-deploy.py`로 AWS/Docker 없이 검증한다.

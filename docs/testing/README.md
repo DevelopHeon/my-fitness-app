@@ -6,6 +6,8 @@
 - 자동 테스트 원칙: [AUTOMATED_TEST_STRATEGY.md](./AUTOMATED_TEST_STRATEGY.md)
 - 수동 테스트 템플릿: [MANUAL_TEST_TEMPLATE.md](./MANUAL_TEST_TEMPLATE.md)
 
+아키텍처/컨벤션 검사는 `./gradlew test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --no-daemon`으로 함께 실행한다. 모듈 문서 생성은 `./gradlew modulithDocs --no-daemon`이며 일반 테스트에 문서 생성을 섞지 않는다. [검사별 책임](../architecture/README.md#아키텍처컨벤션-검사의-책임)을 참고한다.
+
 자동 테스트는 비즈니스 규칙 검증을 기본으로 하며, 수동 테스트는 실제 사용자 흐름, 모바일 UX, PWA 동작, Ollama 응답처럼 자동화가 어려운 영역을 보완한다.
 
 ## 작성 시점

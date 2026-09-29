@@ -11,6 +11,7 @@ import org.springframework.modulith.ApplicationModule;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.modulith.core.ApplicationModules;
 
+/** 모듈 감지·공개 API·허용 의존성·순환 금지를 한곳에서 검증한다. */
 class ModulithArchitectureTest {
 
     private static final Map<String, Set<String>> ALLOWED_DEPENDENCIES =
@@ -136,6 +137,9 @@ class ModulithArchitectureTest {
             assertThat(metadata)
                     .as("%s @ApplicationModule", entry.getKey())
                     .isNotNull();
+            assertThat(metadata.type())
+                    .as("%s closed module", entry.getKey())
+                    .isEqualTo(ApplicationModule.Type.CLOSED);
             assertThat(metadata.allowedDependencies())
                     .as("%s allowedDependencies", entry.getKey())
                     .containsExactlyInAnyOrderElementsOf(entry.getValue());
@@ -145,6 +149,19 @@ class ModulithArchitectureTest {
     @Test
     @DisplayName("모듈 간 공개 패키지는 합의한 Named Interface 이름을 유지한다")
     void declaresExpectedNamedInterfaces() throws Exception {
+        Set<String> expected = NAMED_INTERFACES.entrySet().stream()
+                .map(entry -> "com.myfitness." + entry.getKey() + "::" + entry.getValue())
+                .collect(java.util.stream.Collectors.toSet());
+        Set<String> exposed = modules.stream()
+                .flatMap(module -> module.getNamedInterfaces().stream())
+                .filter(org.springframework.modulith.core.NamedInterface::isNamed)
+                .flatMap(named -> named.asJavaClasses()
+                        .map(type -> type.getPackageName() + "::" + named.getName()))
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(exposed)
+                .as("허용된 Named Interface 패키지만 공개하며 Presentation/Infrastructure를 추가 공개하지 않는다")
+                .containsExactlyInAnyOrderElementsOf(expected);
+
         for (Map.Entry<String, String> entry
                 : NAMED_INTERFACES.entrySet()) {
             Package apiPackage =

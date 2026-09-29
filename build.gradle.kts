@@ -79,6 +79,14 @@ val aiPolicyEval = tasks.register<Test>("aiPolicyEval") {
 	}
 }
 
+tasks.register<JavaExec>("modulithDocs") {
+	description = "Generate Spring Modulith diagrams and module canvases without running tests"
+	group = "documentation"
+	dependsOn(tasks.named("testClasses"))
+	classpath = sourceSets["test"].runtimeClasspath
+	mainClass.set("com.myfitness.architecture.documentation.ModulithDocumentation")
+}
+
 val frontendDir = layout.projectDirectory.dir("frontend")
 val frontendOutputDir = frontendDir.dir("out")
 
