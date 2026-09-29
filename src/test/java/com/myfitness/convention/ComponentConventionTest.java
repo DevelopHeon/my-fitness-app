@@ -21,6 +21,52 @@ class ComponentConventionTest {
                     .importPackages("com.myfitness");
 
     @Test
+    @DisplayName("Application은 구조적 역할별 패키지로 구성한다")
+    void applicationClassesStayInRolePackages() {
+        classes()
+                .that()
+                .resideInAPackage("..application..")
+                .should()
+                .resideInAnyPackage(
+                        "..application",
+                        "..application.config..",
+                        "..application.dto.request..",
+                        "..application.dto.response..",
+                        "..application.exception..",
+                        "..application.port..",
+                        "..application.service..",
+                        "..application.support..")
+                .because("입출력 DTO와 내부 협력 기능은 dto/request·response와 support에 모은다.")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("Application Command는 request DTO 패키지에 둔다")
+    void applicationCommandsStayInRequestDtoPackages() {
+        classes()
+                .that()
+                .resideInAPackage("..application..")
+                .and()
+                .haveSimpleNameEndingWith("Command")
+                .should()
+                .resideInAPackage("..application.dto.request..")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("Application Result는 response DTO 패키지에 둔다")
+    void applicationResultsStayInResponseDtoPackages() {
+        classes()
+                .that()
+                .resideInAPackage("..application..")
+                .and()
+                .haveSimpleNameEndingWith("Result")
+                .should()
+                .resideInAPackage("..application.dto.response..")
+                .check(CLASSES);
+    }
+
+    @Test
     @DisplayName("Spring Service는 Application service 패키지에만 둔다")
     void springServicesStayInApplicationService() {
         ArchRule rule =

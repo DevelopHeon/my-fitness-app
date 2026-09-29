@@ -1,15 +1,15 @@
 package com.myfitness.ai.application.service;
 
 import com.myfitness.ai.application.config.AiCoachProperties;
-import com.myfitness.ai.application.context.AiContextBundle;
 import com.myfitness.ai.application.exception.AiConversationAccessException;
 import com.myfitness.ai.application.exception.AiConversationNotFoundException;
-import com.myfitness.ai.application.policy.AiPolicyRun;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
 import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
 import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
+import com.myfitness.ai.application.support.context.AiContextBundle;
+import com.myfitness.ai.application.support.policy.AiPolicyRun;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
@@ -109,7 +109,7 @@ public class AiMessageTransactionService {
                         clock.instant());
         AiRequestStatus status =
                 policy.decision().action()
-                                == com.myfitness.ai.application.policy.AiPolicyDecision.Action
+                                == com.myfitness.ai.application.support.policy.AiPolicyDecision.Action
                                         .CLARIFY
                         ? AiRequestStatus.CLARIFICATION_REQUIRED
                         : policy.decision().reason().equals("OUT_OF_SCOPE")

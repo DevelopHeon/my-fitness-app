@@ -1,13 +1,13 @@
 package com.myfitness.ai.evaluation;
 
-import com.myfitness.ai.application.command.AiClientContext;
 import com.myfitness.ai.application.config.AiPolicyProperties;
+import com.myfitness.ai.application.command.AiClientContext;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
-import com.myfitness.ai.application.policy.AiPolicyDecision;
-import com.myfitness.ai.application.policy.AiPolicyEvaluator;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyRequest;
+import com.myfitness.ai.application.support.policy.AiPolicyDecision;
+import com.myfitness.ai.application.support.policy.AiPolicyEvaluator;
 import com.myfitness.ai.domain.model.AiMessageRole;
 import com.myfitness.ai.domain.model.AiQueryType;
 import com.myfitness.ai.evaluation.legacy.LegacyAiQueryRouter;

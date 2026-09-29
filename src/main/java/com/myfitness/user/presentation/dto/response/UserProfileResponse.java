@@ -1,6 +1,6 @@
 package com.myfitness.user.presentation.dto.response;
 
-import com.myfitness.user.application.result.UserProfileResult;
+import com.myfitness.user.application.dto.response.UserProfileResult;
 
 public record UserProfileResponse(
         Long id,

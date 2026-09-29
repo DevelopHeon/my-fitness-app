@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.response;
 
-import com.myfitness.ai.application.result.AiSendMessageResult;
+import com.myfitness.ai.application.dto.response.AiSendMessageResult;
 
 public record AiSendMessageResponse(
         AiConversationResponse conversation,

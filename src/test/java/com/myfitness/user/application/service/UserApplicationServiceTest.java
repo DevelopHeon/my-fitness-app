@@ -7,7 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.myfitness.user.application.command.GoogleLoginCommand;
+import com.myfitness.user.application.dto.request.GoogleLoginCommand;
 import com.myfitness.user.application.exception.UserNotFoundException;
 import com.myfitness.user.application.port.out.UserRepositoryPort;
 import com.myfitness.user.domain.model.User;

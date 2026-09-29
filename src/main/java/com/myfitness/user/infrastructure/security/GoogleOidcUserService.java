@@ -1,8 +1,8 @@
 package com.myfitness.user.infrastructure.security;
 
-import com.myfitness.user.application.command.GoogleLoginCommand;
+import com.myfitness.user.application.dto.request.GoogleLoginCommand;
+import com.myfitness.user.application.dto.response.UserProfileResult;
 import com.myfitness.user.application.port.in.GoogleLoginUseCase;
-import com.myfitness.user.application.result.UserProfileResult;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;

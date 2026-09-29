@@ -1,8 +1,7 @@
 package com.myfitness.routine.presentation.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.myfitness.routine.application.command.ExerciseSelection;
-import com.myfitness.routine.application.result.RoutineWorkoutStartResult;
+import com.myfitness.routine.application.dto.request.ExerciseSelection;
+import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
 import com.myfitness.routine.application.port.in.RoutineUseCase;
 import com.myfitness.routine.presentation.dto.request.RoutineUpsertRequest;
 import com.myfitness.routine.presentation.dto.request.StartRoutineWorkoutRequest;
@@ -11,6 +10,7 @@ import com.myfitness.routine.presentation.dto.response.RoutineWorkoutStartRespon
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

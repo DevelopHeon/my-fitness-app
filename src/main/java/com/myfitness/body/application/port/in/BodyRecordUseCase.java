@@ -1,7 +1,7 @@
 package com.myfitness.body.application.port.in;
 
-import com.myfitness.body.application.result.BodyRecordResult;
-import com.myfitness.body.application.result.BodyTrendResult;
+import com.myfitness.body.application.dto.response.BodyRecordResult;
+import com.myfitness.body.application.dto.response.BodyTrendResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;

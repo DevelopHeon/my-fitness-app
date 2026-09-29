@@ -1,11 +1,12 @@
 package com.myfitness.nutrition.application.service;
 
+import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.dto.response.FoodResult;
+import com.myfitness.nutrition.application.dto.response.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.dto.response.MealFoodResult;
+import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
-import com.myfitness.nutrition.application.result.DailyNutritionResult;
-import com.myfitness.nutrition.application.result.FoodResult;
-import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
-import com.myfitness.nutrition.application.result.MealFoodResult;
-import com.myfitness.nutrition.application.result.NutritionGoalResult;
+import com.myfitness.nutrition.application.support.NutritionResultAssembler;
 import com.myfitness.nutrition.domain.model.Food;
 import com.myfitness.nutrition.domain.model.MealFood;
 import com.myfitness.nutrition.domain.model.MealType;

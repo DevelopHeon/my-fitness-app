@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.request;
 
-import com.myfitness.ai.application.command.AiClientContext;
+import com.myfitness.ai.application.dto.request.AiClientContext;
 import java.time.LocalDate;
 
 public record AiClientContextRequest(

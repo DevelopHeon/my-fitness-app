@@ -2,12 +2,12 @@ package com.myfitness.workout.application.service;
 
 import com.myfitness.exercise.domain.model.ExerciseReference;
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.domain.model.*;
-import com.myfitness.workout.application.command.WorkoutSetCommand;
+import com.myfitness.workout.application.dto.request.WorkoutSetCommand;
 import com.myfitness.workout.application.exception.WorkoutAccessException;
 import com.myfitness.workout.application.exception.WorkoutNotFoundException;
 import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
 import com.myfitness.workout.application.port.out.WorkoutRepositoryPort;
+import com.myfitness.workout.domain.model.*;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;

@@ -1,10 +1,10 @@
 package com.myfitness.nutrition.application.service;
 
+import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.dto.response.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
+import com.myfitness.nutrition.application.dto.response.NutritionTotals;
 import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery;
-import com.myfitness.nutrition.application.result.DailyNutritionResult;
-import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
-import com.myfitness.nutrition.application.result.NutritionTotals;
-import com.myfitness.nutrition.application.result.NutritionGoalResult;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

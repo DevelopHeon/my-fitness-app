@@ -1,7 +1,7 @@
 package com.myfitness.routine.presentation.dto.response;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.routine.application.result.RoutineResult;
+import com.myfitness.routine.application.dto.response.RoutineResult;
 import java.time.Instant;
 import java.util.List;
 

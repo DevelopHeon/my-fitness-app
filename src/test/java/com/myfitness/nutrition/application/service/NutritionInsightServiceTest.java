@@ -5,11 +5,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.dto.response.FoodResult;
+import com.myfitness.nutrition.application.dto.response.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.dto.response.NutritionTotals;
 import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery.NutritionDayInsight;
-import com.myfitness.nutrition.application.result.DailyNutritionResult;
-import com.myfitness.nutrition.application.result.FoodResult;
-import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
-import com.myfitness.nutrition.application.result.NutritionTotals;
 import com.myfitness.nutrition.domain.model.ServingUnit;
 
 import org.junit.jupiter.api.DisplayName;

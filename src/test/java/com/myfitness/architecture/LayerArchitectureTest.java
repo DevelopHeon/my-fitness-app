@@ -56,6 +56,24 @@ class LayerArchitectureTest {
                             "com.myfitness.ai.infrastructure.typesafe..")
                     .because("외부 AI 연동은 Infrastructure에 두고 Application Out Port로 호출한다.");
 
+    static final ArchRule SUPPORT_RULE =
+            noClasses()
+                    .that()
+                    .resideInAPackage("..application.support..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAPackage("..application.service..")
+                    .because("Support는 내부 협력 기능이며 유스케이스와 transaction 조율은 Service가 담당한다.");
+
+    static final ArchRule PRESENTATION_IMPLEMENTATION_RULE =
+            noClasses()
+                    .that()
+                    .resideInAPackage("..presentation..")
+                    .should()
+                    .dependOnClassesThat()
+                    .resideInAnyPackage("..application.service..", "..application.support..")
+                    .because("Presentation은 내부 구현을 우회 호출하지 않고 In Port를 사용한다.");
+
     private static final JavaClasses CLASSES =
             new ClassFileImporter()
                     .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -64,7 +82,7 @@ class LayerArchitectureTest {
     @Test
     @DisplayName("아키텍처 검사는 운영 클래스를 포함하고 테스트 클래스는 제외한다")
     void importsOnlyProductionClasses() {
-        assertThat(CLASSES.contain(com.myfitness.ai.application.policy.AiPolicyGuard.class))
+        assertThat(CLASSES.contain(com.myfitness.ai.application.support.policy.AiPolicyGuard.class))
                 .isTrue();
         assertThat(
                         CLASSES.contain(
@@ -137,16 +155,14 @@ class LayerArchitectureTest {
     }
 
     @Test
-    @DisplayName("Presentation은 Application Service 구현체를 직접 참조하지 않는다")
-    void presentationDoesNotDependOnApplicationServices() {
-        ArchRule rule =
-                noClasses()
-                        .that()
-                        .resideInAPackage("..presentation..")
-                        .should()
-                        .dependOnClassesThat()
-                        .resideInAPackage("..application.service..");
+    @DisplayName("Presentation은 Application Service와 Support 구현체를 직접 참조하지 않는다")
+    void presentationDoesNotDependOnApplicationImplementations() {
+        PRESENTATION_IMPLEMENTATION_RULE.check(CLASSES);
+    }
 
-        rule.check(CLASSES);
+    @Test
+    @DisplayName("Application Support는 Service에 역방향 의존하지 않는다")
+    void applicationSupportDoesNotDependOnServices() {
+        SUPPORT_RULE.check(CLASSES);
     }
 }

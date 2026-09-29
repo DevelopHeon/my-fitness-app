@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.result.FoodSuggestionsResult;
+import com.myfitness.nutrition.application.dto.response.FoodSuggestionsResult;
 import java.util.List;
 
 public record FoodSuggestionsResponse(

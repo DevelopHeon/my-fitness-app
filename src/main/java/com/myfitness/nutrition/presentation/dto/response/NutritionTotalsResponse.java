@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.result.NutritionTotals;
+import com.myfitness.nutrition.application.dto.response.NutritionTotals;
 import java.math.BigDecimal;
 
 public record NutritionTotalsResponse(

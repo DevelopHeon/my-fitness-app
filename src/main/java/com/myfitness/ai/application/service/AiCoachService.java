@@ -1,23 +1,28 @@
 package com.myfitness.ai.application.service;
 
-import com.myfitness.ai.application.command.AiClientContext;
-import com.myfitness.ai.application.command.AiMessageCommand;
 import com.myfitness.ai.application.config.AiCoachProperties;
-import com.myfitness.ai.application.context.AiContextBuilder;
-import com.myfitness.ai.application.context.AiContextBundle;
+import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.dto.request.AiMessageCommand;
+import com.myfitness.ai.application.dto.response.AiConversationResult;
+import com.myfitness.ai.application.dto.response.AiMessageResult;
+import com.myfitness.ai.application.dto.response.AiSendMessageResult;
 import com.myfitness.ai.application.exception.AiConversationAccessException;
 import com.myfitness.ai.application.exception.AiConversationNotFoundException;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
-import com.myfitness.ai.application.policy.AiPolicyDecision;
-import com.myfitness.ai.application.policy.AiPolicyGuard;
-import com.myfitness.ai.application.policy.AiPolicyRun;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.port.in.AiCoachUseCase;
+import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
+import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
 import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
 import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
 import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
-import com.myfitness.ai.application.result.AiConversationResult;
-import com.myfitness.ai.application.result.AiMessageResult;
-import com.myfitness.ai.application.result.AiSendMessageResult;
+import com.myfitness.ai.application.support.AiHistorySelector;
+import com.myfitness.ai.application.support.AiProviderExecutor;
+import com.myfitness.ai.application.support.context.AiContextBuilder;
+import com.myfitness.ai.application.support.context.AiContextBundle;
+import com.myfitness.ai.application.support.policy.AiPolicyDecision;
+import com.myfitness.ai.application.support.policy.AiPolicyGuard;
+import com.myfitness.ai.application.support.policy.AiPolicyRun;
 import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
@@ -178,7 +183,7 @@ public class AiCoachService implements AiCoachUseCase {
 
         AiContextBundle context = contextBuilder.build(userId, queryType, clientContext, message);
         AiMessage assistantMessage =
-                providerExecutor.generate(
+                generateResponse(
                         userId,
                         conversationId,
                         userMessage,
@@ -189,6 +194,51 @@ public class AiCoachService implements AiCoachUseCase {
                         policy);
 
         return result(conversation, userMessage, assistantMessage, true, decision.action().name());
+    }
+
+    private AiMessage generateResponse(
+            Long userId,
+            Long conversationId,
+            AiMessage userMessage,
+            AiQueryType queryType,
+            AiContextBundle context,
+            List<HistoryMessage> history,
+            String message,
+            AiPolicyRun.Success policy) {
+        long started = System.nanoTime();
+        try {
+            AiModelResponse response = providerExecutor.generate(context, history, message);
+            return transactionService.saveProviderSuccess(
+                    userId,
+                    conversationId,
+                    userMessage,
+                    queryType,
+                    context,
+                    response,
+                    elapsedMillis(started),
+                    policy);
+        } catch (RuntimeException exception) {
+            transactionService.saveProviderFailure(
+                    userId,
+                    conversationId,
+                    userMessage,
+                    queryType,
+                    context,
+                    providerExecutor.provider(),
+                    providerExecutor.model(),
+                    exception,
+                    elapsedMillis(started),
+                    policy);
+            if (exception instanceof AiProviderUnavailableException provider) {
+                throw provider;
+            }
+            throw new AiProviderUnavailableException(
+                    "AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.", exception);
+        }
+    }
+
+    private static long elapsedMillis(long started) {
+        return (System.nanoTime() - started) / 1_000_000L;
     }
 
     private static String policyMessage(AiPolicyDecision decision) {

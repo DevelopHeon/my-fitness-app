@@ -56,18 +56,20 @@ Spring Modulith `ModulithArchitectureTest`:
 - 허용 의존성 목록과 Named Interface 이름 자체를 기대값으로 검증해 경계가 무심코 넓어지는 것을 막는다.
 
 ArchUnit `LayerArchitectureTest`:
-- Domain → 외부 계층, Application → Adapter, Presentation → Infrastructure/Service 구현 직접 의존을 금지한다.
+- Domain → 외부 계층, Application → Adapter, Presentation → Infrastructure/Service/Support 구현 직접 의존을 금지한다.
+- Application Support → Service 역방향 의존을 금지한다.
 - AI 내부의 외부 SDK/Adapter 직접 사용을 금지한다.
 - Repository Out Port의 interface 선언과 Spring Data 비의존을 검증한다.
 - 운영 클래스만 import하고 필수 검사 대상의 비어 있음을 확인한다.
 
 `PersistenceBoundaryArchitectureTest`:
-- Presentation/In Port의 Entity 직접 의존과 Result 필드의 Entity 노출을 금지한다.
+- Presentation/In Port의 Entity 직접 의존과 Application Response DTO 필드의 Entity 노출을 금지한다.
 - Entity는 Domain model, JpaRepository는 Infrastructure에 배치한다.
 - In Port 구현 Service의 기본 read-only transaction 선언을 확인한다.
 
 `convention.ComponentConventionTest` / `convention.JavaConventionTest`:
 - Spring Service/Controller/Repository 어노테이션의 지정 패키지 배치를 검증한다.
+- Application 최상위 역할 패키지와 Command의 dto/request, Result의 dto/response 배치를 검증한다.
 - Java var 선언 금지는 Checkstyle Main/Test AST 검사로 강제하고 정상/위반 fixture로 규칙 자체를 확인한다.
 
 `ArchitectureRuleDetectionTest` / `EntityBoundaryApiIntegrationTest`:
@@ -80,6 +82,16 @@ ArchUnit `LayerArchitectureTest`:
 
 ### 6순위: AI Coach 테스트
 LLM 자연어 문장 자체가 아니라 Router 분류, 선택 Context, In/Out Port 호출, Provider Gateway 호출 여부와 데이터 근거를 검증한다.
+
+Legacy 비교 fixture는 변경 전 Router의 바이트와 소스 hash를 보존한다. 당시 `AiClientContext` 입력은 `src/test/java/com/myfitness/ai/application/command`의 테스트 전용 스냅샷을 사용한다. 운영 입력은 `application.dto.request`이며 테스트 스냅샷을 운영 fallback이나 운영 소스에 포함하지 않는다. 기존 1,000개 판정·manifest·dataset은 변경하지 않는다.
+
+2026-09-29 후속 Application 패키지 정리 검증(Java 21):
+
+- `./gradlew checkstyleMain checkstyleTest test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --no-daemon`: 아키텍처 25개·컨벤션 13개 통과. AST var 검사도 포함한다.
+- `./gradlew test --tests 'com.myfitness.ai.evaluation.LegacyAiPolicyBaselineTest' --tests 'com.myfitness.ai.evaluation.legacy.*' --no-daemon`: 원본 Router hash와 seed·1,000개 저장 판정 재현 통과.
+- `./gradlew build modulithDocs --no-daemon`: 전체 209개 테스트 통과, module 문서 19개 생성. AI 답변 생성 실패의 503 계약·추적 로그와 외부 호출 중 transaction 비활성도 검증한다.
+- 임시 운영 소스 5개로 Support → Service, Presentation → Support, 구 DTO 위치, Command/Result 위치, Response DTO Entity 노출을 넣어 6개 검사 실패를 확인한 뒤 제거했다. 허용 모듈 의존성과 Named Interface는 변경하지 않았다.
+- 실제 JEV 호출, 원격 CI/CD와 배포는 실행하지 않았다.
 
 ## 3. 작성하지 않아도 되는 테스트
 

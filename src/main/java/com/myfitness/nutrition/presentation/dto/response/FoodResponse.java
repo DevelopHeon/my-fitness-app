@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.result.FoodResult;
+import com.myfitness.nutrition.application.dto.response.FoodResult;
 import com.myfitness.nutrition.domain.model.ServingUnit;
 import java.math.BigDecimal;
 import java.time.Instant;

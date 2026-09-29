@@ -2,10 +2,10 @@ package com.myfitness.dashboard.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.myfitness.dashboard.application.port.out.DashboardDataPort;
+import com.myfitness.dashboard.application.dto.response.DashboardResult.BodySummary;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.BodyData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.DashboardSourceData;
-import com.myfitness.dashboard.application.result.DashboardResult.BodySummary;
+import com.myfitness.dashboard.application.port.out.DashboardDataPort;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

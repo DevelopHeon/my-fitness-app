@@ -69,18 +69,18 @@ class PersistenceBoundaryArchitectureTest {
     }
 
     @Test
-    @DisplayName("Application Result의 필드는 JPA Entity 타입을 노출하지 않는다")
-    void applicationResultsDoNotExposeJpaEntitiesAsFields() {
+    @DisplayName("Application Response DTO의 필드는 JPA Entity 타입을 노출하지 않는다")
+    void applicationResponseDtosDoNotExposeJpaEntitiesAsFields() {
         assertThat(
                         CLASSES.stream()
                                 .filter(
                                         type ->
                                                 type.getPackageName()
-                                                        .contains(".application.result")))
-                .as("Application Result 검사 대상")
+                                                        .contains(".application.dto.response")))
+                .as("Application Response DTO 검사 대상")
                 .isNotEmpty();
         CLASSES.stream()
-                .filter(javaClass -> javaClass.getPackageName().contains(".application.result"))
+                .filter(javaClass -> javaClass.getPackageName().contains(".application.dto.response"))
                 .forEach(
                         javaClass ->
                                 javaClass

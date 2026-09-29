@@ -1,10 +1,10 @@
 package com.myfitness.workout.application.port.in;
 
 import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.application.command.WorkoutSetCommand;
-import com.myfitness.workout.application.result.PreviousExerciseRecordResult;
-import com.myfitness.workout.application.result.WorkoutCalendarDayResult;
-import com.myfitness.workout.application.result.WorkoutResult;
+import com.myfitness.workout.application.dto.request.WorkoutSetCommand;
+import com.myfitness.workout.application.dto.response.PreviousExerciseRecordResult;
+import com.myfitness.workout.application.dto.response.WorkoutCalendarDayResult;
+import com.myfitness.workout.application.dto.response.WorkoutResult;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;

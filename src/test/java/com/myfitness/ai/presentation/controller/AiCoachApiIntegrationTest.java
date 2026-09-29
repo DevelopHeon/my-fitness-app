@@ -1,18 +1,18 @@
 package com.myfitness.ai.presentation.controller;
 
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.myfitness.ai.application.port.out.AiChatGateway;
-import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
+import com.myfitness.ai.application.port.out.AiChatGateway;
+import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -186,13 +186,39 @@ class AiCoachApiIntegrationTest {
                         .content("""
                                 {"message":"오늘 운동 어떻게 할까?"}
                                 """))
-                .andExpect(status().isServiceUnavailable());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_PROVIDER_UNAVAILABLE"));
 
         assertThat(jdbcTemplate.queryForObject(
                 "select status from ai_request_logs where conversation_id = ?",
                 String.class,
                 conversationId))
                 .isEqualTo("FAILED");
+        assertThat(jdbcTemplate.queryForObject(
+                "select provider from ai_request_logs where conversation_id = ?",
+                String.class,
+                conversationId))
+                .isEqualTo("fake");
+        assertThat(jdbcTemplate.queryForObject(
+                "select model from ai_request_logs where conversation_id = ?",
+                String.class,
+                conversationId))
+                .isEqualTo("fake-model");
+        assertThat(jdbcTemplate.queryForObject(
+                "select error_code from ai_request_logs where conversation_id = ?",
+                String.class,
+                conversationId))
+                .isEqualTo("IllegalStateException");
+        assertThat(jdbcTemplate.queryForObject(
+                "select latency_ms from ai_request_logs where conversation_id = ?",
+                Long.class,
+                conversationId))
+                .isNotNegative();
+        assertThat(jdbcTemplate.queryForObject(
+                "select policy_decision from ai_request_logs where conversation_id = ?",
+                String.class,
+                conversationId))
+                .isEqualTo("ALLOW");
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from ai_messages where conversation_id = ?",
                 Integer.class,

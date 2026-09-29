@@ -8,9 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.myfitness.user.application.command.GoogleLoginCommand;
+import com.myfitness.user.application.dto.request.GoogleLoginCommand;
+import com.myfitness.user.application.dto.response.UserProfileResult;
 import com.myfitness.user.application.port.in.GoogleLoginUseCase;
-import com.myfitness.user.application.result.UserProfileResult;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.time.Instant;

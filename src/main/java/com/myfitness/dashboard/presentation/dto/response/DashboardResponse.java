@@ -1,6 +1,6 @@
 package com.myfitness.dashboard.presentation.dto.response;
 
-import com.myfitness.dashboard.application.result.DashboardResult;
+import com.myfitness.dashboard.application.dto.response.DashboardResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

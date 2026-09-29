@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.response;
 
-import com.myfitness.ai.application.result.AiConversationResult;
+import com.myfitness.ai.application.dto.response.AiConversationResult;
 import java.time.Instant;
 
 public record AiConversationResponse(

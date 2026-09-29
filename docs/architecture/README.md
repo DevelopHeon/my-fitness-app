@@ -187,9 +187,11 @@ Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사�
 │   ├── port
 │   │   ├── in
 │   │   └── out
+│   ├── dto
+│   │   ├── request
+│   │   └── response
 │   ├── service
-│   ├── command
-│   └── result
+│   └── support
 ├── domain
 │   ├── model
 │   └── exception
@@ -200,6 +202,10 @@ Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사�
 ~~~
 
 기본 호출 흐름:
+
+Application의 `dto/request`는 Command와 입력 보조 데이터를, `dto/response`는 Result와 출력 보조 데이터를 둡니다. 클래스의 Command/Result 접미사는 유지하며 HTTP Request/Response는 기존 Presentation DTO에 둡니다. Port에 선언된 중첩 record는 해당 공개 계약의 일부이므로 별도 DTO로 분리하지 않습니다.
+
+`service`에는 유스케이스 조율과 DB 처리·transaction 서비스를 둡니다. `support`에는 내부 협력 기능을 두며 Service에 역방향 의존하지 않습니다. AI는 support 아래 context/policy/prompt와 이력 선택·Provider 호출을, Dashboard는 요약 Builder·Result Assembler를, Nutrition은 Result Assembler를 둡니다. 해당 역할이 없는 모듈에는 빈 패키지를 만들지 않습니다. Presentation은 Service와 Support를 직접 참조하지 않습니다.
 
 ~~~mermaid
 flowchart LR
@@ -270,6 +276,8 @@ Assistant / Request Log 저장
 ~~~
 
 AiCoachService.sendMessage는 Provider 호출 동안 DB transaction을 유지하지 않고, AiMessageTransactionService가 짧은 DB transaction을 담당합니다.
+
+AiProviderExecutor는 Support에서 프롬프트를 구성하고 AiChatGateway Out Port를 호출합니다. 성공·실패 저장, 오류 변환과 지연 시간 기록은 AiCoachService가 조율하므로 Support가 transaction Service를 호출하지 않습니다.
 
 ---
 
@@ -394,11 +402,11 @@ ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스
 | 검사 | 역할 |
 | --- | --- |
 | ModulithArchitectureTest | 모듈 간 의존·순환·공개 API와 허용 정책 고정 |
-| LayerArchitectureTest | 내부 계층 의존성 방향·Port 계약 |
-| PersistenceBoundaryArchitectureTest | Entity 비노출·JPA 배치·기본 transaction 선언 |
+| LayerArchitectureTest | 내부 계층 의존성 방향·Port 계약·Support의 Service 역참조 금지·Presentation의 구현 직접 참조 금지 |
+| PersistenceBoundaryArchitectureTest | Response DTO/HTTP/In Port의 Entity 비노출·JPA 배치·기본 transaction 선언 |
 | ArchitectureRuleDetectionTest | 정상/금지 의존과 빈 검사 대상 탐지 확인 |
 | EntityBoundaryApiIntegrationTest | 실제 요청 종료 후 projection 조회 |
-| convention.ComponentConventionTest | Spring 컴포넌트 어노테이션의 패키지 배치 |
+| convention.ComponentConventionTest | Spring 컴포넌트 어노테이션·Application 역할별 패키지·Command/Result DTO 배치 |
 | convention.JavaConventionTest | Checkstyle AST 규칙의 정상/금지 fixture |
 
 아키텍처와 컨벤션 검사는 Java 21에서 함께 실행한다.

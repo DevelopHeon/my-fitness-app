@@ -1,9 +1,9 @@
 package com.myfitness.ai.application.port.in;
 
-import com.myfitness.ai.application.command.AiMessageCommand;
-import com.myfitness.ai.application.result.AiConversationResult;
-import com.myfitness.ai.application.result.AiMessageResult;
-import com.myfitness.ai.application.result.AiSendMessageResult;
+import com.myfitness.ai.application.dto.request.AiMessageCommand;
+import com.myfitness.ai.application.dto.response.AiConversationResult;
+import com.myfitness.ai.application.dto.response.AiMessageResult;
+import com.myfitness.ai.application.dto.response.AiSendMessageResult;
 import java.util.List;
 
 public interface AiCoachUseCase {

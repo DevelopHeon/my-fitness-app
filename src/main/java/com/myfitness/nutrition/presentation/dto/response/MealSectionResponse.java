@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.result.MealSectionResult;
+import com.myfitness.nutrition.application.dto.response.MealSectionResult;
 import com.myfitness.nutrition.domain.model.MealType;
 import java.util.List;
 
