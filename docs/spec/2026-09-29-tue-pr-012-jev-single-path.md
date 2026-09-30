@@ -16,7 +16,7 @@
 
 평가 불가는 key 누락, 시간 초과, 통신 실패, HTTP 오류, 파싱·확률·모델 불일치 등 유효한 assessment를 얻지 못한 경우다. 재시도·키워드 fallback·다른 정책 provider 경로는 없다. 공개 응답 policyDecision/providerCalled 계약을 유지한다. 답변 생성 장애도 기존 503 계약과 이미 얻은 정책 metadata를 유지한다.
 
-판정 우선순위는 긴급 신호(≥0.35) → 의료/위험 실행(≥0.70) → 우회(≥0.70) → 위험 불확실성(≥0.35) → 주제 불확실성(confidence<0.60 또는 AMBIGUOUS) → 범위 밖 → ALLOW다. 주제는 WORKOUT/NUTRITION/BODY/GENERAL_FITNESS/COMPOSITE/OUT_OF_SCOPE/AMBIGUOUS를 사용한다. 이 임계값은 실제 모델 품질 검증 전의 기존 설계값이다.
+판정 우선순위는 긴급 신호(≥0.35) → 의료/위험 실행(≥0.70) → 우회(≥0.70) → 확신도 높은 범위 밖(OUT_OF_SCOPE, confidence≥0.60) → 위험 불확실성(≥0.35) → 주제 불확실성(confidence<0.60 또는 AMBIGUOUS) → ALLOW다. 주제는 WORKOUT/NUTRITION/BODY/GENERAL_FITNESS/COMPOSITE/OUT_OF_SCOPE/AMBIGUOUS를 사용한다. 임계값은 합성 초안 데이터만으로 보정이 끝났다고 볼 수 없다. [후속 저장 응답 재평가](../testing/ai-policy/2026-09-30-policy-rule-replay.md)를 참고한다.
 
 ## 책임과 데이터 호환
 
@@ -24,7 +24,7 @@
 - AiPolicyGateway Out Port와 검증 가능한 request/assessment record가 외부 계약이다. HTTP·TypeSafe wire 처리는 Infrastructure JevAiPolicyGateway에 있다.
 - AiPolicyRun은 sealed Success(version, decision, assessment, latencyMs) / Failure(version, errorCode, latencyMs)다. Success 필드는 필수이며 호출자는 null 조합 대신 두 경우를 분기한다.
 - AiMessageTransactionService는 짧은 DB 작업만 담당한다. 정책·답변 원격 호출 동안 transaction을 유지하지 않는다. NOT_SUPPORTED 경계와 통합 테스트로 확인한다.
-- V10 및 기존 컬럼·과거 row는 변경하지 않는다. policy_mode 컬럼은 호환을 위해 남겨 신규 row에 jev 감사 표식을 기록하며 운영 설정으로 읽지 않는다. candidate/effective JSON 중복을 제거한다. 성공은 모델/버전/결정/근거/확률/정책 token/지연, 실패는 버전/오류/지연을 기록하며 알 수 없는 실제 모델·결정·사용량은 null이다.
+- V10 및 기존 컬럼·과거 row는 변경하지 않는다. policy_mode 컬럼은 호환을 위해 남겨 신규 row에 jev 감사 표식을 기록하며 운영 설정으로 읽지 않는다. candidate/effective JSON 중복을 제거한다. 성공은 모델/버전/결정/근거/확률/정책 token/지연, 실패는 버전/오류/지연을 기록하며 알 수 없는 실제 모델·결정·사용량은 null이다. 잘못된 JEV 응답은 원문 대신 `INVALID_RESPONSE_`와 검증 단계 코드를 기록한다.
 - 사용자 메시지 초기 query_type=OUT_OF_SCOPE는 기존 non-null DB 제약을 위한 미판정 placeholder다. 평가 성공 후 JEV 주제로 갱신하고 실패 턴은 허용 이력에 포함하지 않는다. AMBIGUOUS도 저장용 OUT_OF_SCOPE이며 실제 결정을 policy_decision=CLARIFY로 구분한다.
 - 허용 이력은 SUCCESS+ALLOW 또는 과거 SUCCESS+null에서 로그에 연결된 정확한 사용자/답변 쌍이다. 과거 policy_mode 값은 선택 분기에 쓰지 않는다. JEV에는 최근 두 쌍/2000자 이내만 보내며 제한·명확화·실패 턴을 제외한다.
 - AiQueryRouter는 운영에서 삭제했다. 후속 실호출 평가 뒤 test-only LegacyAiQueryRouter도 제거했으며, 변경 전 판정은 저장 산출물로만 보존한다. 평가 task는 명시적인 live/replay 옵션만 허용한다.

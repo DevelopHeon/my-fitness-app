@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import tools.jackson.databind.JsonNode;
@@ -154,13 +155,39 @@ class JevAiPolicyGatewayTest {
                 };
         try (JevAiPolicyGateway gateway = new JevAiPolicyGateway(properties, mapper)) {
             assertThatThrownBy(() -> gateway.assess(request()))
+                    .isInstanceOf(AiPolicyUnavailableException.class);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "topic,INVALID_RESPONSE_TOPIC",
+        "usage,INVALID_RESPONSE_USAGE",
+        "medical,INVALID_RESPONSE_MEDICAL_DECISION",
+        "json,INVALID_RESPONSE_JSON"
+    })
+    @DisplayName("잘못된 응답은 원문 없이 실패한 검증 단계만 기록한다")
+    void identifiesInvalidResponseStage(String mutation, String expectedCode) {
+        body =
+                switch (mutation) {
+                    case "topic" ->
+                            response().replace("\"choice\":\"WORKOUT\"", "\"choice\":\"NUTRITION\"");
+                    case "usage" ->
+                            response().replace("\"input_tokens\":100", "\"input_tokens\":-1");
+                    case "medical" ->
+                            response().replace("\"medical_decision\":{\"type\":\"noul\"",
+                                    "\"medical_decision\":{\"type\":\"choice\"");
+                    case "json" -> "{";
+                    default -> throw new IllegalArgumentException("지원하지 않는 테스트 응답 변형");
+                };
+        try (JevAiPolicyGateway gateway = new JevAiPolicyGateway(properties, mapper)) {
+            assertThatThrownBy(() -> gateway.assess(request()))
                     .isInstanceOf(AiPolicyUnavailableException.class)
                     .satisfies(
-                            error -> {
-                                if (mutation.equals("bad-choice"))
+                            error ->
                                     assertThat(((AiPolicyUnavailableException) error).getCode())
-                                            .isEqualTo("INVALID_RESPONSE");
-                            });
+                                            .isEqualTo(expectedCode));
+            assertThat(calls.get()).isEqualTo(1);
         }
     }
 

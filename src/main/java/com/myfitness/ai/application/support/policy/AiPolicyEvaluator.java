@@ -33,6 +33,10 @@ public class AiPolicyEvaluator {
         if (assessment.policyBypass() >= properties.getActionThreshold()) {
             return new AiPolicyDecision(BLOCK, "POLICY_BYPASS", type);
         }
+        if (type == AiQueryType.OUT_OF_SCOPE
+                && topic.confidence() >= properties.getTopicConfidence()) {
+            return new AiPolicyDecision(BLOCK, "OUT_OF_SCOPE", type);
+        }
         if (Math.max(
                         assessment.medicalDecision(),
                         Math.max(assessment.unsafeAction(), assessment.policyBypass()))
@@ -42,8 +46,6 @@ public class AiPolicyEvaluator {
         if (type == null || topic.confidence() < properties.getTopicConfidence()) {
             return new AiPolicyDecision(CLARIFY, "TOPIC_UNCERTAIN", type);
         }
-        return type == AiQueryType.OUT_OF_SCOPE
-                ? new AiPolicyDecision(BLOCK, "OUT_OF_SCOPE", type)
-                : new AiPolicyDecision(ALLOW, "ALLOWED", type);
+        return new AiPolicyDecision(ALLOW, "ALLOWED", type);
     }
 }

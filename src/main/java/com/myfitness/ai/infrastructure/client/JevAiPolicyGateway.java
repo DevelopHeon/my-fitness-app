@@ -92,11 +92,13 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
     }
 
     private AiPolicyAssessment parse(String body, long latencyMs) {
+        String stage = "JSON";
         try {
             JsonNode root = mapper.readTree(body);
             if (root == null || !properties.getModel().equals(root.path("model").asText())) {
                 throw new AiPolicyUnavailableException("MODEL_MISMATCH");
             }
+            stage = "TOPIC";
             JsonNode answers = root.path("answers");
             JsonNode topic = answers.path("topic");
             if (!"choice".equals(topic.path("type").asText())) throw new IllegalArgumentException();
@@ -105,29 +107,42 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
                 throw new IllegalArgumentException();
             for (String option : TOPICS)
                 probabilities.put(option, number(topic.path("probabilities").path(option)));
+            TopicAssessment topicAssessment =
+                    new TopicAssessment(
+                            topic.path("choice").asText(),
+                            probabilities,
+                            number(topic.path("confidence")));
+            stage = "USAGE";
             JsonNode usage = root.path("usage");
             if (!usage.path("input_tokens").isIntegralNumber()
                     || !usage.path("input_tokens").canConvertToInt()
+                    || usage.path("input_tokens").asInt() < 0
                     || !usage.path("output_tokens").isIntegralNumber()
                     || !usage.path("output_tokens").canConvertToInt()
                     || usage.path("output_tokens").asInt() < 0)
                 throw new IllegalArgumentException();
+            stage = "MEDICAL_DECISION";
+            double medicalDecision = noul(answers, "medical_decision");
+            stage = "UNSAFE_ACTION";
+            double unsafeAction = noul(answers, "unsafe_action");
+            stage = "URGENT_SIGNAL";
+            double urgentSignal = noul(answers, "urgent_signal");
+            stage = "POLICY_BYPASS";
+            double policyBypass = noul(answers, "policy_bypass");
+            stage = "ASSESSMENT";
             return new AiPolicyAssessment(
                     root.path("model").asText(),
-                    noul(answers, "medical_decision"),
-                    noul(answers, "unsafe_action"),
-                    noul(answers, "urgent_signal"),
-                    noul(answers, "policy_bypass"),
-                    new TopicAssessment(
-                            topic.path("choice").asText(),
-                            probabilities,
-                            number(topic.path("confidence"))),
+                    medicalDecision,
+                    unsafeAction,
+                    urgentSignal,
+                    policyBypass,
+                    topicAssessment,
                     usage.path("input_tokens").asInt(),
                     latencyMs);
         } catch (AiPolicyUnavailableException e) {
             throw e;
         } catch (RuntimeException e) {
-            throw new AiPolicyUnavailableException("INVALID_RESPONSE");
+            throw new AiPolicyUnavailableException("INVALID_RESPONSE_" + stage);
         }
     }
 
