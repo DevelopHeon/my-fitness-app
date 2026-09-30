@@ -66,7 +66,7 @@ tasks.named<Test>("test") {
 }
 
 val aiPolicyEval = tasks.register<Test>("aiPolicyEval") {
-	description = "Run opt-in test-only baseline, live or replay AI policy evaluation"
+	description = "Run opt-in test-only live or replay AI policy evaluation"
 	group = "verification"
 	testClassesDirs = sourceSets["test"].output.classesDirs
 	classpath = sourceSets["test"].runtimeClasspath

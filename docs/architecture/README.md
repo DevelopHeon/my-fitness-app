@@ -392,11 +392,11 @@ build/spring-modulith-docs
 
 `AiCoachService`는 사용자 메시지 커밋 후 `AiPolicyGuard`를 반드시 호출한다. `AiPolicyGateway` Out Port 뒤의 `JevAiPolicyGateway`만 TypeSafe HTTP 계약을 알고, `AiPolicyEvaluator`가 ALLOW/BLOCK/SAFE_REDIRECT/CLARIFY를 결정한다. ALLOW만 Context Builder와 답변 생성으로 진행한다. 제한은 고정 안내를 저장하고, 평가 장애는 사용자 메시지·FAILED 로그를 보존한 뒤 AI_POLICY_UNAVAILABLE / 503을 반환한다.
 
-운영 mode 선택·legacy/shadow 분기·키워드 Router는 제거했다. 기존 판정은 테스트 평가용 fixture에만 남는다. `AiPolicyRun.Success`는 필수 decision/assessment, `Failure`는 errorCode를 가진다. candidate/effective 이중 판정과 JSON 중복은 저장하지 않는다. 기존 V10과 과거 policy_mode/null 로그를 보존하며 신규 policy_mode는 jev 감사 표식이다. 사용자 메시지의 초기 OUT_OF_SCOPE는 기존 non-null DB 컬럼의 미판정 placeholder이고, 성공한 JEV 결과로 갱신한다.
+운영 mode 선택·legacy/shadow 분기·키워드 Router는 제거했다. 기존 판정은 [변경 전 저장 산출물](../testing/ai-policy/baseline-1000-v1/)에만 남는다. `AiPolicyRun.Success`는 필수 decision/assessment, `Failure`는 errorCode를 가진다. candidate/effective 이중 판정과 JSON 중복은 저장하지 않는다. 기존 V10과 과거 policy_mode/null 로그를 보존하며 신규 policy_mode는 jev 감사 표식이다. 사용자 메시지의 초기 OUT_OF_SCOPE는 기존 non-null DB 컬럼의 미판정 placeholder이고, 성공한 JEV 결과로 갱신한다.
 
 허용 이력은 SUCCESS 및 ALLOW(과거 null 포함) 요청 로그의 실제 사용자/답변 ID로 쌍을 구성한다. 거절·명확화·실패 턴은 평가와 생성 이력에서 제외한다. 정책과 답변 외부 호출은 NOT_SUPPORTED 유스케이스 경계 안에서 DB transaction 없이 실행하고, 기록은 별도 transaction으로 저장한다.
 
-ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스/허용 의존성은 유지했다. Java 가독성 컨벤션은 main/test 소스에서 var 선언을 금지한다. Checkstyle MatchXpath가 TYPE/IDENT AST 노드를 검사하며 문자열·주석·변수 이름을 검색하지 않는다. `test`와 `check`/`build`, CI가 같은 검사를 실행한다. [최신 정책 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md), [검증 기록](../testing/ai-policy/2026-09-29-jev-single-path-results.md)을 따른다.
+ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스/허용 의존성은 유지했다. Java 가독성 컨벤션은 main/test 소스에서 var 선언을 금지한다. Checkstyle MatchXpath가 TYPE/IDENT AST 노드를 검사하며 문자열·주석·변수 이름을 검색하지 않는다. `test`와 `check`/`build`, CI가 같은 검사를 실행한다. [정책 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md), [구현 검증](../testing/ai-policy/2026-09-29-jev-single-path-results.md), [실호출 결과](../testing/ai-policy/2026-09-30-jev-live-1000-results.md)를 따른다.
 
 
 ## 아키텍처·컨벤션 검사의 책임

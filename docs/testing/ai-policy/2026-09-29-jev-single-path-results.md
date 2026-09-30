@@ -1,5 +1,7 @@
 # JEV 단일 경로 구현·검증 결과
 
+> 이 문서는 2026-09-29 당시 구현 검증 기록이다. 이후 실제 JEV 1,000건 평가 결과는 [2026-09-30 실측 보고서](2026-09-30-jev-live-1000-results.md)를 본다. 아래의 `mode=legacy` 명령과 test-only Router 재현 검사는 당시 실행 기록이며 현재 코드에서는 제거됐다.
+
 - 일자: 2026-09-29, 브랜치: codex/jev-policy
 - 기준 commit: 0bd9787b7577b4d5d808f4b8d63d73e830476291
 - 작업트리: /Users/gimhuiheon/.codex/worktrees/jev-policy/my-fitness

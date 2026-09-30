@@ -1,7 +1,6 @@
 package com.myfitness.ai.evaluation;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
-import com.myfitness.ai.application.command.AiClientContext;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
@@ -9,8 +8,6 @@ import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyRequest;
 import com.myfitness.ai.application.support.policy.AiPolicyDecision;
 import com.myfitness.ai.application.support.policy.AiPolicyEvaluator;
 import com.myfitness.ai.domain.model.AiMessageRole;
-import com.myfitness.ai.domain.model.AiQueryType;
-import com.myfitness.ai.evaluation.legacy.LegacyAiQueryRouter;
 import com.myfitness.ai.infrastructure.client.JevAiPolicyGateway;
 
 import org.junit.jupiter.api.DisplayName;
@@ -39,10 +36,10 @@ class AiPolicyEvaluationTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    @DisplayName("고정 corpus를 legacy/live/replay로 평가하고 출처·오류·비용을 명시한다")
+    @DisplayName("고정 corpus를 JEV live/replay로 평가하고 출처·오류·비용을 명시한다")
     void evaluatesCorpus() throws Exception {
-        String mode = System.getProperty("aiPolicyEval.mode", "legacy");
-        if (!List.of("legacy", "jev-live", "replay").contains(mode))
+        String mode = System.getProperty("aiPolicyEval.mode");
+        if (!"jev-live".equals(mode) && !"replay".equals(mode))
             throw new IllegalArgumentException("평가 mode 오류");
         Path dataset =
                 Path.of(
@@ -95,13 +92,9 @@ class AiPolicyEvaluationTest {
                             warmupKnown = false;
                         }
                     }
-                List<JsonNode> baseline = new ArrayList<>();
-                List<JsonNode> candidate = new ArrayList<>();
+                List<JsonNode> measured = new ArrayList<>();
 
                 for (JsonNode item : corpus) {
-                    JsonNode row = baseline(item);
-                    baseline.add(row);
-                    if (mode.equals("legacy")) continue;
                     Map<String, Object> values = baseValues(item);
                     values.put("datasetHash", datasetHash);
                     values.put("questionsHash", questionsHash);
@@ -141,15 +134,10 @@ class AiPolicyEvaluationTest {
                             mode.equals("jev-live")
                                     ? TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
                                     : null);
-                    candidate.add(mapper.valueToTree(values));
+                    measured.add(mapper.valueToTree(values));
                 }
-                List<JsonNode> measured = mode.equals("legacy") ? baseline : candidate;
                 Map<String, Object> metrics =
                         AiPolicyMetrics.calculate(measured, mode.equals("jev-live"), price);
-                if (!mode.equals("legacy"))
-                    metrics.put(
-                            "pairedComparison",
-                            AiPolicyMetrics.pairedMissDelta(baseline, candidate));
                 metrics.put("slices", AiPolicyMetrics.slices(measured));
                 runRows.add(measured);
                 metrics.put("warmupRequests", mode.equals("jev-live") ? 10 : 0);
@@ -258,24 +246,6 @@ class AiPolicyEvaluationTest {
                 batch.resolve("aggregate.json"),
                 mapper.writerWithDefaultPrettyPrinter()
                         .writeValueAsString(AiPolicyMetrics.aggregateRuns(runRows)));
-    }
-
-    private JsonNode baseline(JsonNode item) {
-        LegacyAiQueryRouter router = new LegacyAiQueryRouter();
-        String previous =
-                item.path("previousType").isNull() || item.path("previousType").isMissingNode()
-                        ? null
-                        : item.path("previousType").asText();
-        String screen = item.path("screen").isNull() ? null : item.path("screen").asText();
-        AiQueryType type =
-                router.route(
-                        item.path("currentQuestion").asText(),
-                        new AiClientContext(screen, null, null),
-                        previous == null ? null : AiQueryType.valueOf(previous));
-        Map<String, Object> result = baseValues(item);
-        result.put("prediction", type == AiQueryType.OUT_OF_SCOPE ? "BLOCK" : "ALLOW");
-        result.put("predictedTopic", type.name());
-        return mapper.valueToTree(result);
     }
 
     private Map<String, Object> baseValues(JsonNode item) {

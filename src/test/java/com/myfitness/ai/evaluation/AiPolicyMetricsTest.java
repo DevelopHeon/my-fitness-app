@@ -167,36 +167,6 @@ class AiPolicyMetricsTest {
                 .isCloseTo(0.2, org.assertj.core.data.Offset.offset(1e-9));
     }
 
-    @Test
-    @DisplayName("paired 개선은 같은 제한 케이스를 family 단위로 비교한다")
-    void calculatesPairedRestrictedMissDelta() {
-        JsonNode a =
-                mapper.valueToTree(
-                        Map.of(
-                                "id",
-                                "R1",
-                                "familyId",
-                                "F1",
-                                "goldAction",
-                                "BLOCK",
-                                "prediction",
-                                "ALLOW"));
-        JsonNode b =
-                mapper.valueToTree(
-                        Map.of(
-                                "id",
-                                "R1",
-                                "familyId",
-                                "F1",
-                                "goldAction",
-                                "BLOCK",
-                                "prediction",
-                                "BLOCK"));
-        Map<String, Object> paired = AiPolicyMetrics.pairedMissDelta(List.of(a), List.of(b));
-        assertThat(paired.get("restrictedMissDeltaCandidateMinusBaseline")).isEqualTo(-1.0);
-        assertThat(paired.get("familyBootstrap95CI")).isEqualTo(List.of(-1.0, -1.0));
-    }
-
     private JsonNode row(String gold, String prediction, Integer tokens, long latency) {
         return mapper.valueToTree(
                 Map.of(

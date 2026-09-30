@@ -1,0 +1,541 @@
+{
+  "requests" : 1000,
+  "validPredictions" : 983,
+  "unavailable" : 17,
+  "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+  "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+  "confusionMatrix" : [ [ 373, 0, 0, 23, 4 ], [ 0, 99, 0, 18, 3 ], [ 0, 0, 273, 0, 7 ], [ 0, 0, 0, 197, 3 ] ],
+  "validRestrictedCases" : 390,
+  "validNormalCases" : 396,
+  "allNormalCases" : 400,
+  "restrictedMissRate" : 0.0,
+  "restrictedMiss95CI" : [ 0.0, 0.009753820311850517 ],
+  "restrictedCorrectRate" : 0.9538461538461539,
+  "normalFalseBlockRate" : 0.0,
+  "normalFalseBlock95CI" : [ 0.0, 0.009607454994847843 ],
+  "unnecessaryClarifyRate" : 0.05808080808080808,
+  "normalSuccessRate" : 0.9325,
+  "clarifyRecall" : 1.0,
+  "allRestrictedCases" : 400,
+  "effectiveRestrictedMissRate" : 0.0,
+  "restrictedUnavailableRate" : 0.025,
+  "effectiveRestrictedCorrectRate" : 0.93,
+  "automaticDecisionCoverage" : 0.745,
+  "abstentionRate" : 0.238,
+  "unavailableRate" : 0.017,
+  "topicMacroF1" : 0.9407231772377,
+  "macroF1" : 0.9481262051029102,
+  "macroF1FamilyBootstrap95CI" : [ 0.8546707799093801, 1.0 ],
+  "calibration" : {
+    "unsafe_action" : {
+      "samples" : 983,
+      "brier" : 0.026761953204476097,
+      "ece10Bins" : 0.07283825025432342
+    },
+    "medical_decision" : {
+      "samples" : 983,
+      "brier" : 0.04737365208545275,
+      "ece10Bins" : 0.11156663275686661
+    },
+    "policy_bypass" : {
+      "samples" : 983,
+      "brier" : 0.012499796541200396,
+      "ece10Bins" : 0.06483214649033561
+    },
+    "urgent_signal" : {
+      "samples" : 983,
+      "brier" : 0.011991454730417173,
+      "ece10Bins" : 0.04842319430315343
+    }
+  },
+  "policyP50Ms" : 196.0,
+  "policyP95Ms" : 294.0,
+  "policyP99Ms" : 370.0,
+  "policyCostUsd" : null,
+  "policyCostPerInputUsd" : null,
+  "generationCostUsd" : null,
+  "endToEndLatencyMs" : null,
+  "exposedAnswerViolationRate" : null,
+  "pairedComparison" : {
+    "completePairs" : 983,
+    "restrictedMissDeltaCandidateMinusBaseline" : -0.8461538461538461,
+    "familyBootstrap95CI" : [ -1.0, -0.6621621621621622 ]
+  },
+  "slices" : {
+    "synthetic" : {
+      "requests" : 1000,
+      "validPredictions" : 983,
+      "unavailable" : 17,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 373, 0, 0, 23, 4 ], [ 0, 99, 0, 18, 3 ], [ 0, 0, 273, 0, 7 ], [ 0, 0, 0, 197, 3 ] ],
+      "validRestrictedCases" : 390,
+      "validNormalCases" : 396,
+      "allNormalCases" : 400,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.009753820311850517 ],
+      "restrictedCorrectRate" : 0.9538461538461539,
+      "normalFalseBlockRate" : 0.0,
+      "normalFalseBlock95CI" : [ 0.0, 0.009607454994847843 ],
+      "unnecessaryClarifyRate" : 0.05808080808080808,
+      "normalSuccessRate" : 0.9325,
+      "clarifyRecall" : 1.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.025,
+      "effectiveRestrictedCorrectRate" : 0.93,
+      "automaticDecisionCoverage" : 0.745,
+      "abstentionRate" : 0.238,
+      "unavailableRate" : 0.017,
+      "topicMacroF1" : 0.9407231772377,
+      "macroF1" : 0.9481262051029102,
+      "macroF1FamilyBootstrap95CI" : [ 0.8546707799093801, 1.0 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 983,
+          "brier" : 0.026761953204476097,
+          "ece10Bins" : 0.07283825025432342
+        },
+        "medical_decision" : {
+          "samples" : 983,
+          "brier" : 0.04737365208545275,
+          "ece10Bins" : 0.11156663275686661
+        },
+        "policy_bypass" : {
+          "samples" : 983,
+          "brier" : 0.012499796541200396,
+          "ece10Bins" : 0.06483214649033561
+        },
+        "urgent_signal" : {
+          "samples" : 983,
+          "brier" : 0.011991454730417173,
+          "ece10Bins" : 0.04842319430315343
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "expression-variant" : {
+      "requests" : 1000,
+      "validPredictions" : 983,
+      "unavailable" : 17,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 373, 0, 0, 23, 4 ], [ 0, 99, 0, 18, 3 ], [ 0, 0, 273, 0, 7 ], [ 0, 0, 0, 197, 3 ] ],
+      "validRestrictedCases" : 390,
+      "validNormalCases" : 396,
+      "allNormalCases" : 400,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.009753820311850517 ],
+      "restrictedCorrectRate" : 0.9538461538461539,
+      "normalFalseBlockRate" : 0.0,
+      "normalFalseBlock95CI" : [ 0.0, 0.009607454994847843 ],
+      "unnecessaryClarifyRate" : 0.05808080808080808,
+      "normalSuccessRate" : 0.9325,
+      "clarifyRecall" : 1.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.025,
+      "effectiveRestrictedCorrectRate" : 0.93,
+      "automaticDecisionCoverage" : 0.745,
+      "abstentionRate" : 0.238,
+      "unavailableRate" : 0.017,
+      "topicMacroF1" : 0.9407231772377,
+      "macroF1" : 0.9481262051029102,
+      "macroF1FamilyBootstrap95CI" : [ 0.8546707799093801, 1.0 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 983,
+          "brier" : 0.026761953204476097,
+          "ece10Bins" : 0.07283825025432342
+        },
+        "medical_decision" : {
+          "samples" : 983,
+          "brier" : 0.04737365208545275,
+          "ece10Bins" : 0.11156663275686661
+        },
+        "policy_bypass" : {
+          "samples" : 983,
+          "brier" : 0.012499796541200396,
+          "ece10Bins" : 0.06483214649033561
+        },
+        "urgent_signal" : {
+          "samples" : 983,
+          "brier" : 0.011991454730417173,
+          "ece10Bins" : 0.04842319430315343
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "ko" : {
+      "requests" : 999,
+      "validPredictions" : 982,
+      "unavailable" : 17,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 372, 0, 0, 23, 4 ], [ 0, 99, 0, 18, 3 ], [ 0, 0, 273, 0, 7 ], [ 0, 0, 0, 197, 3 ] ],
+      "validRestrictedCases" : 390,
+      "validNormalCases" : 395,
+      "allNormalCases" : 399,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.009753820311850517 ],
+      "restrictedCorrectRate" : 0.9538461538461539,
+      "normalFalseBlockRate" : 0.0,
+      "normalFalseBlock95CI" : [ 0.0, 0.009631543400860735 ],
+      "unnecessaryClarifyRate" : 0.05822784810126582,
+      "normalSuccessRate" : 0.9323308270676691,
+      "clarifyRecall" : 1.0,
+      "allRestrictedCases" : 400,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.025,
+      "effectiveRestrictedCorrectRate" : 0.93,
+      "automaticDecisionCoverage" : 0.7447447447447447,
+      "abstentionRate" : 0.23823823823823823,
+      "unavailableRate" : 0.01701701701701702,
+      "topicMacroF1" : 0.9426618705035971,
+      "macroF1" : 0.9481067077282741,
+      "macroF1FamilyBootstrap95CI" : [ 0.8546707799093801, 1.0 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 982,
+          "brier" : 0.0267887983706721,
+          "ece10Bins" : 0.0728920570264765
+        },
+        "medical_decision" : {
+          "samples" : 982,
+          "brier" : 0.04742148676171085,
+          "ece10Bins" : 0.11165987780040722
+        },
+        "policy_bypass" : {
+          "samples" : 982,
+          "brier" : 0.012512118126272901,
+          "ece10Bins" : 0.06487780040733188
+        },
+        "urgent_signal" : {
+          "samples" : 982,
+          "brier" : 0.012003564154786234,
+          "ece10Bins" : 0.04846232179226051
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "non-ko" : {
+      "requests" : 1,
+      "validPredictions" : 1,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 1, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 0,
+      "validNormalCases" : 1,
+      "allNormalCases" : 1,
+      "restrictedMissRate" : null,
+      "restrictedMiss95CI" : null,
+      "restrictedCorrectRate" : null,
+      "normalFalseBlockRate" : 0.0,
+      "normalFalseBlock95CI" : [ 0.0, 0.7934506856227626 ],
+      "unnecessaryClarifyRate" : 0.0,
+      "normalSuccessRate" : 1.0,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 0,
+      "effectiveRestrictedMissRate" : null,
+      "restrictedUnavailableRate" : null,
+      "effectiveRestrictedCorrectRate" : null,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : 0.0,
+      "macroF1" : 0.25,
+      "macroF1FamilyBootstrap95CI" : [ 0.25, 0.25 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 1,
+          "brier" : 4.0E-4,
+          "ece10Bins" : 0.02
+        },
+        "medical_decision" : {
+          "samples" : 1,
+          "brier" : 4.0E-4,
+          "ece10Bins" : 0.02
+        },
+        "policy_bypass" : {
+          "samples" : 1,
+          "brier" : 4.0E-4,
+          "ece10Bins" : 0.02
+        },
+        "urgent_signal" : {
+          "samples" : 1,
+          "brier" : 1.0E-4,
+          "ece10Bins" : 0.01
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "medical_decision" : {
+      "requests" : 160,
+      "validPredictions" : 157,
+      "unavailable" : 3,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 157, 0, 3 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 157,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.023883511433308864 ],
+      "restrictedCorrectRate" : 1.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 160,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.01875,
+      "effectiveRestrictedCorrectRate" : 0.98125,
+      "automaticDecisionCoverage" : 0.98125,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.01875,
+      "topicMacroF1" : null,
+      "macroF1" : 0.25,
+      "macroF1FamilyBootstrap95CI" : [ 0.25, 0.25 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 157,
+          "brier" : 0.005765605095541396,
+          "ece10Bins" : 0.05719745222929932
+        },
+        "medical_decision" : {
+          "samples" : 157,
+          "brier" : 0.00292229299363058,
+          "ece10Bins" : 0.040254777070063516
+        },
+        "policy_bypass" : {
+          "samples" : 157,
+          "brier" : 0.010501910828025467,
+          "ece10Bins" : 0.08751592356687897
+        },
+        "urgent_signal" : {
+          "samples" : 157,
+          "brier" : 0.007547133757961791,
+          "ece10Bins" : 0.07305732484076435
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "unsafe_action" : {
+      "requests" : 80,
+      "validPredictions" : 76,
+      "unavailable" : 4,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 76, 0, 4 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 76,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.048113585065137326 ],
+      "restrictedCorrectRate" : 1.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 80,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.05,
+      "effectiveRestrictedCorrectRate" : 0.95,
+      "automaticDecisionCoverage" : 0.95,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.05,
+      "topicMacroF1" : null,
+      "macroF1" : 0.25,
+      "macroF1FamilyBootstrap95CI" : [ 0.25, 0.25 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 76,
+          "brier" : 0.003676315789473684,
+          "ece10Bins" : 0.05894736842105287
+        },
+        "medical_decision" : {
+          "samples" : 76,
+          "brier" : 0.11969210526315792,
+          "ece10Bins" : 0.32631578947368417
+        },
+        "policy_bypass" : {
+          "samples" : 76,
+          "brier" : 0.06248421052631579,
+          "ece10Bins" : 0.1718421052631579
+        },
+        "urgent_signal" : {
+          "samples" : 76,
+          "brier" : 0.12246842105263173,
+          "ece10Bins" : 0.22342105263157896
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "urgent_signal" : {
+      "requests" : 40,
+      "validPredictions" : 40,
+      "unavailable" : 0,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 40, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 40,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.08762160119728664 ],
+      "restrictedCorrectRate" : 1.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 40,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.0,
+      "effectiveRestrictedCorrectRate" : 1.0,
+      "automaticDecisionCoverage" : 1.0,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.0,
+      "topicMacroF1" : null,
+      "macroF1" : 0.25,
+      "macroF1FamilyBootstrap95CI" : [ 0.25, 0.25 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 40,
+          "brier" : 0.573325,
+          "ece10Bins" : 0.754
+        },
+        "medical_decision" : {
+          "samples" : 40,
+          "brier" : 0.6919950000000001,
+          "ece10Bins" : 0.8305
+        },
+        "policy_bypass" : {
+          "samples" : 40,
+          "brier" : 0.0015149999999999994,
+          "ece10Bins" : 0.03750000000000002
+        },
+        "urgent_signal" : {
+          "samples" : 40,
+          "brier" : 0.020790000000000003,
+          "ece10Bins" : 0.13899999999999987
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    },
+    "policy_bypass" : {
+      "requests" : 60,
+      "validPredictions" : 57,
+      "unavailable" : 3,
+      "confusionGoldLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY" ],
+      "confusionPredictedLabels" : [ "ALLOW", "BLOCK", "SAFE_REDIRECT", "CLARIFY", "UNAVAILABLE" ],
+      "confusionMatrix" : [ [ 0, 0, 0, 0, 0 ], [ 0, 57, 0, 0, 3 ], [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0 ] ],
+      "validRestrictedCases" : 57,
+      "validNormalCases" : 0,
+      "allNormalCases" : 0,
+      "restrictedMissRate" : 0.0,
+      "restrictedMiss95CI" : [ 0.0, 0.06313883485297894 ],
+      "restrictedCorrectRate" : 1.0,
+      "normalFalseBlockRate" : null,
+      "normalFalseBlock95CI" : null,
+      "unnecessaryClarifyRate" : null,
+      "normalSuccessRate" : null,
+      "clarifyRecall" : null,
+      "allRestrictedCases" : 60,
+      "effectiveRestrictedMissRate" : 0.0,
+      "restrictedUnavailableRate" : 0.05,
+      "effectiveRestrictedCorrectRate" : 0.95,
+      "automaticDecisionCoverage" : 0.95,
+      "abstentionRate" : 0.0,
+      "unavailableRate" : 0.05,
+      "topicMacroF1" : null,
+      "macroF1" : 0.25,
+      "macroF1FamilyBootstrap95CI" : [ 0.25, 0.25 ],
+      "calibration" : {
+        "unsafe_action" : {
+          "samples" : 57,
+          "brier" : 0.008257894736842105,
+          "ece10Bins" : 0.0717543859649123
+        },
+        "medical_decision" : {
+          "samples" : 57,
+          "brier" : 0.001457894736842106,
+          "ece10Bins" : 0.03280701754385967
+        },
+        "policy_bypass" : {
+          "samples" : 57,
+          "brier" : 0.0013245614035087732,
+          "ece10Bins" : 0.031754385964912195
+        },
+        "urgent_signal" : {
+          "samples" : 57,
+          "brier" : 2.1754385964912272E-4,
+          "ece10Bins" : 0.013684210526315797
+        }
+      },
+      "policyP50Ms" : null,
+      "policyP95Ms" : null,
+      "policyP99Ms" : null,
+      "policyCostUsd" : null,
+      "policyCostPerInputUsd" : null,
+      "generationCostUsd" : null,
+      "endToEndLatencyMs" : null,
+      "exposedAnswerViolationRate" : null
+    }
+  },
+  "warmupRequests" : 10,
+  "warmupPolicyCostUsd" : 3.9828600000000003E-4,
+  "totalPolicyCostIncludingWarmupUsd" : null
+}

@@ -83,15 +83,15 @@ ArchUnit `LayerArchitectureTest`:
 ### 6순위: AI Coach 테스트
 LLM 자연어 문장 자체가 아니라 Router 분류, 선택 Context, In/Out Port 호출, Provider Gateway 호출 여부와 데이터 근거를 검증한다.
 
-Legacy 비교 fixture는 변경 전 Router의 바이트와 소스 hash를 보존한다. 당시 `AiClientContext` 입력은 `src/test/java/com/myfitness/ai/application/command`의 테스트 전용 스냅샷을 사용한다. 운영 입력은 `application.dto.request`이며 테스트 스냅샷을 운영 fallback이나 운영 소스에 포함하지 않는다. 기존 1,000개 판정·manifest·dataset은 변경하지 않는다.
+변경 전 1,000개 판정·manifest·dataset은 [저장 산출물](ai-policy/baseline-1000-v1/)로 보존한다. 현재 평가 task는 JEV live/replay만 실행하며 이전 Router 구현이나 테스트용 입력 스냅샷은 포함하지 않는다. 운영 입력은 `application.dto.request`에 둔다.
 
 2026-09-29 후속 Application 패키지 정리 검증(Java 21):
 
 - `./gradlew checkstyleMain checkstyleTest test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --no-daemon`: 아키텍처 25개·컨벤션 13개 통과. AST var 검사도 포함한다.
-- `./gradlew test --tests 'com.myfitness.ai.evaluation.LegacyAiPolicyBaselineTest' --tests 'com.myfitness.ai.evaluation.legacy.*' --no-daemon`: 원본 Router hash와 seed·1,000개 저장 판정 재현 통과.
+- 당시 원본 Router hash와 seed·1,000개 저장 판정 재현 검사는 통과했다. 해당 test-only 코드는 2026-09-30 실측 뒤 제거했고 변경 전 산출물은 보존했다.
 - `./gradlew build modulithDocs --no-daemon`: 전체 209개 테스트 통과, module 문서 19개 생성. AI 답변 생성 실패의 503 계약·추적 로그와 외부 호출 중 transaction 비활성도 검증한다.
 - 임시 운영 소스 5개로 Support → Service, Presentation → Support, 구 DTO 위치, Command/Result 위치, Response DTO Entity 노출을 넣어 6개 검사 실패를 확인한 뒤 제거했다. 허용 모듈 의존성과 Named Interface는 변경하지 않았다.
-- 실제 JEV 호출, 원격 CI/CD와 배포는 실행하지 않았다.
+- 당시 실제 JEV 호출, 원격 CI/CD와 배포는 실행하지 않았다. 후속 실호출 결과는 [2026-09-30 보고서](ai-policy/2026-09-30-jev-live-1000-results.md)에 기록했다.
 
 Infrastructure 후속 정리도 Java 21에서 검증했다. `./gradlew checkstyleMain checkstyleTest test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*' --tests 'com.myfitness.ai.infrastructure.*' --no-daemon`으로 59개 검사를 통과했고, `./gradlew build modulithDocs --no-daemon`으로 전체 209개와 문서 생성을 확인했다. AI SDK뿐 아니라 새 client 패키지의 JEV 구현 직접 참조도 금지 fixture로 탐지한다. JAR에는 새 client/module 경로만 포함되며 기존 springai/typesafe/query 경로는 없다. Client의 요청·응답 구현과 Named Interface·모듈 허용 의존성은 유지했다.
 
@@ -129,14 +129,18 @@ Java 21 환경에서 명시적으로 실행한다:
 ./gradlew checkstyleMain checkstyleTest
 ./gradlew test --tests 'com.myfitness.architecture.*' --tests 'com.myfitness.convention.*'
 ./gradlew test --tests 'com.myfitness.ai.*'
-./gradlew aiPolicyEval -PaiPolicyEval.mode=legacy
-./gradlew aiPolicyEval -PaiPolicyEval.mode=jev-live -PaiPolicyEval.runs=3
-./gradlew aiPolicyEval -PaiPolicyEval.mode=replay -PaiPolicyEval.replay=/absolute/path/to/cases.jsonl
+./gradlew aiPolicyEval -PaiPolicyEval.mode=jev-live -PaiPolicyEval.runs=1 \
+  -PaiPolicyEval.dataset=src/test/resources/ai-policy/synthetic-baseline-1000-v1.jsonl \
+  -PaiPolicyEval.allowDraft=true
+./gradlew aiPolicyEval -PaiPolicyEval.mode=replay \
+  -PaiPolicyEval.dataset=src/test/resources/ai-policy/synthetic-baseline-1000-v1.jsonl \
+  -PaiPolicyEval.allowDraft=true \
+  -PaiPolicyEval.replay=docs/testing/ai-policy/jev-live-1000-v1/cases.jsonl
 ```
 
-live는 서버 환경의 `TYPESAFE_API_KEY`가 없으면 실패하며 대역으로 대체하지 않는다. custom dataset은 `-PaiPolicyEval.dataset=/absolute/path/to/corpus.jsonl`로 지정하고 두 검토자의 reviewed 라벨이 필요하다. 기본 seed는 24개 초안이며 승격 근거가 아니다. 1000개 합성 기준선도 초안이므로 `-PaiPolicyEval.allowDraft=true`를 명시해 실행한다. 50 family ×20 표현 변형이며 독립 표본 1000개로 해석하지 않는다. 저장된 [변경 전 판정](ai-policy/baseline-1000-v1/comparison.md)을 일반 테스트에서 hash와 판정별로 재현한다.
+mode를 명시하지 않으면 평가 task는 실패한다. live는 프로세스 환경의 `TYPESAFE_API_KEY`가 없으면 실패하며 대역으로 대체하지 않는다. `.env`에만 키가 있다면 실행 프로세스에 별도로 주입해야 한다. custom dataset은 `-PaiPolicyEval.dataset=/absolute/path/to/corpus.jsonl`로 지정하고 두 검토자의 reviewed 라벨이 필요하다. 기본 seed는 24개 초안이며 승격 근거가 아니다. 1000개 합성 기준선도 초안이므로 `-PaiPolicyEval.allowDraft=true`를 명시해 실행한다. 50 family ×20 표현 변형이며 독립 표본 1000개로 해석하지 않는다. [변경 전 저장 판정](ai-policy/baseline-1000-v1/comparison.md)은 그대로 보존하고, [JEV 실측 결과](ai-policy/2026-09-30-jev-live-1000-results.md)에서 같은 ID의 유효한 983쌍을 비교한다.
 
-`build/reports/ai-policy/<batch-id>/run-N/`에 manifest/cases/metrics/comparison, batch root에 aggregate.json을 저장한다. 코드 SHA와 미커밋 source hash, dataset/questions/policy hash, 모델, 임계값, runtime, 실패와 unknown 사용량을 보존한다. 한국어와 위험 유형 slice, topic F1, coverage, 보정 오차, Wilson·family bootstrap CI와 같은 case의 반복 변동을 보고한다. replay에는 원격 지연·비용을 보고하지 않는다. 현재 도구 범위는 입력 gate이며 실제 생성 비용·E2E 노출 답변 위반률은 미측정이다.
+`build/reports/ai-policy/<batch-id>/run-N/`에 manifest/cases/metrics/comparison, batch root에 aggregate.json을 저장한다. 코드 SHA와 미커밋 source hash, dataset/questions/policy hash, 모델, 임계값, runtime, 실패와 unknown 사용량을 보존한다. 한국어와 위험 유형 slice, topic F1, coverage, 보정 오차, Wilson·family bootstrap CI와 같은 case의 반복 변동을 보고한다. replay에는 원격 지연·비용을 보고하지 않는다. 현재 도구 범위는 입력 gate이며 실제 생성 비용·E2E 노출 답변 위반률은 미측정이다. 이전 판정과의 비교는 저장된 결과 문서에서 수행하며 현재 평가 task에는 legacy 실행·fallback이 없다.
 
 마이그레이션 호환 테스트는 변경하지 않은 V6와 신규 V10 SQL을 H2에서 실행한다. TIMESTAMPTZ alias를 사용하는 H2 검증이며 실제 PostgreSQL/Flyway staging 검증을 대신하지 않는다.
 

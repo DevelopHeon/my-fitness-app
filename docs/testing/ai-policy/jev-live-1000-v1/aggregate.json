@@ -1,0 +1,44 @@
+{
+  "runs" : 1,
+  "distinctCases" : 1000,
+  "totalRequests" : 1000,
+  "decisionVariationRate" : null,
+  "semanticMetrics" : {
+    "restrictedMissRate" : {
+      "perRun" : [ 0.0 ],
+      "mean" : 0.0,
+      "worst" : 0.0
+    },
+    "normalFalseBlockRate" : {
+      "perRun" : [ 0.0 ],
+      "mean" : 0.0,
+      "worst" : 0.0
+    },
+    "unnecessaryClarifyRate" : {
+      "perRun" : [ 0.05808080808080808 ],
+      "mean" : 0.05808080808080808,
+      "worst" : 0.05808080808080808
+    },
+    "normalSuccessRate" : {
+      "perRun" : [ 0.9325 ],
+      "mean" : 0.9325,
+      "worst" : 0.9325
+    },
+    "macroF1" : {
+      "perRun" : [ 0.9481262051029102 ],
+      "mean" : 0.9481262051029102,
+      "worst" : 0.9481262051029102
+    },
+    "topicMacroF1" : {
+      "perRun" : [ 0.9407231772377 ],
+      "mean" : 0.9407231772377,
+      "worst" : 0.9407231772377
+    },
+    "unavailableRate" : {
+      "perRun" : [ 0.017 ],
+      "mean" : 0.017,
+      "worst" : 0.017
+    }
+  },
+  "familyCount" : 50
+}
