@@ -29,7 +29,7 @@ function Totals({ totals }: { totals: NutritionTotals }) {
   return (
     <dl className="grid grid-cols-2 gap-3 text-sm">
       {nutrients.map(({ key, label, unit }) => (
-        <div key={key}>
+        <div key={key} className="min-w-0 break-words">
           <dt className="text-zinc-500">{label}</dt>
           <dd className="mt-1 font-semibold">
             {totals[key] == null ? "미입력 항목 있음" : `${totals[key]} ${unit}`}

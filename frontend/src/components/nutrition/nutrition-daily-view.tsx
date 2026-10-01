@@ -17,13 +17,15 @@ export default function NutritionDailyView({ daily, busy, onEditGoal, onEdit, on
           <h2 className="font-bold">{mealTypes.find((type) => type.value === meal.mealType)?.label}</h2>
           <p className="mt-1 text-sm text-zinc-500">{meal.total.calories} kcal</p>
           {meal.items.length === 0 ? <p className="mt-3 text-sm text-zinc-400">등록한 식단이 없어요.</p> : meal.items.map((item) => (
-            <div key={item.id} className="mt-3 flex items-center gap-2 border-t border-zinc-100 pt-3">
+            <div key={item.id} className="mt-3 flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="break-words font-medium">{item.foodName}</p>
                 <p className="text-sm text-zinc-500">{item.calories} kcal</p>
               </div>
-              <button className={buttonClass} disabled={busy} onClick={() => onEdit(item)}>수정</button>
-              <button className={buttonClass + " text-red-600"} disabled={busy} onClick={() => onRemove(item)}>삭제</button>
+              <div className="flex justify-end gap-2">
+                <button className={buttonClass} disabled={busy} onClick={() => onEdit(item)}>수정</button>
+                <button className={buttonClass + " text-red-600"} disabled={busy} onClick={() => onRemove(item)}>삭제</button>
+              </div>
             </div>
           ))}
         </section>

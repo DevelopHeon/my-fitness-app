@@ -169,7 +169,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={
-        "rounded-xl px-2 py-2.5 text-xs font-semibold sm:text-sm " +
+        "min-h-11 min-w-0 rounded-xl px-0.5 py-2.5 text-[10px] font-semibold sm:px-2 sm:text-sm " +
         (active
           ? "bg-zinc-950 text-white"
           : "text-zinc-500 hover:bg-zinc-100")

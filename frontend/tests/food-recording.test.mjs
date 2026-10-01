@@ -480,3 +480,42 @@ test("a failed text request keeps its error notice after the post-send refresh",
   view = driver.render();
   assert.equal(elements(view, (element) => element.type === "p" && element.props.children === "연결 실패").length, 1);
 });
+
+test("photo selection is a button and analysis dialog stays until success or failure", async () => {
+  for (const failed of [false, true]) {
+    let finish;
+    let reject;
+    const response = new Promise((resolve, fail) => { finish = resolve; reject = fail; });
+    const busy = [];
+    const results = [];
+    const driver = componentDriver("src/components/nutrition/meal-photo-input.tsx", {
+      disabled: false, onBusyChange: (value) => busy.push(value), onAnalyzed: (items) => results.push(items),
+    }, {
+      "@/lib/food-photo": { prepareFoodPhoto: async (photo) => photo },
+      "@/lib/ai-api": { aiApi: {
+        listConversations: async () => [{ id: 1 }], sendFoodPhoto: () => response,
+      } },
+    });
+    let tree = driver.render();
+    driver.flushEffects();
+    assert.equal(elements(tree, (node) => node.type === "button" && node.props.type === "button").length, 1);
+    const fileInput = elements(tree, (node) => node.type === "input" && node.props.type === "file")[0];
+    const event = { target: { files: [{ name: "food.jpg" }], value: "food.jpg" } };
+    fileInput.props.onChange(event);
+    await new Promise((resolve) => setImmediate(resolve));
+    tree = driver.render();
+    driver.flushEffects();
+    assert.equal(elements(tree, (node) => node.type === "dialog").length, 1);
+    assert.equal(elements(tree, (node) => node.type === "button")[0].props.disabled, true);
+    assert.equal(event.target.value, "");
+    if (failed) reject(new Error("분석 실패"));
+    else finish({ assistantMessage: { foodPhotoResult: { status: "FOOD", items: [{ foodName: "밥" }] } } });
+    await new Promise((resolve) => setImmediate(resolve));
+    tree = driver.render();
+    driver.flushEffects();
+    assert.equal(elements(tree, (node) => node.type === "dialog").length, 0);
+    assert.deepEqual(busy, [true, false]);
+    assert.equal(results.length, failed ? 0 : 1);
+    assert.equal(elements(tree, (node) => node.props?.role === "alert").length, failed ? 1 : 0);
+  }
+});

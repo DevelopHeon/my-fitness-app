@@ -3,6 +3,7 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { FoodPhotoItem, aiApi } from "@/lib/ai-api";
 import { prepareFoodPhoto } from "@/lib/food-photo";
+import { buttonClass } from "./nutrition-fields";
 
 export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onBusyChange }: {
   initialPhoto?: File;
@@ -15,6 +16,8 @@ export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onB
   const pending = useRef(false);
   const mounted = useRef(true);
   const initialRequested = useRef(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const analysisDialog = useRef<HTMLDialogElement>(null);
 
   const analyze = useCallback(async (photo: File) => {
     if (pending.current || disabled) return;
@@ -62,6 +65,13 @@ export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onB
     }
   }, [initialPhoto, analyze]);
 
+  useEffect(() => {
+    const dialog = analysisDialog.current;
+    if (!analyzing || !dialog) return;
+    dialog.showModal();
+    return () => dialog.close();
+  }, [analyzing]);
+
   function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const photo = event.target.files?.[0];
     event.target.value = "";
@@ -70,13 +80,22 @@ export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onB
 
   return (
     <section className="space-y-2 rounded-xl bg-zinc-50 p-3">
-      <label className="block text-sm font-semibold">
-        사진으로 음식 채우기
-        <input type="file" accept="image/jpeg,image/png" disabled={disabled || analyzing}
-          className="mt-2 block w-full text-xs" onChange={selectFile} />
-      </label>
+      <button type="button" className={buttonClass + " flex w-full items-center justify-center gap-2 bg-white py-3"}
+        disabled={disabled || analyzing} onClick={() => fileInput.current?.click()}>
+        <span aria-hidden="true">📷</span> 사진 선택해서 음식 채우기
+      </button>
+      <input ref={fileInput} type="file" accept="image/jpeg,image/png" disabled={disabled || analyzing}
+        aria-label="분석할 음식 사진" hidden onChange={selectFile} />
       <p className="text-xs text-zinc-500">선택하면 OpenAI로 전송해 분석합니다. JPG/PNG · 5 MiB 이하. 앱은 원본을 보관하지 않습니다.</p>
-      {analyzing && <p role="status" className="text-sm">음식을 분석하고 있어요…</p>}
+      {analyzing && <dialog ref={analysisDialog} aria-labelledby="food-analysis-title" aria-describedby="food-analysis-description"
+        onCancel={(event) => event.preventDefault()}
+        className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-sm rounded-2xl bg-white p-6 text-center text-zinc-950 shadow-xl backdrop:bg-black/40">
+        <div role="status" aria-live="polite" className="space-y-3">
+          <span aria-hidden="true" className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-950 motion-reduce:animate-none" />
+          <h2 id="food-analysis-title" className="text-lg font-bold">AI가 분석 중이에요</h2>
+          <p id="food-analysis-description" className="text-sm text-zinc-500">음식과 1인분 기준 칼로리를 확인하고 있어요. 잠시만 기다려주세요.</p>
+        </div>
+      </dialog>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     </section>
   );

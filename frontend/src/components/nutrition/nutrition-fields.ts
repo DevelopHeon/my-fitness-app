@@ -14,5 +14,5 @@ export const nutrients = [
   { key: "fatGrams", label: "지방", unit: "g" },
 ] as const;
 
-export const inputClass = "mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm";
-export const buttonClass = "rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold disabled:opacity-50";
+export const inputClass = "mt-1 block h-11 min-w-0 w-full max-w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm";
+export const buttonClass = "min-h-11 shrink-0 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold disabled:opacity-50";

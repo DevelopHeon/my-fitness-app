@@ -66,11 +66,11 @@ export default function NutritionCalendarView({ selectedDate, month, onMonthChan
             <button key={date} type="button" disabled={date > today || loading}
               aria-label={`${date}${summary ? ` ${summary.calories} kcal` : " 기록 없음"}`}
               aria-pressed={selected} onClick={() => onSelectDate(date)}
-              className={`min-h-24 rounded-xl border p-1.5 text-left disabled:opacity-40 ${selected ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200"}`}>
+              className={`min-h-24 min-w-0 rounded-xl border p-1 sm:p-1.5 text-left disabled:opacity-40 ${selected ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-200"}`}>
               <span className={`text-xs font-semibold ${date === today && !selected ? "underline" : ""}`}>{day}</span>
               {summary && <>
-                <p className="mt-2 break-words text-[10px]">{summary.calories.toLocaleString()} kcal</p>
-                <p className="mt-1 text-[10px]">{mealTypes.filter((type) => summary.mealTypes.includes(type.value)).map((type) => type.label).join(" · ")}</p>
+                <p className="mt-2 break-all text-[10px]"><span className="block">{summary.calories.toLocaleString()}</span>kcal</p>
+                <p className="mt-1 text-[10px]">{mealTypes.filter((type) => summary.mealTypes.includes(type.value)).map((type) => <span key={type.value} className="block">{type.label}</span>)}</p>
               </>}
             </button>
           );

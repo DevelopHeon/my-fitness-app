@@ -211,7 +211,7 @@ export default function DashboardScreen() {
                 선택한 카테고리의 중량 × 반복 횟수 일별 합계
               </p>
             </div>
-            <span className="text-right text-xs font-medium text-zinc-400">
+            <span className="shrink-0 text-right text-xs font-medium text-zinc-400">
               {selectedVolumeLabel}
               <br />
               {formatVolume(selectedVolumeTotal)}

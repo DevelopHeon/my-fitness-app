@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { DailyNutrition, MealBatchInput, MealFood, NutritionGoalInput, nutritionApi } from "@/lib/nutrition-api";
 import { MealDraft, mealDefaults } from "@/lib/meal-input";
 import MealRecordForm, { MealFormSource } from "./meal-record-form";
@@ -27,6 +27,7 @@ export default function NutritionScreen({ onSelectedDateChange, initialDraft, on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (view !== "daily" || form !== null) return;
@@ -148,13 +149,15 @@ export default function NutritionScreen({ onSelectedDateChange, initialDraft, on
 
   return (
     <main className={pageClass}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold">식단 기록</h1>
-        <div className="flex flex-wrap justify-end gap-2">
-          <label className={buttonClass + " cursor-pointer"}>
-            사진으로 식단 입력
-            <input type="file" accept="image/jpeg,image/png" disabled={busy} className="sr-only" onChange={selectPhoto} />
-          </label>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={buttonClass + " flex items-center gap-2 bg-white"}
+            disabled={busy} onClick={() => photoInput.current?.click()}>
+            <span aria-hidden="true">📷</span> 사진으로 식단 입력
+          </button>
+          <input ref={photoInput} type="file" accept="image/jpeg,image/png" disabled={busy}
+            aria-label="식단 입력할 음식 사진" hidden onChange={selectPhoto} />
           <button type="button" className={buttonClass + " bg-zinc-950 text-white"} disabled={busy} onClick={() => openForm()}>식단 추가</button>
         </div>
       </div>

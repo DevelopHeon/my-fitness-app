@@ -80,13 +80,13 @@ export default function MealRecordForm({ source, busy, onSave, onCancel }: {
       </div>
       {!source.item && <MealPhotoInput initialPhoto={source.photo} disabled={locked}
         onBusyChange={setAnalyzing} onAnalyzed={(items) => setFoods(items.map((item) => foodValues(undefined, item)))} />}
-      <fieldset disabled={locked} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm">날짜
+      <fieldset disabled={locked} className="min-w-0 space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block min-w-0 text-sm">날짜
             <input className={inputClass} type="date" required max={mealDefaults().mealDate}
               value={date} onChange={(event) => setDate(event.target.value)} />
           </label>
-          <label className="block text-sm">식사 구분
+          <label className="block min-w-0 text-sm">식사 구분
             <select className={inputClass} value={type} onChange={(event) => setType(event.target.value as typeof type)}>
               {mealTypes.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -123,9 +123,9 @@ export default function MealRecordForm({ source, busy, onSave, onCancel }: {
         {!source.item && <button type="button" className={buttonClass} disabled={foods.length >= 20}
           onClick={() => setFoods((current) => [...current, foodValues()])}>음식 추가</button>}
       </fieldset>
-      <div className="sticky bottom-0 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="text-sm font-semibold">합계 {foods.reduce((total, food) => total + Number(food.calories || 0), 0).toLocaleString("ko-KR", { maximumFractionDigits: 2 })} kcal</p>
-        <button type="submit" className={buttonClass + " bg-zinc-950 text-white"} disabled={locked || foods.length === 0}>
+      <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center">
+        <p className="min-w-0 break-words text-sm font-semibold">합계 {foods.reduce((total, food) => total + Number(food.calories || 0), 0).toLocaleString("ko-KR", { maximumFractionDigits: 2 })} kcal</p>
+        <button type="submit" className={buttonClass + " self-start bg-zinc-950 text-white"} disabled={locked || foods.length === 0}>
           {busy || submitting ? "저장 중…" : source.item ? "수정 저장" : `음식 ${foods.length}개 저장`}
         </button>
       </div>
