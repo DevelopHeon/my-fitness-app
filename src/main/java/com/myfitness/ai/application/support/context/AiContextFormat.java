@@ -18,7 +18,7 @@ final class AiContextFormat {
 
     static String number(BigDecimal value) {
         if (value == null) {
-            return "0";
+            return "미입력으로 계산 불가";
         }
         return value.stripTrailingZeros().toPlainString();
     }

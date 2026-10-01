@@ -1,31 +1,27 @@
 package com.myfitness.ai.application.service;
 
 import com.myfitness.ai.application.config.AiCoachProperties;
-import com.myfitness.ai.application.exception.AiConversationAccessException;
-import com.myfitness.ai.application.exception.AiConversationNotFoundException;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
 import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
 import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
 import com.myfitness.ai.application.support.context.AiContextBundle;
+import com.myfitness.ai.application.support.policy.AiPolicyDecision.Action;
 import com.myfitness.ai.application.support.policy.AiPolicyRun;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
 import com.myfitness.ai.domain.model.AiRequestLog;
 import com.myfitness.ai.domain.model.AiRequestStatus;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import tools.jackson.databind.ObjectMapper;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
@@ -33,6 +29,7 @@ public class AiMessageTransactionService {
     private final AiConversationRepositoryPort conversationRepository;
     private final AiMessageRepositoryPort messageRepository;
     private final AiRequestLogRepositoryPort requestLogRepository;
+    private final AiConversationService conversations;
     private final AiCoachProperties properties;
     private final Clock clock;
 
@@ -41,11 +38,13 @@ public class AiMessageTransactionService {
             AiConversationRepositoryPort conversationRepository,
             AiMessageRepositoryPort messageRepository,
             AiRequestLogRepositoryPort requestLogRepository,
+            AiConversationService conversations,
             AiCoachProperties properties) {
         this(
                 conversationRepository,
                 messageRepository,
                 requestLogRepository,
+                conversations,
                 properties,
                 Clock.systemUTC());
     }
@@ -54,23 +53,25 @@ public class AiMessageTransactionService {
             AiConversationRepositoryPort conversationRepository,
             AiMessageRepositoryPort messageRepository,
             AiRequestLogRepositoryPort requestLogRepository,
+            AiConversationService conversations,
             AiCoachProperties properties,
             Clock clock) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.requestLogRepository = requestLogRepository;
+        this.conversations = conversations;
         this.properties = properties;
         this.clock = clock;
     }
 
     public List<AiMessage> loadMessagesForOwnedConversation(Long userId, Long conversationId) {
-        requireOwned(userId, conversationId);
+        conversations.requireOwned(userId, conversationId);
         return messageRepository.findAcceptedByConversationId(conversationId);
     }
 
     @Transactional
     public UserMessageWrite saveUserMessage(Long userId, Long conversationId, String message) {
-        AiConversation conversation = requireOwned(userId, conversationId);
+        AiConversation conversation = conversations.requireOwned(userId, conversationId);
         Instant now = clock.instant();
 
         AiMessage userMessage =
@@ -107,14 +108,7 @@ public class AiMessageTransactionService {
                         queryType,
                         properties.getPromptVersion(),
                         clock.instant());
-        AiRequestStatus status =
-                policy.decision().action()
-                                == com.myfitness.ai.application.support.policy.AiPolicyDecision.Action
-                                        .CLARIFY
-                        ? AiRequestStatus.CLARIFICATION_REQUIRED
-                        : policy.decision().reason().equals("OUT_OF_SCOPE")
-                                ? AiRequestStatus.REJECTED_OUT_OF_SCOPE
-                                : AiRequestStatus.REJECTED_POLICY;
+        AiRequestStatus status = rejectedStatus(policy);
         log.recordRejectedAssistant(assistantMessage.getId(), status);
         requestLogRepository.save(withPolicy(log, policy));
 
@@ -190,7 +184,7 @@ public class AiMessageTransactionService {
     @Transactional
     public AiMessage classifyUserMessage(
             Long userId, Long conversationId, AiMessage message, AiQueryType type) {
-        requireOwned(userId, conversationId);
+        conversations.requireOwned(userId, conversationId);
         message.classify(type);
         return messageRepository.save(message);
     }
@@ -198,7 +192,7 @@ public class AiMessageTransactionService {
     @Transactional
     public void savePolicyFailure(
             Long userId, Long conversationId, AiMessage userMessage, AiPolicyRun.Failure failure) {
-        requireOwned(userId, conversationId);
+        conversations.requireOwned(userId, conversationId);
         AiRequestLog log =
                 AiRequestLog.failed(
                         userId,
@@ -224,6 +218,16 @@ public class AiMessageTransactionService {
         requestLogRepository.save(log);
     }
 
+    private AiRequestStatus rejectedStatus(AiPolicyRun.Success policy) {
+        if (policy.decision().action() == Action.CLARIFY) {
+            return AiRequestStatus.CLARIFICATION_REQUIRED;
+        }
+        if (policy.decision().reason().equals("OUT_OF_SCOPE")) {
+            return AiRequestStatus.REJECTED_OUT_OF_SCOPE;
+        }
+        return AiRequestStatus.REJECTED_POLICY;
+    }
+
     private AiRequestLog withPolicy(AiRequestLog log, AiPolicyRun.Success policy) {
         AiPolicyAssessment assessment = policy.assessment();
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
@@ -243,17 +247,6 @@ public class AiMessageTransactionService {
                 null,
                 json);
         return log;
-    }
-
-    private AiConversation requireOwned(Long userId, Long conversationId) {
-        AiConversation conversation =
-                conversationRepository
-                        .findById(conversationId)
-                        .orElseThrow(AiConversationNotFoundException::new);
-        if (!conversation.belongsTo(userId)) {
-            throw new AiConversationAccessException();
-        }
-        return conversation;
     }
 
     private String titleFrom(String message) {

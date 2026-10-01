@@ -35,6 +35,12 @@ public class AiMessage {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "message_kind", nullable = false, length = 20)
+    private String messageKind = "TEXT";
+
+    @Column(name = "food_photo_result", columnDefinition = "text")
+    private String foodPhotoResult;
+
     protected AiMessage() {}
 
     private AiMessage(
@@ -87,6 +93,17 @@ public class AiMessage {
                 content,
                 createdAt);
     }
+
+    public static AiMessage photo(Long conversationId, AiMessageRole role, String content,
+            String resultJson, Instant createdAt) {
+        AiMessage message = new AiMessage(conversationId, role, AiQueryType.NUTRITION, content, createdAt);
+        message.messageKind = "FOOD_PHOTO";
+        message.foodPhotoResult = resultJson;
+        return message;
+    }
+
+    public String getMessageKind() { return messageKind; }
+    public String getFoodPhotoResult() { return foodPhotoResult; }
 
     public void classify(AiQueryType type) {
         if (type == null || role != AiMessageRole.USER) throw new AiRuleException("사용자 메시지의 질문 유형이 필요합니다.");

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postbuild": "node scripts/verify-pwa.mjs"
+    "postbuild": "node scripts/verify-pwa.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

@@ -1,17 +1,17 @@
 package com.myfitness.nutrition.application.service;
 
-import com.myfitness.nutrition.domain.model.Food;
+import com.myfitness.nutrition.application.exception.NutritionAccessException;
+import com.myfitness.nutrition.application.exception.NutritionNotFoundException;
+import com.myfitness.nutrition.application.port.out.MealFoodRepositoryPort;
+import com.myfitness.nutrition.application.port.out.MealRepositoryPort;
+import com.myfitness.nutrition.domain.exception.NutritionRuleException;
 import com.myfitness.nutrition.domain.model.Meal;
 import com.myfitness.nutrition.domain.model.MealFood;
 import com.myfitness.nutrition.domain.model.MealType;
-import com.myfitness.nutrition.application.exception.NutritionAccessException;
-import com.myfitness.nutrition.application.exception.NutritionNotFoundException;
-import com.myfitness.nutrition.domain.exception.NutritionRuleException;
-import com.myfitness.nutrition.application.port.out.MealFoodRepositoryPort;
-import com.myfitness.nutrition.application.port.out.MealRepositoryPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class MealService {
     public MealService(
             MealRepositoryPort mealRepository,
             MealFoodRepositoryPort mealFoodRepository) {
-        this(mealRepository, mealFoodRepository, Clock.systemDefaultZone());
+        this(mealRepository, mealFoodRepository, Clock.system(ZoneId.of("Asia/Seoul")));
     }
 
     MealService(
@@ -38,29 +38,19 @@ public class MealService {
         this.clock = clock;
     }
 
-    public MealFood addFood(
-            Long userId,
-            LocalDate mealDate,
-            MealType mealType,
-            Food food,
-            BigDecimal servings) {
-        validateMealDate(mealDate);
-
-        Meal meal = mealRepository
-                .findByUserIdAndDateAndType(
-                        userId, mealDate, mealType)
-                .orElseGet(() -> mealRepository.save(
-                        Meal.create(
-                                userId,
-                                mealDate,
-                                mealType,
-                                clock.instant())));
-
-        MealFood item = MealFood.fromFood(
-                meal, food, servings, clock.instant());
+    public MealFood addFood(Long userId, LocalDate mealDate, MealType mealType, String foodName,
+            BigDecimal calories, BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat) {
+        Meal meal = getOrCreateMeal(userId, mealDate, mealType);
+        MealFood item = MealFood.create(meal, foodName, calories, carbohydrate, protein, fat, clock.instant());
         meal.touch(clock.instant());
         mealRepository.save(meal);
         return mealFoodRepository.save(item);
+    }
+
+    private Meal getOrCreateMeal(Long userId, LocalDate date, MealType type) {
+        validateMealDate(date);
+        return mealRepository.findByUserIdAndDateAndType(userId, date, type)
+                .orElseGet(() -> mealRepository.save(Meal.create(userId, date, type, clock.instant())));
     }
 
     public MealFood getOwnedItem(Long userId, Long itemId) {
@@ -75,10 +65,15 @@ public class MealService {
         return item;
     }
 
-    public MealFood updateItem(MealFood item, BigDecimal servings) {
-        item.updateServings(servings, clock.instant());
-        item.getMeal().touch(clock.instant());
-        mealRepository.save(item.getMeal());
+    public MealFood updateItem(MealFood item, LocalDate date, MealType type, String name,
+            BigDecimal calories, BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat) {
+        Meal previous = item.getMeal();
+        Meal target = getOrCreateMeal(previous.getUserId(), date, type);
+        item.update(target, name, calories, carbohydrate, protein, fat, clock.instant());
+        previous.touch(clock.instant());
+        target.touch(clock.instant());
+        mealRepository.save(previous);
+        mealRepository.save(target);
         return mealFoodRepository.save(item);
     }
 
@@ -96,12 +91,6 @@ public class MealService {
                 .findDailyItems(
                         userId,
                         mealDate);
-    }
-
-    public List<MealFood> listUsageHistory(Long userId) {
-        return mealFoodRepository
-                .findUsageHistory(
-                        userId);
     }
 
     public List<MealFood> listRecentUsageHistory(

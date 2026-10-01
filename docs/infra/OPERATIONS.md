@@ -233,7 +233,7 @@ ECR에서 Git commit SHA와 같은 tag가 있는지 확인하면 build/push 여�
 
 ## AI 정책 설정과 승격 보류 (PR-012)
 
-운영 AI 질문은 JEV 평가를 반드시 거친다. `scripts/deploy-ec2.sh`는 `/my-fitness/prod/` Parameter Store에서 아래 값을 읽어 권한 600의 runtime.env에 기록한다. AWS parameter 등록과 CI/CD 실행은 사용자가 수동으로 진행한다.
+일반 텍스트 AI 질문은 JEV 평가를 반드시 거친다. `scripts/deploy-ec2.sh`는 `/my-fitness/prod/` Parameter Store에서 아래 값을 읽어 권한 600의 runtime.env에 기록한다. AWS parameter는 사용자가 등록하며 main 푸시 후 CI가 성공하면 Deploy App이 자동으로 실행된다. 수동 실행도 지원한다.
 
 | 전체 parameter 이름 | 타입 | 환경 변수 | 입력값 / 기본값 |
 | --- | --- | --- | --- |
@@ -243,8 +243,39 @@ ECR에서 Git commit SHA와 같은 tag가 있는지 확인하면 build/push 여�
 
 키 누락·빈 값이나 SSM 접근 오류는 환경 파일과 실행 중 container를 교체하기 전에 배포를 중단한다. 모델/버전의 ParameterNotFound만 기본값으로 처리한다. 신규 코드에서 AI_POLICY_MODE와 TYPESAFE_MODEL을 읽지 않으며 이전 ai-policy-mode parameter가 남아 있어도 경로 선택에 사용하지 않는다. key와 runtime.env를 로그에 출력하지 않는다. 고객 관리 KMS 키를 쓰면 EC2 role의 해당 키 decrypt 권한을 확인한다.
 
-로컬 서버에도 TYPESAFE_API_KEY를 주입한다. API key가 없는 서버는 AI 요청에서 AI_POLICY_UNAVAILABLE / 503을 반환하며 keyword 판정이나 답변 생성으로 우회하지 않는다. timeout은 1500ms, review/action/topic 임계값은 0.35/0.70/0.60이다. 자동 재시도와 다른 provider failover는 없다.
+로컬 서버에도 TYPESAFE_API_KEY를 주입한다. JEV API key가 없는 서버는 텍스트 AI 요청에서 AI_POLICY_UNAVAILABLE / 503을 반환하며 keyword 판정이나 답변 생성으로 우회하지 않는다. timeout은 1500ms, review/action/topic 임계값은 0.35/0.70/0.60이다. 자동 재시도와 다른 provider failover는 없다.
 
 실제 key로 모델 접근·응답 계약을 확인하고, 독립 holdout·실제 모델 3회 평가·120개 E2E 사람 검토·전송/보존 조건·budget·staging 1000회·PostgreSQL migration을 확인한다. 로컬 대역 통과가 모델 품질 검증을 뜻하지 않는다. rollback은 검증한 이전 이미지와 모델/정책 설정을 함께 복원한다. version 문자열 변경만으로 규칙이 복원되지는 않는다. 이전 legacy/shadow 이미지로 되돌리면 안전 정책 경로도 바뀌므로 기록한다. 이번 작업에서 실제 배포와 staging rollback은 실행하지 않았다.
 
 배포 설정 로컬 검증: `bash -n scripts/deploy-ec2.sh` 및 `python3 scripts/test-ai-policy-deploy.py`. 실제 AWS/Docker 호출을 하지 않는 stub 검사다. [최신 계약](../spec/2026-09-29-tue-pr-012-jev-single-path.md)과 [검증 기록](../testing/ai-policy/2026-09-29-jev-single-path-results.md)을 참조한다.
+
+
+## 음식 사진과 직접 식단 기록 배포
+
+현재 코드의 사진 분석은 기존 OpenAI 설정을 재사용합니다. S3, 이미지 보관 테이블, CDN, 별도 사진 API 키 또는 새 CDK 리소스를 추가하지 않았습니다. 다음 값은 기존 Parameter Store 경로를 사용합니다.
+
+| Parameter | 타입 | 값/역할 |
+| --- | --- | --- |
+| `/my-fitness/prod/ai-provider` | String | `openai`: 사진 분석 사용에 필요 |
+| `/my-fitness/prod/openai-api-key` | SecureString | 이미지 입력과 Structured Outputs를 지원하는 모델을 호출할 OpenAI 키 |
+| `/my-fitness/prod/typesafe-api-key` | SecureString | 일반 텍스트 대화의 JEV 키, 계속 필요 |
+
+`AI_OPENAI_MODEL` 기본값은 `gpt-4o-mini`, `AI_REQUEST_TIMEOUT`은 `30s`입니다. 배포 스크립트에는 이 두 값의 추가 SSM 조회가 없으며 위 기본값을 사용합니다. 변경하려면 환경 파일 생성 계약을 함께 수정해야 합니다. JEV의 ai-policy-model/version 설정은 그대로 유지합니다. 키를 runtime.env나 로그에서 출력하지 않습니다. main 푸시 후 CI 성공 시 자동 배포하며, Parameter Store 값은 배포 전에 등록합니다.
+
+사진의 multipart part는 `image` 한 장이며 JPEG/PNG 5 MiB 이하, 전체 요청 제한 6 MiB, 1600만 픽셀 이하입니다. 프론트엔드는 원본 제한 확인 후 긴 변 최대 1600px로 재인코딩하고, 서버도 metadata를 제거한 JPEG로 정규화합니다. 업로드 임시 파일은 처리 종료 시 정리되며 원본을 앱 DB나 객체 저장소에 보관하지 않습니다. 공급자 자체의 보관 정책까지 삭제를 보장하는 계약은 아닙니다.
+
+진단은 사진 request_kind, 모델·food-photo-v1·결과 상태·오류 코드·지연·토큰 사용량을 확인합니다. 내부 실패 코드는 CONFIGURATION_ERROR / TIMEOUT / TRANSPORT_ERROR / HTTP_ERROR / INVALID_RESPONSE / MODEL_REFUSAL / INCOMPLETE_RESPONSE를 구분하며 공개 응답은 같은 503 계약을 유지합니다. 파일 검증 실패는 대화와 요청 로그를 저장하기 전에 반환합니다. 원본 질문·사진·모델 응답·키를 출력하는 방식으로 확인하지 않습니다.
+
+- 400 `INVALID_FOOD_PHOTO`: 읽을 수 없는 이미지 또는 픽셀 제한 초과.
+- 413 `PAYLOAD_TOO_LARGE`: 파일/전체 요청 제한 초과.
+- 415 `UNSUPPORTED_MEDIA_TYPE`: JPEG/PNG 외 포맷 또는 실제 포맷과 MIME 불일치.
+- 200 NOT_FOOD/UNCERTAIN: 정상 판별 결과이며 음식 후보·기록 액션 없음.
+- 503 `AI_PROVIDER_UNAVAILABLE`: provider/키 미설정, timeout·통신·응답 오류·refusal·미완성. 자동 재시도·provider fallback 없음.
+
+### V11 schema와 복구
+
+`V11__direct_meals_and_food_photos.sql`은 현재 사용 중인 식단 데이터가 없다는 승인에 따라 foods와 이전 meal_foods를 제거하고 직접 입력 구조를 만듭니다. meals/nutrition_goals와 과거 AI 메시지·정책 로그를 보존하고, 기존 V1~V10을 수정하지 않습니다. 이 변경 파일은 배포 시 Flyway가 적용합니다. 코드 작업에서는 운영 DB를 초기화하지 않았습니다.
+
+이전 이미지의 카탈로그/회분 API는 새 schema와 호환되지 않습니다. 기존 배포 스크립트의 previous image rollback만으로 V11을 되돌릴 수 없으며 이전 이미지의 Flyway 검증도 실패할 수 있습니다. 배포 전 복구 가능한 DB snapshot을 확보하고, 문제가 있으면 새 schema를 지원하는 수정 이미지로 복구하거나 DB snapshot과 호환 이미지의 복원을 함께 수행합니다. 운영 중인 데이터가 생긴 뒤 이 drop migration을 재사용하지 않습니다.
+
+로컬 검증은 전체 Java/컨벤션/아키텍처 검사, 프론트엔드 Node/lint/export/PWA, 실제 Spring AI SDK의 로컬 HTTP 계약, PostgreSQL 17의 신규/후속 DDL·과거 AI 데이터 보존과 운영 Docker JRE의 실제 Flyway V1~V11 적용·기동을 포함합니다. 실제 OpenAI 사진 호출·영양 정확도·휴대폰의 카메라/PWA 상호작용·운영 RDS와 원격 CI/CD는 별도 검증 대상입니다.

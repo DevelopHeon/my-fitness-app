@@ -50,6 +50,7 @@ jobs:
         run: |
           npm ci
           npm run lint
+          npm test
 
       - name: Application build
         run: ./gradlew build --no-daemon

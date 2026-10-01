@@ -97,6 +97,18 @@ val frontendInstall = tasks.register<Exec>("frontendInstall") {
 	outputs.file(frontendDir.file("node_modules/.package-lock.json"))
 }
 
+val frontendTest = tasks.register<Exec>("frontendTest") {
+	dependsOn(frontendInstall)
+	workingDir(frontendDir.asFile)
+	commandLine("npm", "test")
+	inputs.dir(frontendDir.dir("src"))
+	inputs.dir(frontendDir.dir("tests"))
+}
+
+tasks.named("check") {
+	dependsOn(frontendTest)
+}
+
 val frontendBuild = tasks.register<Exec>("frontendBuild") {
 	dependsOn(frontendInstall)
 	workingDir(frontendDir.asFile)

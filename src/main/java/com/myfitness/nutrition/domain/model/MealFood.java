@@ -3,7 +3,6 @@ package com.myfitness.nutrition.domain.model;
 import com.myfitness.nutrition.domain.exception.NutritionRuleException;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 
 @Entity
@@ -17,33 +16,20 @@ public class MealFood {
     @JoinColumn(name = "meal_id", nullable = false)
     private Meal meal;
 
-    @Column(name = "source_food_id", nullable = false)
-    private Long sourceFoodId;
-
     @Column(name = "food_name", nullable = false, length = 100)
     private String foodName;
 
-    @Column(name = "serving_amount", nullable = false, precision = 8, scale = 2)
-    private BigDecimal servingAmount;
+    @Column(nullable = false, precision = 8, scale = 2)
+    private BigDecimal calories;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "serving_unit", nullable = false, length = 20)
-    private ServingUnit servingUnit;
+    @Column(name = "carbohydrate_grams", precision = 8, scale = 2)
+    private BigDecimal carbohydrateGrams;
 
-    @Column(name = "calories_per_serving", nullable = false, precision = 8, scale = 2)
-    private BigDecimal caloriesPerServing;
+    @Column(name = "protein_grams", precision = 8, scale = 2)
+    private BigDecimal proteinGrams;
 
-    @Column(name = "carbohydrate_grams_per_serving", nullable = false, precision = 8, scale = 2)
-    private BigDecimal carbohydrateGramsPerServing;
-
-    @Column(name = "protein_grams_per_serving", nullable = false, precision = 8, scale = 2)
-    private BigDecimal proteinGramsPerServing;
-
-    @Column(name = "fat_grams_per_serving", nullable = false, precision = 8, scale = 2)
-    private BigDecimal fatGramsPerServing;
-
-    @Column(nullable = false, precision = 6, scale = 2)
-    private BigDecimal servings;
+    @Column(name = "fat_grams", precision = 8, scale = 2)
+    private BigDecimal fatGrams;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -53,87 +39,49 @@ public class MealFood {
 
     protected MealFood() {}
 
-    private MealFood(
-            Meal meal,
-            Food food,
-            BigDecimal servings,
-            Instant now) {
-        if (meal == null || food == null) {
-            throw new NutritionRuleException("식사와 음식 정보가 필요합니다.");
-        }
-        validateServings(servings);
-        if (!meal.belongsTo(food.getUserId())) {
-            throw new NutritionRuleException("다른 사용자의 음식은 식단에 추가할 수 없습니다.");
-        }
+    public static MealFood create(Meal meal, String name, BigDecimal calories,
+            BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat, Instant now) {
+        MealFood item = new MealFood();
+        item.update(meal, name, calories, carbohydrate, protein, fat, now);
+        item.createdAt = now;
+        return item;
+    }
 
+    public void update(Meal meal, String name, BigDecimal calories,
+            BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat, Instant now) {
+        if (meal == null || now == null || name == null || name.isBlank() || name.trim().length() > 100) {
+            throw new NutritionRuleException("식사와 1~100자의 음식명이 필요합니다.");
+        }
+        if (calories == null) {
+            throw new NutritionRuleException("칼로리는 필수입니다.");
+        }
+        validate(calories);
+        validate(carbohydrate);
+        validate(protein);
+        validate(fat);
         this.meal = meal;
-        this.sourceFoodId = food.getId();
-        this.foodName = food.getName();
-        this.servingAmount = food.getServingAmount();
-        this.servingUnit = food.getServingUnit();
-        this.caloriesPerServing = food.getCalories();
-        this.carbohydrateGramsPerServing = food.getCarbohydrateGrams();
-        this.proteinGramsPerServing = food.getProteinGrams();
-        this.fatGramsPerServing = food.getFatGrams();
-        this.servings = servings;
-        this.createdAt = now;
+        this.foodName = name.trim();
+        this.calories = calories;
+        this.carbohydrateGrams = carbohydrate;
+        this.proteinGrams = protein;
+        this.fatGrams = fat;
         this.updatedAt = now;
     }
 
-    public static MealFood fromFood(
-            Meal meal,
-            Food food,
-            BigDecimal servings,
-            Instant now) {
-        return new MealFood(meal, food, servings, now);
-    }
-
-    public void updateServings(BigDecimal servings, Instant now) {
-        validateServings(servings);
-        this.servings = servings;
-        this.updatedAt = now;
-    }
-
-    private static void validateServings(BigDecimal servings) {
-        if (servings == null || servings.signum() <= 0) {
-            throw new NutritionRuleException("섭취 회분은 0보다 커야 합니다.");
+    private static void validate(BigDecimal value) {
+        if (value != null && (value.signum() < 0 || value.compareTo(new BigDecimal("999999.99")) > 0
+                || value.stripTrailingZeros().scale() > 2)) {
+            throw new NutritionRuleException("영양값은 0~999999.99 범위에서 소수 둘째 자리까지 입력해주세요.");
         }
-        if (servings.compareTo(new BigDecimal("100")) > 0) {
-            throw new NutritionRuleException("섭취 회분은 100 이하로 입력해주세요.");
-        }
-    }
-
-    private BigDecimal total(BigDecimal value) {
-        return value.multiply(servings).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal totalCalories() {
-        return total(caloriesPerServing);
-    }
-
-    public BigDecimal totalCarbohydrateGrams() {
-        return total(carbohydrateGramsPerServing);
-    }
-
-    public BigDecimal totalProteinGrams() {
-        return total(proteinGramsPerServing);
-    }
-
-    public BigDecimal totalFatGrams() {
-        return total(fatGramsPerServing);
     }
 
     public Long getId() { return id; }
     public Meal getMeal() { return meal; }
-    public Long getSourceFoodId() { return sourceFoodId; }
     public String getFoodName() { return foodName; }
-    public BigDecimal getServingAmount() { return servingAmount; }
-    public ServingUnit getServingUnit() { return servingUnit; }
-    public BigDecimal getCaloriesPerServing() { return caloriesPerServing; }
-    public BigDecimal getCarbohydrateGramsPerServing() { return carbohydrateGramsPerServing; }
-    public BigDecimal getProteinGramsPerServing() { return proteinGramsPerServing; }
-    public BigDecimal getFatGramsPerServing() { return fatGramsPerServing; }
-    public BigDecimal getServings() { return servings; }
+    public BigDecimal getCalories() { return calories; }
+    public BigDecimal getCarbohydrateGrams() { return carbohydrateGrams; }
+    public BigDecimal getProteinGrams() { return proteinGrams; }
+    public BigDecimal getFatGrams() { return fatGrams; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

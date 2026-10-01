@@ -1,34 +1,26 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
 import com.myfitness.nutrition.application.dto.response.MealFoodResult;
-import com.myfitness.nutrition.domain.model.ServingUnit;
+import com.myfitness.nutrition.domain.model.MealType;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 
 public record MealFoodResponse(
         Long id,
-        Long sourceFoodId,
+        LocalDate mealDate,
+        MealType mealType,
         String foodName,
-        BigDecimal servingAmount,
-        ServingUnit servingUnit,
-        BigDecimal caloriesPerServing,
-        BigDecimal carbohydrateGramsPerServing,
-        BigDecimal proteinGramsPerServing,
-        BigDecimal fatGramsPerServing,
-        BigDecimal servings,
-        NutritionTotalsResponse total
+        BigDecimal calories,
+        BigDecimal carbohydrateGrams,
+        BigDecimal proteinGrams,
+        BigDecimal fatGrams,
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static MealFoodResponse from(MealFoodResult item) {
-        return new MealFoodResponse(
-                item.id(),
-                item.sourceFoodId(),
-                item.foodName(),
-                item.servingAmount(),
-                item.servingUnit(),
-                item.caloriesPerServing(),
-                item.carbohydrateGramsPerServing(),
-                item.proteinGramsPerServing(),
-                item.fatGramsPerServing(),
-                item.servings(),
-                NutritionTotalsResponse.from(item.total()));
+        return new MealFoodResponse(item.id(), item.mealDate(), item.mealType(), item.foodName(),
+                item.calories(), item.carbohydrateGrams(), item.proteinGrams(), item.fatGrams(),
+                item.createdAt(), item.updatedAt());
     }
 }

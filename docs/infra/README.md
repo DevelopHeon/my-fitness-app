@@ -29,7 +29,8 @@ flowchart LR
     GitHub["GitHub Actions"]
     IAM["GitHub OIDC IAM Role"]
     Google["Google OIDC"]
-    OpenAI["OpenAI API"]
+    OpenAI["OpenAI API<br/>텍스트 답변·음식 사진 분석"]
+    JEV["TypeSafe JEV<br/>텍스트 정책 평가"]
 
     User -->|"HTTPS"| DNS
     DNS --> EIP
@@ -38,6 +39,7 @@ flowchart LR
     App -->|"5432"| DB
     App --> Google
     App --> OpenAI
+    App --> JEV
 
     GitHub -->|"OIDC"| IAM
     IAM --> ECR
@@ -279,3 +281,8 @@ EC2 IAM Role에는 CloudWatch Agent 권한이 있지만, 애플리케이션 Dock
 - [CDK 개발 문서](../../infra/README.md)
 - [CI workflow](../../.github/workflows/ci.yml)
 - [Deploy workflow](../../.github/workflows/deploy-app.yml)
+
+
+## 음식 사진 기능의 인프라 범위
+
+사진 분석은 앱 서버가 기존 OpenAI 키로 수행하며, 원본 저장용 AWS 리소스를 만들지 않습니다. `/my-fitness/prod/ai-provider=openai`와 기존 openai-api-key를 사용하고 텍스트 정책용 typesafe-api-key도 유지합니다. 파일·픽셀·multipart 제한과 V11의 schema 교체 및 복구 조건은 [Operations](OPERATIONS.md#음식-사진과-직접-식단-기록-배포)에 정리했습니다. 현재 코드 반영과 실제 AWS 배포 완료는 구분합니다.

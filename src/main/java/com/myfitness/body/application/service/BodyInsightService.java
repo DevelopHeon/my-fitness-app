@@ -1,5 +1,6 @@
 package com.myfitness.body.application.service;
 
+import com.myfitness.body.application.dto.response.BodyRecordResult;
 import com.myfitness.body.application.port.in.insight.BodyInsightQuery;
 import com.myfitness.body.application.port.out.BodyRecordRepositoryPort;
 import java.util.List;
@@ -17,24 +18,18 @@ public class BodyInsightService implements BodyInsightQuery {
 
     @Override
     public List<BodyInsight> findAll(Long userId) {
-        return toInsights(bodyRecordRepositoryPort.findAllByUserId(userId));
+        return bodyRecordRepositoryPort.findAllByUserId(userId).stream()
+                .map(BodyRecordResult::from)
+                .map(BodyInsight::from)
+                .toList();
     }
 
     @Override
     public List<BodyInsight> findRecent(Long userId, int limit) {
-        return toInsights(
-                bodyRecordRepositoryPort.findRecentByUserId(userId, limit));
-    }
-
-    private static List<BodyInsight> toInsights(
-            List<com.myfitness.body.domain.model.BodyRecord> records) {
-        return records.stream()
-                .map(record -> new BodyInsight(
-                        record.getId(),
-                        record.getMeasuredAt(),
-                        record.getWeightKg(),
-                        record.getBodyFatPercentage(),
-                        record.getSkeletalMuscleKg()))
+        return bodyRecordRepositoryPort.findRecentByUserId(userId, limit).stream()
+                .map(BodyRecordResult::from)
+                .map(BodyInsight::from)
                 .toList();
     }
+
 }

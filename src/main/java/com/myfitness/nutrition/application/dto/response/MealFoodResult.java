@@ -1,38 +1,26 @@
 package com.myfitness.nutrition.application.dto.response;
 
 import com.myfitness.nutrition.domain.model.MealFood;
-import com.myfitness.nutrition.domain.model.ServingUnit;
+import com.myfitness.nutrition.domain.model.MealType;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 
 public record MealFoodResult(
         Long id,
-        Long sourceFoodId,
+        LocalDate mealDate,
+        MealType mealType,
         String foodName,
-        BigDecimal servingAmount,
-        ServingUnit servingUnit,
-        BigDecimal caloriesPerServing,
-        BigDecimal carbohydrateGramsPerServing,
-        BigDecimal proteinGramsPerServing,
-        BigDecimal fatGramsPerServing,
-        BigDecimal servings,
-        NutritionTotals total
+        BigDecimal calories,
+        BigDecimal carbohydrateGrams,
+        BigDecimal proteinGrams,
+        BigDecimal fatGrams,
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static MealFoodResult from(MealFood item) {
-        return new MealFoodResult(
-                item.getId(),
-                item.getSourceFoodId(),
-                item.getFoodName(),
-                item.getServingAmount(),
-                item.getServingUnit(),
-                item.getCaloriesPerServing(),
-                item.getCarbohydrateGramsPerServing(),
-                item.getProteinGramsPerServing(),
-                item.getFatGramsPerServing(),
-                item.getServings(),
-                new NutritionTotals(
-                        item.totalCalories(),
-                        item.totalCarbohydrateGrams(),
-                        item.totalProteinGrams(),
-                        item.totalFatGrams()));
+        return new MealFoodResult(item.getId(), item.getMeal().getMealDate(), item.getMeal().getMealType(),
+                item.getFoodName(), item.getCalories(), item.getCarbohydrateGrams(), item.getProteinGrams(),
+                item.getFatGrams(), item.getCreatedAt(), item.getUpdatedAt());
     }
 }

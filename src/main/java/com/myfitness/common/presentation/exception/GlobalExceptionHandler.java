@@ -2,8 +2,9 @@ package com.myfitness.common.presentation.exception;
 
 import com.myfitness.ai.application.exception.AiConversationAccessException;
 import com.myfitness.ai.application.exception.AiConversationNotFoundException;
-import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
 import com.myfitness.ai.domain.exception.AiRuleException;
 import com.myfitness.body.application.exception.BodyRecordAccessException;
 import com.myfitness.body.application.exception.BodyRecordNotFoundException;
@@ -20,10 +21,12 @@ import com.myfitness.workout.application.exception.WorkoutAccessException;
 import com.myfitness.workout.application.exception.WorkoutNotFoundException;
 import com.myfitness.workout.domain.exception.WorkoutRuleException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -160,4 +163,25 @@ public class GlobalExceptionHandler {
                 exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidFoodPhotoException.class)
+    public ResponseEntity<ApiErrorResponse> handleFoodPhoto(
+            InvalidFoodPhotoException exception) {
+        HttpStatus status = switch (exception.getReason()) {
+            case INVALID -> HttpStatus.BAD_REQUEST;
+            case TOO_LARGE -> HttpStatus.PAYLOAD_TOO_LARGE;
+            case UNSUPPORTED -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+        };
+        String code = switch (exception.getReason()) {
+            case INVALID -> "INVALID_FOOD_PHOTO";
+            case TOO_LARGE -> "PAYLOAD_TOO_LARGE";
+            case UNSUPPORTED -> "UNSUPPORTED_MEDIA_TYPE";
+        };
+        return ResponseEntity.status(status).body(ApiErrorResponse.of(code, exception.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public ApiErrorResponse handleUploadSize(MaxUploadSizeExceededException exception) {
+        return ApiErrorResponse.of("PAYLOAD_TOO_LARGE", "사진은 5 MiB 이하로 선택해주세요.");
+    }
 }

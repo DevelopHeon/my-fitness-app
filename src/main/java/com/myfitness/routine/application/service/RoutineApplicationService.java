@@ -85,9 +85,7 @@ public class RoutineApplicationService implements RoutineUseCase {
                 workoutRoutineUseCase.startWorkout(
                         userId, workoutDate, memo, exercises);
 
-        return new RoutineWorkoutStartResult(
-                result.workout(),
-                result.previousRecords());
+        return RoutineWorkoutStartResult.from(result);
     }
 
     private List<ExerciseReference> resolveExercises(

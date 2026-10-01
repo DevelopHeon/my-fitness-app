@@ -7,11 +7,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface SpringDataMealFoodRepository extends JpaRepository<MealFood, Long> {
-    List<MealFood> findAllByMealUserIdAndMealMealDateOrderByCreatedAtAsc(
+    List<MealFood> findAllByMealUserIdAndMealMealDateOrderByCreatedAtAscIdAsc(
             Long userId, LocalDate mealDate);
-    List<MealFood> findAllByMealUserIdOrderByMealMealDateDescCreatedAtDesc(Long userId);
 
-    List<MealFood> findAllByMealUserIdOrderByMealMealDateDescCreatedAtDesc(
+    List<MealFood> findAllByMealUserIdOrderByMealMealDateDescCreatedAtDescIdDesc(
             Long userId,
             Pageable pageable);
 }

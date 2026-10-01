@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
 import java.time.Instant;
 
 @Entity
@@ -246,6 +245,14 @@ public class AiRequestLog {
     public void recordRejectedAssistant(Long assistantMessageId, AiRequestStatus status) {
         this.assistantMessageId = assistantMessageId;
         this.status = status;
+    }
+
+    @Column(name = "request_kind", nullable = false, length = 20)
+    private String requestKind = "TEXT";
+
+    public AiRequestLog foodPhoto() {
+        this.requestKind = "FOOD_PHOTO";
+        return this;
     }
 
     public Long getId() {

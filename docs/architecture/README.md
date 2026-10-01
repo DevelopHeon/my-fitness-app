@@ -128,9 +128,9 @@ flowchart LR
 | workout | 운동 일자, 종목 snapshot, 세트, 완료 상태 |
 | routine | 반복 가능한 운동 템플릿과 Workout 시작 |
 | body | 체중, 체지방률, 골격근량 기록 |
-| nutrition | Food, Meal, 영양 snapshot, 일일 목표 |
+| nutrition | Meal, 직접 입력 MealFood, 선택 탄단지·일일 목표 |
 | dashboard | Workout / Body 데이터를 조합한 통계 |
-| ai | Workout / Body / Nutrition insight 기반 AI Coach |
+| ai | 공개 insight 기반 텍스트 AI Coach와 음식 사진 판별·1인분 추정 |
 | common | HTTP 오류 변환과 공통 기술 설정 |
 
 ### 공개 모듈 경계
@@ -203,13 +203,37 @@ Event는 호출자가 결과를 기다릴 필요가 없는 후속 작업에 사�
 
 기본 호출 흐름:
 
-Infrastructure의 `persistence`는 자신의 DB 저장·조회 구현, `module`은 다른 모듈의 공개 계약 호출·데이터 변환, `client`는 외부 API 연동 구현을 묶습니다. DashboardDataAdapter는 module에, AI의 SpringAiChatGateway와 JevAiPolicyGateway는 client에 둡니다. Spring AI의 답변 생성과 JEV의 정책 평가는 서로 다른 Out Port 계약을 유지합니다. query라는 이름으로 Command/Query 실행 경로를 분리하거나 SDK명과 공급자명을 최상위 패키지 분류 기준으로 섞지 않습니다. 인증·설정·초기 데이터처럼 별도 책임이 있는 security/config/bootstrap 패키지는 유지합니다.
+Infrastructure의 `persistence`는 자신의 DB 저장·조회 구현, `module`은 다른 모듈의 공개 계약 호출·데이터 변환, `client`는 외부 API 연동 구현을 묶습니다. DashboardDataAdapter는 module에, AI의 SpringAiChatGateway·JevAiPolicyGateway·OpenAiFoodPhotoGateway는 client에 둡니다. Spring AI의 답변 생성과 JEV의 정책 평가는 서로 다른 Out Port 계약을 유지합니다. query라는 이름으로 Command/Query 실행 경로를 분리하거나 SDK명과 공급자명을 최상위 패키지 분류 기준으로 섞지 않습니다. 인증·설정·초기 데이터처럼 별도 책임이 있는 security/config/bootstrap 패키지는 유지합니다.
 
 Spring Data Repository는 Infrastructure의 기술적 인터페이스이며 Application RepositoryPort와 다릅니다. Repository Adapter와 같은 persistence 패키지에 두고 package-private 접근을 유지합니다. 구현을 폴더로 분리하기 위해 public으로 노출하지 않습니다.
 
 Application의 `dto/request`는 Command와 입력 보조 데이터를, `dto/response`는 Result와 출력 보조 데이터를 둡니다. 클래스의 Command/Result 접미사는 유지하며 HTTP Request/Response는 기존 Presentation DTO에 둡니다. Port에 선언된 중첩 record는 해당 공개 계약의 일부이므로 별도 DTO로 분리하지 않습니다.
 
+DTO의 필드 복사·복합 응답 조립은 해당 DTO의 `from(...)` 팩토리에서 처리합니다. Service는 조회·정책 판단·저장 흐름을 조율하고 DTO 생성용 private 메서드를 두지 않습니다. JSON 해석처럼 별도 의존성이 필요한 변환은 Support Mapper가 처리한 뒤 DTO 팩토리를 호출합니다. 공개 In Port의 중첩 record는 JPA Entity에 직접 의존하지 않으므로 내부 Result로 먼저 투영한 뒤 공개 record의 팩토리로 변환합니다. 기간별 통계·목표 차감·빈도 집계 같은 별도 책임은 기존 Builder·Assembler·Service에 유지합니다.
+
 `service`에는 유스케이스 조율과 DB 처리·transaction 서비스를 둡니다. `support`에는 내부 협력 기능을 두며 Service에 역방향 의존하지 않습니다. AI는 support 아래 context/policy/prompt와 이력 선택·Provider 호출을, Dashboard는 요약 Builder·Result Assembler를, Nutrition은 Result Assembler를 둡니다. 해당 역할이 없는 모듈에는 빈 패키지를 만들지 않습니다. Presentation은 Service와 Support를 직접 참조하지 않습니다.
+
+### 책임 분리와 가독성
+
+- 최소 구현을 이유로 서로 다른 변경 이유를 한 클래스에 모으지 않습니다. 유스케이스 조율, 저장·transaction, 입력 검증·변환, 외부 응답 해석은 독립적으로 변경될 때 의미 있는 메서드나 구체 클래스로 분리합니다.
+- 메서드·클래스 이름으로 역할을 설명할 수 있어야 합니다. 분리할 때 책임과 의존 방향을 먼저 설명하고, 범용 인터페이스·전략 계층은 실제 필요가 있을 때만 추가합니다.
+- 줄 수와 파일 수를 줄이려고 선언·대입·분기·JSX를 한 줄에 압축하지 않습니다. 파일 길이보다 책임의 응집도와 읽기 흐름을 우선합니다.
+- 리팩토링은 기존 동작 테스트로 전후를 확인하며 transaction 경계와 아키텍처 검사를 유지합니다.
+
+AI의 현재 책임 분리는 다음과 같습니다.
+
+| 구현 | 책임 |
+| --- | --- |
+| AiCoachService | 기존 In Port를 대화 관리·텍스트 질문 처리에 연결 |
+| AiConversationService | 대화 CRUD, 소유권 확인, 메시지 조회 |
+| AiChatMessageService | 정책 평가 → 허용/제한 → 답변 생성 흐름 조율 |
+| AiMessageTransactionService | 텍스트 메시지·정책·Provider 로그의 짧은 DB 처리 |
+| FoodPhotoService / FoodPhotoTransactionService | 사진 분석 흐름 / 사진 메시지·로그 DB 처리 |
+| AiMessageResultMapper | 저장된 분석 JSON 해석 후 AiMessageResult 팩토리 호출 |
+| OpenAiFoodPhotoGateway | OpenAI 설정 확인·요청·통신 오류 변환 |
+| FoodPhotoImagePreparer / FoodPhotoResponseParser | 이미지 검증·정규화 / 모델 응답 검증·해석 |
+
+사진 파일 처리와 SDK 응답 해석은 Infrastructure에 남습니다. 외부 호출은 transaction 없이 실행하고 저장만 짧은 transaction으로 처리합니다. 프론트의 NutritionScreen은 조회·저장 흐름을 조율하며 MealRecordForm·NutritionGoalForm은 각 입력 상태와 요청 값 변환을, FoodPhotoComposer는 파일 선택·미리보기 수명을 맡습니다.
 
 ~~~mermaid
 flowchart LR
@@ -268,7 +292,7 @@ public class ExampleApplicationService {
 
 ### AI 예외
 
-AI Provider 호출은 네트워크 대기가 포함되므로 전체 sendMessage를 하나의 DB transaction으로 묶지 않습니다.
+AI Provider 호출은 네트워크 대기가 포함되므로 전체 sendMessage/사진 분석을 하나의 DB transaction으로 묶지 않습니다.
 
 ~~~text
 User Message 저장 + Conversation 갱신
@@ -279,7 +303,7 @@ Assistant / Request Log 저장
         ↓ COMMIT
 ~~~
 
-AiCoachService.sendMessage는 Provider 호출 동안 DB transaction을 유지하지 않고, AiMessageTransactionService가 짧은 DB transaction을 담당합니다.
+AiCoachService.sendMessage와 FoodPhotoService.analyze는 NOT_SUPPORTED 경계에서 외부 호출을 수행합니다. AiMessageTransactionService가 소유권 확인과 메시지·로그 저장의 짧은 DB transaction을 담당합니다. In Port 구현 Service의 기본 read-only 선언과 별도 쓰기 경계는 유지합니다.
 
 AiProviderExecutor는 Support에서 프롬프트를 구성하고 AiChatGateway Out Port를 호출합니다. 성공·실패 저장, 오류 변환과 지연 시간 기록은 AiCoachService가 조율하므로 Support가 transaction Service를 호출하지 않습니다.
 
@@ -292,6 +316,12 @@ AiProviderExecutor는 Support에서 프롬프트를 구성하고 AiChatGateway O
 Workout과 Routine은 운동 카탈로그가 나중에 수정되더라도 과거 기록이 바뀌지 않도록 이름과 카테고리를 snapshot으로 저장합니다.
 
 따라서 사용자가 CUSTOM 운동을 수정하거나 삭제해도 기존 Workout 기록은 유지됩니다.
+
+### 직접 식단 기록
+
+Food 카탈로그·`/api/foods`·sourceFoodId·회분 곱셈을 제거했습니다. Meal은 사용자·날짜·식사 구분의 고유 경계를 유지하며 MealFood에 음식명 문자열, 최종 섭취 칼로리, nullable 탄단지와 시각을 저장합니다. 등록 음식이나 영양 목표가 없어도 기록할 수 있습니다. 항목 편집으로 날짜·구분을 바꾸면 소유한 다른 Meal로 이동하고 이전/새 Meal을 갱신합니다.
+
+합계는 영양소별로 모든 기록이 알려진 경우에만 숫자를 반환합니다. 하나라도 미입력이면 해당 영양소 consumed/remaining은 null이고 빈 기록 범위는 0입니다. 명시한 0은 알려진 값입니다. UI와 AI Context는 이를 미입력으로 표시하며 부분 합계를 전체 섭취량으로 안내하지 않습니다. NutritionInsightService는 최근 50개 식단 이력에서 이름·빈도를 한 번 계산해 공개 Insight 이름 목록을 제공합니다.
 
 ### JPA / HTTP 경계
 
@@ -390,7 +420,7 @@ build/spring-modulith-docs
 
 ## AI 질문 정책 경계 (PR-012 구현)
 
-`AiCoachService`는 사용자 메시지 커밋 후 `AiPolicyGuard`를 반드시 호출한다. `AiPolicyGateway` Out Port 뒤의 `JevAiPolicyGateway`만 TypeSafe HTTP 계약을 알고, `AiPolicyEvaluator`가 ALLOW/BLOCK/SAFE_REDIRECT/CLARIFY를 결정한다. ALLOW만 Context Builder와 답변 생성으로 진행한다. 제한은 고정 안내를 저장하고, 평가 장애는 사용자 메시지·FAILED 로그를 보존한 뒤 AI_POLICY_UNAVAILABLE / 503을 반환한다.
+일반 텍스트 대화의 `AiCoachService`는 사용자 메시지 커밋 후 `AiPolicyGuard`를 반드시 호출한다. `AiPolicyGateway` Out Port 뒤의 `JevAiPolicyGateway`만 TypeSafe HTTP 계약을 알고, `AiPolicyEvaluator`가 ALLOW/BLOCK/SAFE_REDIRECT/CLARIFY를 결정한다. ALLOW만 Context Builder와 답변 생성으로 진행한다. 제한은 고정 안내를 저장하고, 평가 장애는 사용자 메시지·FAILED 로그를 보존한 뒤 AI_POLICY_UNAVAILABLE / 503을 반환한다.
 
 운영 mode 선택·legacy/shadow 분기·키워드 Router는 제거했다. 기존 판정은 [변경 전 저장 산출물](../testing/ai-policy/baseline-1000-v1/)에만 남는다. `AiPolicyRun.Success`는 필수 decision/assessment, `Failure`는 errorCode를 가진다. candidate/effective 이중 판정과 JSON 중복은 저장하지 않는다. 기존 V10과 과거 policy_mode/null 로그를 보존하며 신규 policy_mode는 jev 감사 표식이다. 사용자 메시지의 초기 OUT_OF_SCOPE는 기존 non-null DB 컬럼의 미판정 placeholder이고, 성공한 JEV 결과로 갱신한다.
 
@@ -421,3 +451,18 @@ ArchUnit의 운영 대상·계층·SDK 규칙과 Modulith 공개 인터페이스
 ```
 
 EntityBoundaryApiIntegrationTest는 테스트 수준 transaction을 열지 않고 요청마다 종료된 뒤 projection을 확인하므로 유지한다. 파일 존재만 검사하던 PackageDocumentationTest를 제거했지만 package-info 문서와 실제 Modulith metadata 검사는 유지한다. 문서 생성은 modulithDocs 작업이다. 이 정리는 운영 의존성·기존 DTO 허용 방향을 변경하지 않는다.
+
+
+## 음식 사진의 고정 분석 경계
+
+새 사진 업로드의 UI 진입점은 식단 메뉴입니다. NutritionScreen의 버튼이 AppShell에서 공통 AI Coach를 열고, AI Coach는 현재 화면이 nutrition인 경우에만 업로드 영역을 표시하고 사진 요청을 시작합니다. 메뉴를 벗어나면 선택 파일과 미리보기를 해제합니다. 텍스트 질문과 기존 사진 분석 결과·기록 액션은 모든 메뉴에서 유지합니다. 화면 구분은 서버 권한 계약에 추가하지 않습니다.
+
+사진은 `POST /api/ai/conversations/{id}/food-photos` multipart 전용 요청이며, image 한 장 외에 임의 질문·prompt·URL·userId를 받지 않습니다. Controller → FoodPhotoUseCase → FoodPhotoService → FoodPhotoGateway → OpenAiFoodPhotoGateway 순서로 호출합니다. AI SDK·HTTP·이미지 디코딩·구조화 출력 검증은 Infrastructure에 있습니다. 소유권 확인 후 Gateway.prepare로 파일을 검증·정규화하고, 통과한 경우에만 고정 사용자 메시지를 저장한 뒤 Gateway.analyze로 외부 호출합니다. 잘못된 사진은 대화·제목·로그를 변경하지 않습니다. 사진 분석은 Nutrition에 쓰지 않고 Frontend가 초안을 넘긴 뒤 사용자의 저장으로 NutritionUseCase를 호출합니다. 새 모듈 의존성·첨부 Entity·전략 계층은 추가하지 않았습니다.
+
+OpenAI에 이미지 판별과 일반적인 1인분 추정을 한 번 요청합니다. FOOD는 1~5개 후보, NOT_FOOD/UNCERTAIN은 빈 후보를 강제하고 모순된 응답·refusal·미완성·통신 실패는 `AI_PROVIDER_UNAVAILABLE / 503`으로 종료합니다. 재시도·Ollama fallback은 없습니다. 앱이 대화 안내와 기록 버튼을 구성하므로 모델 자유 문장·액션 명령을 실행하지 않습니다. 일반 텍스트는 계속 JEV를 거치며 JEV가 지원하지 않는 이미지를 텍스트 정책 검사로 처리했다고 기록하지 않습니다.
+
+JPEG/PNG 원본 5 MiB·1600만 픽셀 이하만 받습니다. 서버는 픽셀 metadata를 먼저 검사한 뒤 최대 긴 변 1600px의 JPEG로 다시 인코딩해 원본 metadata를 전송하지 않습니다. DB에는 고정 요청 문구와 검증된 구조화 결과만 보존합니다. AiMessage의 `messageKind`·결과 JSON, AiRequestLog의 `requestKind`로 사진을 구분하며 provider/model/prompt version/결과 상태/지연/사용량/오류를 기록합니다. 사진 턴은 일반 대화의 허용 이력에서 제외하고, 목록 응답에서 기록 액션을 복원합니다.
+
+V11은 과거 migration 파일을 변경하지 않고 카탈로그/기존 식단 항목 schema를 교체하며 AI에 최소 컬럼을 추가합니다. 과거 AI 로그의 policy_mode 등 호환 정보는 보존됩니다. 원본 사진·base64·파일명·키·모델 원문을 DB나 앱 로그에 남기지 않습니다.
+
+이 구현의 HTTP 대역과 로컬 PostgreSQL 17 검증은 모델의 실제 음식 식별·칼로리 정확도나 운영 배포 검증을 의미하지 않습니다. 운영 설정과 schema 복구 조건은 [Operations](../infra/OPERATIONS.md#음식-사진과-직접-식단-기록-배포)를 참고합니다.

@@ -2,13 +2,21 @@
 
 개인 운동, 신체, 식단 기록과 기록 기반 AI Coach를 제공하는 개인용 피트니스 애플리케이션입니다.
 
+## 식단 기록
+
+음식명과 섭취 칼로리를 바로 입력합니다. 별도 음식 등록은 없습니다. 날짜와 아침·점심·저녁·간식은 현재 한국 시간으로 채우고 사용자가 수정합니다. 탄단지는 기본 접힘 상태의 선택 입력이며, 미입력 값은 0으로 계산하지 않습니다.
+
+식단 메뉴의 **사진으로 식단 입력**을 누르면 AI Coach에서 음식 사진을 분석해 일반적인 1인분의 이름·기준 분량·추정 칼로리를 보여줍니다. 새 사진 업로드는 식단 메뉴에서만 제공하며, 다른 메뉴에서는 텍스트 질문과 기존 분석 결과 조회를 사용할 수 있습니다. **식단에 기록하기**를 누르면 입력 폼에 이름과 칼로리가 채워지고, 사용자가 저장해야 기록됩니다. 여러 음식은 후보별로 선택하며 자동 합산하지 않습니다.
+
+사진은 JPEG/PNG 한 장, 원본 5 MiB·1600만 픽셀 이하입니다. OpenAI 이미지 입력으로 판별·추정을 한 번 요청하며, 비음식·식별 불가에는 기록 버튼을 보여주지 않습니다. 앱은 원본을 보관하지 않고 검증된 분석 결과만 대화에 저장합니다. 사진 속 실제 섭취량을 측정한 값이나 공식 영양정보는 아닙니다.
+
 ## 기술 스택
 
 - Backend: Java 21, Spring Boot 4.1.1, Spring Data JPA, Spring Security, Spring Modulith
 - Frontend: Next.js 16.3.3, TypeScript, Tailwind CSS, PWA
 - Database: PostgreSQL 17, Flyway
 - Authentication: Google OAuth2 / OIDC, Spring Session JDBC
-- AI: Spring AI 2.0.1, OpenAI 또는 Ollama ChatModel
+- AI: Spring AI 2.0.1, 일반 대화 JEV 정책 평가 + OpenAI/Ollama 답변 생성, 사진 분석 OpenAI 전용
 - Architecture: Modular Monolith, 4-layer, In/Out Port
 - Infrastructure: AWS CDK, EC2, RDS, ECR, SSM, GitHub Actions OIDC
 
@@ -57,13 +65,15 @@ export GOOGLE_CLIENT_ID=...
 export GOOGLE_CLIENT_SECRET=...
 ~~~
 
-AI Coach는 Provider를 설정하지 않으면 비활성화되고 나머지 기능은 정상 동작합니다.
+Provider 미설정 시 AI 요청은 503을 반환합니다. 직접 식단 기록 등 나머지 기능은 사용할 수 있습니다. 일반 텍스트 대화는 JEV 평가를 반드시 거치므로 `TYPESAFE_API_KEY`도 필요합니다. JEV 평가 불가는 `AI_POLICY_UNAVAILABLE / 503`, 사진 분석 장애는 `AI_PROVIDER_UNAVAILABLE / 503`입니다.
 
 OpenAI:
 
 ~~~bash
 export AI_PROVIDER=openai
 export OPENAI_API_KEY=...
+export TYPESAFE_API_KEY=...
+# 선택: AI_OPENAI_MODEL=gpt-4o-mini, AI_REQUEST_TIMEOUT=30s
 ./gradlew bootRun
 ~~~
 
@@ -72,8 +82,11 @@ export OPENAI_API_KEY=...
 ~~~bash
 export AI_PROVIDER=ollama
 export OLLAMA_BASE_URL=http://localhost:11434
+export TYPESAFE_API_KEY=...
 ./gradlew bootRun
 ~~~
+
+Ollama 설정에서는 사진 분석을 지원하지 않습니다. 이미지·Structured Outputs를 지원하는 OpenAI 모델이 필요합니다. 키를 Git이나 프론트엔드에 넣지 않습니다.
 
 ## 빌드와 검증
 
@@ -88,6 +101,7 @@ export OLLAMA_BASE_URL=http://localhost:11434
 
 ~~~bash
 cd frontend
+npm test
 npm run lint
 npm run build
 ~~~
@@ -103,7 +117,11 @@ npx cdk synth
 npx cdk diff
 ~~~
 
+일반 `build`의 `check`에는 Checkstyle AST의 var 금지 검사, ArchUnit/Modulith·동작 테스트와 프론트엔드 Node 테스트가 포함됩니다. CI는 lint도 실행합니다. 테스트의 HTTP 대역은 실제 모델의 사진 인식·열량 정확도를 검증하지 않습니다.
+
 Gradle 애플리케이션 빌드는 Next.js 정적 export를 포함하며 최종 Spring Boot JAR에서 같은 origin으로 제공합니다.
+
+V11 migration은 음식 카탈로그와 기존 식단 항목 테이블을 제거하고 직접 입력 구조로 교체합니다. 현재 사용 데이터가 없다는 전제로 작성했습니다. 이전 이미지로만 되돌리는 복구는 보장되지 않으므로 [운영 절차](docs/infra/OPERATIONS.md#음식-사진과-직접-식단-기록-배포)를 확인합니다.
 
 ## 문서 읽는 순서
 

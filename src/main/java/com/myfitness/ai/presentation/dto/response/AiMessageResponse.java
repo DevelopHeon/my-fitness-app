@@ -8,7 +8,8 @@ public record AiMessageResponse(
         String role,
         String queryType,
         String content,
-        Instant createdAt
+        Instant createdAt,
+        FoodPhotoResponse foodPhotoResult
 ) {
     public static AiMessageResponse from(AiMessageResult result) {
         return new AiMessageResponse(
@@ -16,6 +17,7 @@ public record AiMessageResponse(
                 result.role(),
                 result.queryType(),
                 result.content(),
-                result.createdAt());
+                result.createdAt(),
+                FoodPhotoResponse.from(result.foodPhotoResult()));
     }
 }

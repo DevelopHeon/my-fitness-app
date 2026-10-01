@@ -1,5 +1,5 @@
 /**
- * Food, Meal, NutritionGoal 영속화를 담당하는 Infrastructure 계층이다.
+ * Meal, 직접 입력 MealFood, NutritionGoal 영속화를 담당하는 Infrastructure 계층이다.
  *
  * <p>Application의 Repository Out Port를 Spring Data JPA 기반 adapter로 구현한다.</p>
  *

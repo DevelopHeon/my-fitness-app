@@ -80,3 +80,6 @@ Amazon Linux 2023 bootstrap은 다음을 준비합니다.
 - region file
 
 Amazon Linux 2023의 curl-minimal과 충돌할 수 있으므로 bootstrap package에 full curl을 별도로 설치하지 않습니다.
+
+
+음식 사진 분석에는 새 CDK Stack·S3 bucket·이미지 CDN을 추가하지 않습니다. 기존 OpenAI runtime parameter를 사용하며, 카탈로그 제거를 위한 V11 schema 변경은 애플리케이션 Flyway가 담당합니다. 이 release는 이전 이미지 rollback만으로 schema 복구를 보장하지 않으므로 [해당 운영 절차](../docs/infra/OPERATIONS.md#음식-사진과-직접-식단-기록-배포)를 확인합니다.

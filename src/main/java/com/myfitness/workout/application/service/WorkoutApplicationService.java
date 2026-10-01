@@ -9,12 +9,9 @@ import com.myfitness.workout.application.dto.response.WorkoutCalendarDayResult;
 import com.myfitness.workout.application.dto.response.WorkoutResult;
 import com.myfitness.workout.application.port.in.WorkoutUseCase;
 import com.myfitness.workout.domain.model.Workout;
-import com.myfitness.workout.domain.model.WorkoutExercise;
-import com.myfitness.workout.domain.model.WorkoutStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -82,24 +79,7 @@ public class WorkoutApplicationService implements WorkoutUseCase {
                                 Collectors.toList()));
 
         return byDate.entrySet().stream()
-                .map(entry -> {
-                    LinkedHashSet<String> exerciseNames =
-                            new LinkedHashSet<>();
-                    int completedCount = 0;
-                    for (Workout workout : entry.getValue()) {
-                        if (workout.getStatus() == WorkoutStatus.COMPLETED) {
-                            completedCount++;
-                        }
-                        workout.getExercises().stream()
-                                .map(WorkoutExercise::getExerciseName)
-                                .forEach(exerciseNames::add);
-                    }
-                    return new WorkoutCalendarDayResult(
-                            entry.getKey(),
-                            entry.getValue().size(),
-                            completedCount,
-                            List.copyOf(exerciseNames));
-                })
+                .map(entry -> WorkoutCalendarDayResult.from(entry.getKey(), entry.getValue()))
                 .toList();
     }
 

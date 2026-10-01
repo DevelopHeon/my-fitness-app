@@ -84,32 +84,6 @@ public class BodyRecordApplicationService implements BodyRecordUseCase {
         List<BodyRecord> records =
                 bodyRecordService.listRecent(userId, safeDays);
 
-        BodyRecord latest =
-                records.isEmpty() ? null : records.getFirst();
-        BodyTrendResult.Change change = records.size() < 2
-                ? null
-                : new BodyTrendResult.Change(
-                        subtract(
-                                records.getFirst().getWeightKg(),
-                                records.get(1).getWeightKg()),
-                        subtract(
-                                records.getFirst().getBodyFatPercentage(),
-                                records.get(1).getBodyFatPercentage()),
-                        subtract(
-                                records.getFirst().getSkeletalMuscleKg(),
-                                records.get(1).getSkeletalMuscleKg()));
-
-        return new BodyTrendResult(
-                BodyRecordResult.from(latest),
-                change,
-                records.stream()
-                        .map(BodyRecordResult::from)
-                        .toList());
-    }
-
-    private static BigDecimal subtract(
-            BigDecimal current,
-            BigDecimal previous) {
-        return current.subtract(previous);
+        return BodyTrendResult.from(records);
     }
 }

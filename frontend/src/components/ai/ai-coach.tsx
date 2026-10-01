@@ -1,13 +1,20 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AiConversation, AiMessage, aiApi } from "@/lib/ai-api";
+import { AiConversation, AiMessage, FoodPhotoItem, aiApi } from "@/lib/ai-api";
+
+import { prepareFoodPhoto } from "@/lib/food-photo";
+import FoodPhotoComposer, { useFoodPhotoSelection } from "./food-photo-composer";
+import { MessageBubble } from "./message-bubble";
 
 type AppView = "dashboard" | "workout" | "routine" | "body" | "nutrition";
 
 type Props = {
   currentView: AppView;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   selectedDate?: string;
+  onRecordFood: (item: FoodPhotoItem) => void;
 };
 
 const prompts: Record<AppView, string[]> = {
@@ -38,8 +45,9 @@ const prompts: Record<AppView, string[]> = {
   ],
 };
 
-export default function AiCoach({ currentView, selectedDate }: Props) {
-  const [open, setOpen] = useState(false);
+export default function AiCoach({ currentView, open, onOpenChange, selectedDate, onRecordFood }: Props) {
+  const photoUploadAllowed = currentView === "nutrition";
+  const photoSelection = useFoodPhotoSelection(photoUploadAllowed);
   const [showList, setShowList] = useState(false);
   const [conversations, setConversations] = useState<AiConversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -48,10 +56,11 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-  const [initializing, setInitializing] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const composingRef = useRef(false);
+  const initializationPendingRef = useRef(false);
 
   const busy = loading || sending;
 
@@ -61,34 +70,79 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
     setMessages(await aiApi.listMessages(id));
   }, []);
 
-  const initialize = useCallback(async () => {
-    setInitializing(true);
+  async function sendPhoto(photo: File): Promise<boolean> {
+    if (!photoUploadAllowed || busy || activeId === null) return false;
+    setSending(true);
     setError(null);
+    setPendingMessage("음식 사진의 1인분 칼로리 분석");
     try {
-      const list = await aiApi.listConversations();
-      if (list.length > 0) {
-        setConversations(list);
-        setActiveId(list[0].id);
-        await loadMessages(list[0].id);
-      } else {
-        const created = await aiApi.createConversation();
-        setConversations([created]);
-        setActiveId(created.id);
-        setMessages([]);
+      const image = await prepareFoodPhoto(photo);
+      const result = await aiApi.sendFoodPhoto(activeId, image);
+      setMessages((current) => [...current, result.userMessage, result.assistantMessage]);
+      setConversations((current) => [
+        result.conversation,
+        ...current.filter((item) => item.id !== result.conversation.id),
+      ]);
+      return true;
+    } catch (caught) {
+      setError(errorMessage(caught));
+      try {
+        await loadMessages(activeId);
+      } catch {
+        // 분석 오류 안내를 유지한다.
       }
-    } catch (nextError) {
-      setError(errorMessage(nextError));
+      return false;
     } finally {
-      setInitializing(false);
-    }
-  }, [loadMessages]);
-
-  function openCoach() {
-    setOpen(true);
-    if (activeId === null && !initializing) {
-      void initialize();
+      setPendingMessage(null);
+      setSending(false);
     }
   }
+
+  function recordFood(item: FoodPhotoItem) {
+    photoSelection.clearPhoto();
+    closeCoach();
+    onRecordFood(item);
+  }
+
+  function openCoach() {
+    setShowList(false);
+    onOpenChange(true);
+  }
+
+  function closeCoach() {
+    setShowList(false);
+    onOpenChange(false);
+  }
+
+  useEffect(() => {
+    if (!open || activeId !== null || initializationPendingRef.current) return;
+    initializationPendingRef.current = true;
+
+    async function initialize() {
+      try {
+        const list = await aiApi.listConversations();
+        setInitializing(true);
+        setError(null);
+        if (list.length > 0) {
+          setConversations(list);
+          setActiveId(list[0].id);
+          await loadMessages(list[0].id);
+        } else {
+          const created = await aiApi.createConversation();
+          setConversations([created]);
+          setActiveId(created.id);
+          setMessages([]);
+        }
+      } catch (nextError) {
+        setError(errorMessage(nextError));
+      } finally {
+        initializationPendingRef.current = false;
+        setInitializing(false);
+      }
+    }
+
+    void initialize();
+  }, [open, activeId, loadMessages]);
 
   useEffect(() => {
     if (open) {
@@ -106,6 +160,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
       setMessages([]);
       setInput("");
       setShowList(false);
+      photoSelection.clearPhoto();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -125,6 +180,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
       setActiveId(id);
       setInput("");
       setShowList(false);
+      photoSelection.clearPhoto();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -237,7 +293,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
             type="button"
             aria-label="AI Coach 닫기"
             className="absolute inset-0 bg-black/25"
-            onClick={() => setOpen(false)}
+            onClick={closeCoach}
           />
           <section className="absolute inset-x-0 bottom-0 flex h-[88dvh] max-h-dvh min-h-0 flex-col overflow-hidden rounded-t-3xl border border-zinc-200 bg-white shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:h-dvh sm:w-[460px] sm:rounded-none sm:rounded-l-3xl">
             <header className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
@@ -262,7 +318,7 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
               <button
                 type="button"
                 aria-label="닫기"
-                onClick={() => setOpen(false)}
+                onClick={closeCoach}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-zinc-500 hover:bg-zinc-100"
               >
                 ×
@@ -303,7 +359,12 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                   ) : (
                     <div className="space-y-3">
                       {messages.map((message) => (
-                        <MessageBubble key={message.id} message={message} />
+                        <MessageBubble
+                          key={message.id}
+                          message={message}
+                          disabled={busy}
+                          onRecordFood={recordFood}
+                        />
                       ))}
                       {pendingMessage ? (
                         <div className="ml-auto max-w-[86%] rounded-2xl rounded-br-md bg-zinc-950 px-4 py-3 text-sm leading-6 text-white">
@@ -354,6 +415,14 @@ export default function AiCoach({ currentView, selectedDate }: Props) {
                     </p>
                   ) : null}
 
+                  {photoUploadAllowed && (
+                    <FoodPhotoComposer
+                      selection={photoSelection}
+                      disabled={busy || activeId === null}
+                      onSelect={() => setError(null)}
+                      onAnalyze={sendPhoto}
+                    />
+                  )}
                   <form
                     onSubmit={(event) => void send(event)}
                     className="flex items-end gap-2"
@@ -494,22 +563,6 @@ function QuickPrompts({
           {prompt}
         </button>
       ))}
-    </div>
-  );
-}
-
-function MessageBubble({ message }: { message: AiMessage }) {
-  const user = message.role === "USER";
-  return (
-    <div
-      className={
-        "max-w-[86%] rounded-2xl px-4 py-3 text-sm leading-6 " +
-        (user
-          ? "ml-auto rounded-br-md bg-zinc-950 text-white"
-          : "mr-auto rounded-bl-md bg-zinc-100 text-zinc-800")
-      }
-    >
-      <p className="whitespace-pre-wrap break-words">{message.content}</p>
     </div>
   );
 }

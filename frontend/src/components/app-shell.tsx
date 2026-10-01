@@ -9,6 +9,7 @@ import RoutineScreen from "@/components/routine/routine-screen";
 import WorkoutScreen from "@/components/workout/workout-screen";
 import { todayString } from "@/lib/input-utils";
 import { RoutineWorkoutStart } from "@/lib/routine-api";
+import { MealDraft, mealDefaults } from "@/lib/meal-input";
 import { CurrentUser } from "@/lib/auth-api";
 
 type View =
@@ -33,13 +34,19 @@ export default function AppShell({
   const [startedWorkout, setStartedWorkout] =
     useState<RoutineWorkoutStart | null>(null);
 
+  const [nutritionDraft, setNutritionDraft] = useState<MealDraft | null>(null);
+  const [nutritionInstance, setNutritionInstance] = useState(0);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
+
   function openWorkout(date = todayString()) {
+    setNutritionDraft(null);
     setStartedWorkout(null);
     setWorkoutDate(date);
     setView("workout");
   }
 
   function handleWorkoutStarted(result: RoutineWorkoutStart) {
+    setNutritionDraft(null);
     setStartedWorkout(result);
     setWorkoutDate(result.workout.workoutDate);
     setView("workout");
@@ -73,7 +80,7 @@ export default function AppShell({
           <NavButton
             active={view === "dashboard"}
             label="Dashboard"
-            onClick={() => setView("dashboard")}
+            onClick={() => { setNutritionDraft(null); setView("dashboard"); }}
           />
           <NavButton
             active={view === "workout"}
@@ -83,17 +90,17 @@ export default function AppShell({
           <NavButton
             active={view === "routine"}
             label="Routine"
-            onClick={() => setView("routine")}
+            onClick={() => { setNutritionDraft(null); setView("routine"); }}
           />
           <NavButton
             active={view === "body"}
             label="Body"
-            onClick={() => setView("body")}
+            onClick={() => { setNutritionDraft(null); setView("body"); }}
           />
           <NavButton
             active={view === "nutrition"}
             label="Nutrition"
-            onClick={() => setView("nutrition")}
+            onClick={() => { setNutritionDraft(null); setView("nutrition"); }}
           />
         </div>
       </nav>
@@ -119,10 +126,23 @@ export default function AppShell({
       ) : view === "body" ? (
         <BodyScreen />
       ) : (
-        <NutritionScreen onSelectedDateChange={setNutritionDate} />
+        <NutritionScreen
+          key={nutritionInstance}
+          onSelectedDateChange={setNutritionDate}
+          initialDraft={nutritionDraft}
+          onDraftConsumed={() => setNutritionDraft(null)}
+          onAnalyzePhoto={() => setAiCoachOpen(true)}
+        />
       )}
 
       <AiCoach
+        open={aiCoachOpen}
+        onOpenChange={setAiCoachOpen}
+        onRecordFood={(item) => {
+          setNutritionDraft({ ...item, ...mealDefaults() });
+          setNutritionInstance((value) => value + 1);
+          setView("nutrition");
+        }}
         currentView={view}
         selectedDate={
           view === "workout"

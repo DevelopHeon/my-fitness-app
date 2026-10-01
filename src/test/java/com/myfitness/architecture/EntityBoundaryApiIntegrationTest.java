@@ -1,7 +1,7 @@
 package com.myfitness.architecture;
 
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -146,24 +146,6 @@ class EntityBoundaryApiIntegrationTest {
     void returnsNutritionProjectionAcrossRequestTransactions() throws Exception {
         LocalDate date = LocalDate.of(2026, 9, 20);
 
-        MvcResult food = mockMvc.perform(post("/api/foods")
-                        .with(authenticatedUser(NUTRITION_USER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name":"Boundary Chicken",
-                                  "servingAmount":100,
-                                  "servingUnit":"G",
-                                  "calories":165,
-                                  "carbohydrateGrams":0,
-                                  "proteinGrams":31,
-                                  "fatGrams":3.6
-                                }
-                                """))
-                .andExpect(status().isCreated())
-                .andReturn();
-        long foodId = json(food).path("id").asLong();
-
         mockMvc.perform(put("/api/nutrition-goals/current")
                         .with(authenticatedUser(NUTRITION_USER))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -184,16 +166,12 @@ class EntityBoundaryApiIntegrationTest {
                                 {
                                   "mealDate":"%s",
                                   "mealType":"DINNER",
-                                  "foodId":%d,
-                                  "servings":1.5
+                                  "foodName":"Boundary Chicken",
+                                  "calories":247.5,
+                                  "proteinGrams":46.5
                                 }
-                                """.formatted(date, foodId)))
+                                """.formatted(date)))
                 .andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/foods")
-                        .with(authenticatedUser(NUTRITION_USER)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Boundary Chicken"));
 
         mockMvc.perform(get("/api/nutrition-goals/current")
                         .with(authenticatedUser(NUTRITION_USER)))
@@ -210,11 +188,7 @@ class EntityBoundaryApiIntegrationTest {
                 .andExpect(jsonPath("$.meals[2].items[0].foodName")
                         .value("Boundary Chicken"));
 
-        mockMvc.perform(get("/api/foods/suggestions")
-                        .with(authenticatedUser(NUTRITION_USER)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.recent[0].name")
-                        .value("Boundary Chicken"));
+
     }
 
     private long findDefaultExerciseId(long userId, String name)

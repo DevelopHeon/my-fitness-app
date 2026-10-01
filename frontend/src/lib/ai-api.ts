@@ -7,6 +7,9 @@ export type AiConversation = {
   updatedAt: string;
 };
 
+export type FoodPhotoItem = { foodName: string; servingDescription: string; caloriesPerServing: number };
+export type FoodPhotoResult = { status: "FOOD" | "NOT_FOOD" | "UNCERTAIN"; items: FoodPhotoItem[] };
+
 export type AiMessage = {
   id: number;
   role: "USER" | "ASSISTANT";
@@ -18,6 +21,7 @@ export type AiMessage = {
     | "COMPOSITE"
     | "OUT_OF_SCOPE";
   content: string;
+  foodPhotoResult: FoodPhotoResult | null;
   createdAt: string;
 };
 
@@ -36,6 +40,13 @@ export type AiSendMessageResponse = {
 };
 
 export const aiApi = {
+  sendFoodPhoto: (conversationId: number, image: Blob) => {
+    const body = new FormData();
+    body.append("image", image, "food.jpg");
+    return request<Omit<AiSendMessageResponse, "providerCalled" | "policyDecision">>(
+      "/api/ai/conversations/" + conversationId + "/food-photos", { method: "POST", body },
+    );
+  },
   listConversations: () =>
     request<AiConversation[]>("/api/ai/conversations"),
 

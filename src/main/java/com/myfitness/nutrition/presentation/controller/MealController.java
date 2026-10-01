@@ -1,6 +1,5 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.MealItemCreateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemUpdateRequest;
@@ -10,6 +9,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,8 +42,11 @@ public class MealController {
                         userId,
                         request.mealDate(),
                         request.mealType(),
-                        request.foodId(),
-                        request.servings()));
+                        request.foodName(),
+                        request.calories(),
+                        request.carbohydrateGrams(),
+                        request.proteinGrams(),
+                        request.fatGrams()));
     }
 
     @PatchMapping("/items/{itemId}")
@@ -55,7 +58,13 @@ public class MealController {
                 nutritionUseCase.updateMealItem(
                         userId,
                         itemId,
-                        request.servings()));
+                        request.mealDate(),
+                        request.mealType(),
+                        request.foodName(),
+                        request.calories(),
+                        request.carbohydrateGrams(),
+                        request.proteinGrams(),
+                        request.fatGrams()));
     }
 
     @DeleteMapping("/items/{itemId}")

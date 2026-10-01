@@ -42,3 +42,7 @@ YYYY-MM-DD-요일-pr-NNN-주제.md
 - [AI 질문 정책 검증 구현 계획](2026-09-28-mon-pr-012-ai-policy-validation-plan.md): 이전 단계별 설계 기록.
 
 - [JEV 단일 정책 경로 계약](2026-09-29-tue-pr-012-jev-single-path.md) 및 [구현 계획](2026-09-29-tue-pr-012-jev-single-path-plan.md): 현재 운영·검사·배포 설정 기준.
+
+## 음식 사진과 직접 식단 기록
+
+- [음식 사진 분석과 직접 식단 기록 계약](2026-10-01-thu-pr-013-food-photo-meal-recording.md): 음식 카탈로그 제거, 사진 분석, 사용자 저장 흐름과 검증 기준.

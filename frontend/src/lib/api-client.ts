@@ -28,7 +28,7 @@ export async function request<T>(
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
 
-  if (init.body != null && !headers.has("Content-Type")) {
+  if (init.body != null && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
