@@ -30,6 +30,22 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+.ai-loading-spinner {
+  animation: ai-loading-rotation 900ms linear infinite;
+}
+
+@keyframes ai-loading-rotation {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-loading-spinner {
+    animation-duration: 3s;
+  }
+}
+
 /* Native date controls must fit their container in Safari, including PWA. */
 input[type="date"] {
   appearance: none;

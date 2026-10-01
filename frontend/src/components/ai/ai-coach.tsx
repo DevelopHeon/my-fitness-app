@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AiConversation, AiMessage, FoodPhotoItem, aiApi } from "@/lib/ai-api";
+import LoadingSpinner from "@/components/loading-spinner";
 
 import { MessageBubble } from "./message-bubble";
 
@@ -345,11 +346,7 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
                           aria-live="polite"
                           className="mr-auto flex max-w-[86%] items-center gap-2 rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3 text-sm text-zinc-600"
                         >
-                          <span className="inline-flex gap-1" aria-hidden="true">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
-                          </span>
+                          <LoadingSpinner className="h-5 w-5 text-zinc-600" />
                           AI 답변 생성 중...
                         </div>
                       ) : null}

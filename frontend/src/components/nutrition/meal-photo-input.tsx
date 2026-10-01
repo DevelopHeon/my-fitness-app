@@ -3,6 +3,7 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { FoodPhotoItem, aiApi } from "@/lib/ai-api";
 import { prepareFoodPhoto } from "@/lib/food-photo";
+import LoadingSpinner from "@/components/loading-spinner";
 import { buttonClass } from "./nutrition-fields";
 
 export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onBusyChange }: {
@@ -91,7 +92,7 @@ export default function MealPhotoInput({ initialPhoto, disabled, onAnalyzed, onB
         onCancel={(event) => event.preventDefault()}
         className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-sm rounded-2xl bg-white p-6 text-center text-zinc-950 shadow-xl backdrop:bg-black/40">
         <div role="status" aria-live="polite" className="space-y-3">
-          <span aria-hidden="true" className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-950 motion-reduce:animate-none" />
+          <LoadingSpinner className="mx-auto block h-10 w-10 text-zinc-950" />
           <h2 id="food-analysis-title" className="text-lg font-bold">AI가 분석 중이에요</h2>
           <p id="food-analysis-description" className="text-sm text-zinc-500">음식과 1인분 기준 칼로리를 확인하고 있어요. 잠시만 기다려주세요.</p>
         </div>
