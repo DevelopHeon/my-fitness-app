@@ -95,6 +95,61 @@ class NutritionApiIntegrationTest {
         }
     }
 
+    @Test
+    void recordsMultipleFoodsWithOneDateAndMealType() throws Exception {
+        mockMvc.perform(post("/api/meals/items/batch").with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"mealDate":"%s","mealType":"LUNCH","items":[
+                          {"foodName":"밥","calories":300},
+                          {"foodName":"닭가슴살","calories":200,"proteinGrams":30}]}
+                        """.formatted(today)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].foodName").value("밥"))
+                .andExpect(jsonPath("$[1].proteinGrams").value(30));
+        mockMvc.perform(get("/api/meals/daily").with(authenticatedUser(1L)).param("date", today.toString()))
+                .andExpect(jsonPath("$.consumed.calories").value(500))
+                .andExpect(jsonPath("$.consumed.proteinGrams").isEmpty());
+    }
+
+    @Test
+    void invalidBatchDoesNotRecordAnyFood() throws Exception {
+        for (String items : new String[] {"[]", "[null]",
+                "[{\"foodName\":\"밥\",\"calories\":300},{\"foodName\":\" \",\"calories\":200}]"}) {
+            mockMvc.perform(post("/api/meals/items/batch").with(authenticatedUser(1L))
+                            .contentType(MediaType.APPLICATION_JSON).content("""
+                            {"mealDate":"%s","mealType":"LUNCH","items":%s}
+                            """.formatted(today, items)))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(get("/api/meals/daily").with(authenticatedUser(1L)).param("date", today.toString()))
+                .andExpect(jsonPath("$.consumed.calories").value(0));
+    }
+
+    @Test
+    void calendarIncludesOnlyOwnedFoodsInMonthAndKeepsRecordedZero() throws Exception {
+        LocalDate monthStart = today.withDayOfMonth(1);
+        create(1L, payload(monthStart, "LUNCH", "밥", "300", "null"));
+        create(1L, payload(monthStart, "LUNCH", "닭", "200", "null"));
+        create(1L, payload(monthStart, "DINNER", "차", "0", "null"));
+        create(1L, payload(monthStart.minusDays(1), "LUNCH", "지난달", "500", "null"));
+        create(2L, payload(monthStart, "BREAKFAST", "다른 사용자", "900", "null"));
+        long removed = create(1L, payload(monthStart, "SNACK", "삭제", "100", "null"));
+        mockMvc.perform(delete("/api/meals/items/{id}", removed).with(authenticatedUser(1L)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/meals/calendar").with(authenticatedUser(1L))
+                        .param("month", monthStart.toString().substring(0, 7)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].date").value(monthStart.toString()))
+                .andExpect(jsonPath("$[0].calories").value(500))
+                .andExpect(jsonPath("$[0].mealTypes.length()").value(2))
+                .andExpect(jsonPath("$[0].mealTypes[0]").value("LUNCH"))
+                .andExpect(jsonPath("$[0].mealTypes[1]").value("DINNER"));
+        mockMvc.perform(get("/api/meals/calendar").with(authenticatedUser(1L)).param("month", "invalid"))
+                .andExpect(status().isBadRequest());
+    }
+
     private long create(long userId, String body) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/meals/items").with(authenticatedUser(userId))
                         .contentType(MediaType.APPLICATION_JSON).content(body))

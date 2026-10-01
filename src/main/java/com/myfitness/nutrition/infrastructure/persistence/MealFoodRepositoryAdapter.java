@@ -22,6 +22,11 @@ public class MealFoodRepositoryAdapter implements MealFoodRepositoryPort {
         return repository.findAllByMealUserIdAndMealMealDateOrderByCreatedAtAscIdAsc(userId, mealDate);
     }
     @Override
+    public List<MealFood> findItemsBetween(Long userId, LocalDate from, LocalDate to) {
+        return repository.findAllByMealUserIdAndMealMealDateBetweenOrderByMealMealDateAscCreatedAtAscIdAsc(
+                userId, from, to);
+    }
+    @Override
     public List<MealFood> findRecentUsageHistory(Long userId, int limit) {
         return repository
                 .findAllByMealUserIdOrderByMealMealDateDescCreatedAtDescIdDesc(

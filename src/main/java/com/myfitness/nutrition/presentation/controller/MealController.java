@@ -3,10 +3,14 @@ package com.myfitness.nutrition.presentation.controller;
 import com.myfitness.nutrition.application.port.in.NutritionUseCase;
 import com.myfitness.nutrition.presentation.dto.request.MealItemCreateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemUpdateRequest;
+import com.myfitness.nutrition.presentation.dto.request.MealItemsCreateRequest;
 import com.myfitness.nutrition.presentation.dto.response.DailyNutritionResponse;
 import com.myfitness.nutrition.presentation.dto.response.MealFoodResponse;
+import com.myfitness.nutrition.presentation.dto.response.NutritionCalendarDayResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,6 +34,27 @@ public class MealController {
             LocalDate date) {
         return DailyNutritionResponse.from(
                 nutritionUseCase.daily(userId, date));
+    }
+
+    @GetMapping("/calendar")
+    public List<NutritionCalendarDayResponse> calendar(
+            @AuthenticationPrincipal(expression = "userId") Long userId,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+        return nutritionUseCase.calendar(userId, month).stream()
+                .map(NutritionCalendarDayResponse::from)
+                .toList();
+    }
+
+    @PostMapping("/items/batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<MealFoodResponse> addItems(
+            @AuthenticationPrincipal(expression = "userId") Long userId,
+            @Valid @RequestBody MealItemsCreateRequest request) {
+        return nutritionUseCase.addMealItems(userId, request.mealDate(), request.mealType(),
+                        request.items().stream().map(MealItemsCreateRequest.ItemRequest::toCommand).toList())
+                .stream()
+                .map(MealFoodResponse::from)
+                .toList();
     }
 
     @PostMapping("/items")

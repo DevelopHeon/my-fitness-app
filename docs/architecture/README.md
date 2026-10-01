@@ -233,7 +233,7 @@ AI의 현재 책임 분리는 다음과 같습니다.
 | OpenAiFoodPhotoGateway | OpenAI 설정 확인·요청·통신 오류 변환 |
 | FoodPhotoImagePreparer / FoodPhotoResponseParser | 이미지 검증·정규화 / 모델 응답 검증·해석 |
 
-사진 파일 처리와 SDK 응답 해석은 Infrastructure에 남습니다. 외부 호출은 transaction 없이 실행하고 저장만 짧은 transaction으로 처리합니다. 프론트의 NutritionScreen은 조회·저장 흐름을 조율하며 MealRecordForm·NutritionGoalForm은 각 입력 상태와 요청 값 변환을, FoodPhotoComposer는 파일 선택·미리보기 수명을 맡습니다.
+사진 파일 처리와 SDK 응답 해석은 Infrastructure에 남습니다. 외부 호출은 transaction 없이 실행하고 저장만 짧은 transaction으로 처리합니다. 프론트의 NutritionScreen은 화면 전환·조회·저장 흐름과 조회 날짜·월을 조율합니다. NutritionDailyView·NutritionCalendarView는 각 조회 화면을, MealRecordForm은 여러 음식의 공통 날짜·구분과 입력값 변환을, MealPhotoInput은 파일 검증·사진 API 호출·분석 상태를 맡습니다. NutritionGoalForm은 목표 입력을 담당합니다.
 
 ~~~mermaid
 flowchart LR
@@ -322,6 +322,8 @@ Workout과 Routine은 운동 카탈로그가 나중에 수정되더라도 과거
 Food 카탈로그·`/api/foods`·sourceFoodId·회분 곱셈을 제거했습니다. Meal은 사용자·날짜·식사 구분의 고유 경계를 유지하며 MealFood에 음식명 문자열, 최종 섭취 칼로리, nullable 탄단지와 시각을 저장합니다. 등록 음식이나 영양 목표가 없어도 기록할 수 있습니다. 항목 편집으로 날짜·구분을 바꾸면 소유한 다른 Meal로 이동하고 이전/새 Meal을 갱신합니다.
 
 합계는 영양소별로 모든 기록이 알려진 경우에만 숫자를 반환합니다. 하나라도 미입력이면 해당 영양소 consumed/remaining은 null이고 빈 기록 범위는 0입니다. 명시한 0은 알려진 값입니다. UI와 AI Context는 이를 미입력으로 표시하며 부분 합계를 전체 섭취량으로 안내하지 않습니다. NutritionInsightService는 최근 50개 식단 이력에서 이름·빈도를 한 번 계산해 공개 Insight 이름 목록을 제공합니다.
+
+일괄 등록 `POST /api/meals/items/batch`는 공통 날짜·식사 구분과 1~20개 음식 입력을 받습니다. Presentation의 중첩 값까지 검증한 후 Application Command로 넘깁니다. NutritionApplicationService의 단일 쓰기 transaction에서 기존 MealService를 사용하며 뒤쪽 항목의 domain 검증 실패도 전체를 롤백합니다. 월간 조회 `GET /api/meals/calendar?month=yyyy-MM`는 사용자·월 범위의 실제 MealFood만 조회하고 날짜별 칼로리·식사 구분으로 투영합니다. 비어 있는 Meal은 달력에 표시하지 않으며 별도 테이블이나 migration은 추가하지 않습니다.
 
 ### JPA / HTTP 경계
 
@@ -455,7 +457,7 @@ EntityBoundaryApiIntegrationTest는 테스트 수준 transaction을 열지 않�
 
 ## 음식 사진의 고정 분석 경계
 
-새 사진 업로드의 UI 진입점은 식단 메뉴입니다. NutritionScreen의 버튼이 AppShell에서 공통 AI Coach를 열고, AI Coach는 현재 화면이 nutrition인 경우에만 업로드 영역을 표시하고 사진 요청을 시작합니다. 메뉴를 벗어나면 선택 파일과 미리보기를 해제합니다. 텍스트 질문과 기존 사진 분석 결과·기록 액션은 모든 메뉴에서 유지합니다. 화면 구분은 서버 권한 계약에 추가하지 않습니다.
+새 사진 업로드의 UI 진입점은 식단 메뉴입니다. NutritionScreen에서 사진을 선택하면 등록 화면으로 전환하고 MealPhotoInput이 검증·정규화 후 기존 대화 사진 API로 자동 분석합니다. 결과 음식 전체를 입력 행에 채우며 사용자가 수정·제외 후 한 번에 저장합니다. AI Coach의 사진 업로드 영역은 제거하고 텍스트 질문과 기존 사진 결과 조회·전체 입력 액션은 유지합니다. 다시 연 대화는 서버 기록을 재조회합니다. 화면 구분은 서버 권한 계약에 추가하지 않습니다.
 
 사진은 `POST /api/ai/conversations/{id}/food-photos` multipart 전용 요청이며, image 한 장 외에 임의 질문·prompt·URL·userId를 받지 않습니다. Controller → FoodPhotoUseCase → FoodPhotoService → FoodPhotoGateway → OpenAiFoodPhotoGateway 순서로 호출합니다. AI SDK·HTTP·이미지 디코딩·구조화 출력 검증은 Infrastructure에 있습니다. 소유권 확인 후 Gateway.prepare로 파일을 검증·정규화하고, 통과한 경우에만 고정 사용자 메시지를 저장한 뒤 Gateway.analyze로 외부 호출합니다. 잘못된 사진은 대화·제목·로그를 변경하지 않습니다. 사진 분석은 Nutrition에 쓰지 않고 Frontend가 초안을 넘긴 뒤 사용자의 저장으로 NutritionUseCase를 호출합니다. 새 모듈 의존성·첨부 Entity·전략 계층은 추가하지 않았습니다.
 

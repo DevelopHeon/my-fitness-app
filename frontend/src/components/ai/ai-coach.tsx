@@ -3,8 +3,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AiConversation, AiMessage, FoodPhotoItem, aiApi } from "@/lib/ai-api";
 
-import { prepareFoodPhoto } from "@/lib/food-photo";
-import FoodPhotoComposer, { useFoodPhotoSelection } from "./food-photo-composer";
 import { MessageBubble } from "./message-bubble";
 
 type AppView = "dashboard" | "workout" | "routine" | "body" | "nutrition";
@@ -14,7 +12,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate?: string;
-  onRecordFood: (item: FoodPhotoItem) => void;
+  onRecordFoods: (items: FoodPhotoItem[]) => void;
 };
 
 const prompts: Record<AppView, string[]> = {
@@ -45,9 +43,7 @@ const prompts: Record<AppView, string[]> = {
   ],
 };
 
-export default function AiCoach({ currentView, open, onOpenChange, selectedDate, onRecordFood }: Props) {
-  const photoUploadAllowed = currentView === "nutrition";
-  const photoSelection = useFoodPhotoSelection(photoUploadAllowed);
+export default function AiCoach({ currentView, open, onOpenChange, selectedDate, onRecordFoods }: Props) {
   const [showList, setShowList] = useState(false);
   const [conversations, setConversations] = useState<AiConversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -62,7 +58,7 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
   const composingRef = useRef(false);
   const initializationPendingRef = useRef(false);
 
-  const busy = loading || sending;
+  const busy = loading || sending || initializing;
 
   const active = conversations.find((item) => item.id === activeId) ?? null;
 
@@ -70,41 +66,13 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
     setMessages(await aiApi.listMessages(id));
   }, []);
 
-  async function sendPhoto(photo: File): Promise<boolean> {
-    if (!photoUploadAllowed || busy || activeId === null) return false;
-    setSending(true);
-    setError(null);
-    setPendingMessage("음식 사진의 1인분 칼로리 분석");
-    try {
-      const image = await prepareFoodPhoto(photo);
-      const result = await aiApi.sendFoodPhoto(activeId, image);
-      setMessages((current) => [...current, result.userMessage, result.assistantMessage]);
-      setConversations((current) => [
-        result.conversation,
-        ...current.filter((item) => item.id !== result.conversation.id),
-      ]);
-      return true;
-    } catch (caught) {
-      setError(errorMessage(caught));
-      try {
-        await loadMessages(activeId);
-      } catch {
-        // 분석 오류 안내를 유지한다.
-      }
-      return false;
-    } finally {
-      setPendingMessage(null);
-      setSending(false);
-    }
-  }
-
-  function recordFood(item: FoodPhotoItem) {
-    photoSelection.clearPhoto();
+  function recordFoods(items: FoodPhotoItem[]) {
     closeCoach();
-    onRecordFood(item);
+    onRecordFoods(items);
   }
 
   function openCoach() {
+    setError(null);
     setShowList(false);
     onOpenChange(true);
   }
@@ -115,18 +83,18 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
   }
 
   useEffect(() => {
-    if (!open || activeId !== null || initializationPendingRef.current) return;
+    if (!open || sending || initializationPendingRef.current) return;
     initializationPendingRef.current = true;
 
     async function initialize() {
+      setInitializing(true);
       try {
         const list = await aiApi.listConversations();
-        setInitializing(true);
-        setError(null);
         if (list.length > 0) {
+          const selected = list.find((item) => item.id === activeId) ?? list[0];
           setConversations(list);
-          setActiveId(list[0].id);
-          await loadMessages(list[0].id);
+          setActiveId(selected.id);
+          await loadMessages(selected.id);
         } else {
           const created = await aiApi.createConversation();
           setConversations([created]);
@@ -142,7 +110,7 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
     }
 
     void initialize();
-  }, [open, activeId, loadMessages]);
+  }, [open, activeId, sending, loadMessages]);
 
   useEffect(() => {
     if (open) {
@@ -160,7 +128,6 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
       setMessages([]);
       setInput("");
       setShowList(false);
-      photoSelection.clearPhoto();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -180,7 +147,6 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
       setActiveId(id);
       setInput("");
       setShowList(false);
-      photoSelection.clearPhoto();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -363,7 +329,7 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
                           key={message.id}
                           message={message}
                           disabled={busy}
-                          onRecordFood={recordFood}
+                          onRecordFoods={recordFoods}
                         />
                       ))}
                       {pendingMessage ? (
@@ -415,14 +381,6 @@ export default function AiCoach({ currentView, open, onOpenChange, selectedDate,
                     </p>
                   ) : null}
 
-                  {photoUploadAllowed && (
-                    <FoodPhotoComposer
-                      selection={photoSelection}
-                      disabled={busy || activeId === null}
-                      onSelect={() => setError(null)}
-                      onAnalyze={sendPhoto}
-                    />
-                  )}
                   <form
                     onSubmit={(event) => void send(event)}
                     className="flex items-end gap-2"

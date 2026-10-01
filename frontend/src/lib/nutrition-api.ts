@@ -12,6 +12,12 @@ export type MealInput = NutritionTotals & {
   mealType: MealType;
   foodName: string;
 };
+export type MealBatchInput = {
+  mealDate: string;
+  mealType: MealType;
+  items: (NutritionTotals & { foodName: string })[];
+};
+export type NutritionCalendarDay = { date: string; calories: number; mealTypes: MealType[] };
 export type MealFood = MealInput & { id: number; createdAt: string; updatedAt: string };
 export type MealSection = { mealType: MealType; items: MealFood[]; total: NutritionTotals };
 export type NutritionGoal = {
@@ -32,6 +38,10 @@ export type DailyNutrition = {
 };
 export const nutritionApi = {
   getDaily: (date: string) => request<DailyNutrition>("/api/meals/daily?date=" + encodeURIComponent(date)),
+  getCalendar: (month: string) => request<NutritionCalendarDay[]>("/api/meals/calendar?month=" + encodeURIComponent(month)),
+  addMealItems: (input: MealBatchInput) => request<MealFood[]>("/api/meals/items/batch", {
+    method: "POST", body: JSON.stringify(input),
+  }),
   addMealItem: (input: MealInput) => request<MealFood>("/api/meals/items", {
     method: "POST", body: JSON.stringify(input),
   }),

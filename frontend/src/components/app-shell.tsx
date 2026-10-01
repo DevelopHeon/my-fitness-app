@@ -131,15 +131,14 @@ export default function AppShell({
           onSelectedDateChange={setNutritionDate}
           initialDraft={nutritionDraft}
           onDraftConsumed={() => setNutritionDraft(null)}
-          onAnalyzePhoto={() => setAiCoachOpen(true)}
         />
       )}
 
       <AiCoach
         open={aiCoachOpen}
         onOpenChange={setAiCoachOpen}
-        onRecordFood={(item) => {
-          setNutritionDraft({ ...item, ...mealDefaults() });
+        onRecordFoods={(items) => {
+          setNutritionDraft({ items, ...mealDefaults() });
           setNutritionInstance((value) => value + 1);
           setView("nutrition");
         }}

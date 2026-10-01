@@ -1,6 +1,7 @@
+import type { FoodPhotoItem } from "./ai-api";
 import type { MealType } from "./nutrition-api";
 
-export type MealDraft = { foodName: string; caloriesPerServing: number; servingDescription: string } & ReturnType<typeof mealDefaults>;
+export type MealDraft = { items: FoodPhotoItem[] } & ReturnType<typeof mealDefaults>;
 
 export function mealDefaults(now = new Date()): { mealDate: string; mealType: MealType } {
   const parts = new Intl.DateTimeFormat("en-CA", {

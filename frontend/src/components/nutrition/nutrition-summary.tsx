@@ -10,7 +10,7 @@ type Props = {
 export default function NutritionSummary({ daily, busy, onEditGoal }: Props) {
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-4">
-      <h2 className="mb-3 font-bold">오늘의 섭취량</h2>
+      <h2 className="mb-3 font-bold">{daily.date} 섭취량</h2>
       <Totals totals={daily.consumed} />
       {daily.remaining && (
         <>

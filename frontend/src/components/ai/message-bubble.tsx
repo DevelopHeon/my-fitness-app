@@ -1,11 +1,12 @@
 import { AiMessage, FoodPhotoItem } from "@/lib/ai-api";
 
-export function MessageBubble({ message, onRecordFood, disabled }: {
+export function MessageBubble({ message, onRecordFoods, disabled }: {
   message: AiMessage;
-  onRecordFood: (item: FoodPhotoItem) => void;
+  onRecordFoods: (items: FoodPhotoItem[]) => void;
   disabled?: boolean;
 }) {
   const user = message.role === "USER";
+  const analysis = message.foodPhotoResult;
   return (
     <div
       className={
@@ -16,23 +17,23 @@ export function MessageBubble({ message, onRecordFood, disabled }: {
       }
     >
       <p className="whitespace-pre-wrap break-words">{message.content}</p>
-      {!user && message.foodPhotoResult?.status === "FOOD" && (
-        message.foodPhotoResult.items.map((item, index) => (
+      {!user && analysis?.status === "FOOD" && (
+        <div>
+        {analysis.items.map((item, index) => (
           <div key={index} className="mt-3 rounded-xl border border-zinc-200 bg-white p-3">
             <p className="font-semibold">{item.foodName}</p>
             <p className="text-xs text-zinc-500">
               {item.servingDescription} · 약 {item.caloriesPerServing} kcal
             </p>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onRecordFood(item)}
-              className="mt-2 rounded-lg bg-zinc-950 px-3 py-2 text-xs text-white disabled:opacity-50"
-            >
-              식단에 기록하기
-            </button>
+
           </div>
-        ))
+        ))}
+        <button type="button" disabled={disabled}
+          onClick={() => onRecordFoods(analysis.items)}
+          className="mt-3 rounded-lg bg-zinc-950 px-3 py-2 text-xs text-white disabled:opacity-50">
+          음식 {analysis.items.length}개 입력하기
+        </button>
+        </div>
       )}
     </div>
   );

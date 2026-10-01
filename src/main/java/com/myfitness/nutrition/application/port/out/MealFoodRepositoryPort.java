@@ -9,6 +9,7 @@ public interface MealFoodRepositoryPort {
     MealFood save(MealFood item);
     Optional<MealFood> findById(Long id);
     List<MealFood> findDailyItems(Long userId, LocalDate mealDate);
+    List<MealFood> findItemsBetween(Long userId, LocalDate from, LocalDate to);
     List<MealFood> findRecentUsageHistory(Long userId, int limit);
     void delete(MealFood item);
 }

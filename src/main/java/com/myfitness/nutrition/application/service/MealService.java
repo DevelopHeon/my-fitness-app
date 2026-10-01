@@ -93,6 +93,10 @@ public class MealService {
                         mealDate);
     }
 
+    public List<MealFood> listItemsBetween(Long userId, LocalDate from, LocalDate to) {
+        return mealFoodRepository.findItemsBetween(userId, from, to);
+    }
+
     public List<MealFood> listRecentUsageHistory(
             Long userId,
             int limit) {

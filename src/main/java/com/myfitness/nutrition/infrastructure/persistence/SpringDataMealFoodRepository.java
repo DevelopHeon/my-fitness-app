@@ -10,6 +10,9 @@ interface SpringDataMealFoodRepository extends JpaRepository<MealFood, Long> {
     List<MealFood> findAllByMealUserIdAndMealMealDateOrderByCreatedAtAscIdAsc(
             Long userId, LocalDate mealDate);
 
+    List<MealFood> findAllByMealUserIdAndMealMealDateBetweenOrderByMealMealDateAscCreatedAtAscIdAsc(
+            Long userId, LocalDate from, LocalDate to);
+
     List<MealFood> findAllByMealUserIdOrderByMealMealDateDescCreatedAtDescIdDesc(
             Long userId,
             Pageable pageable);
