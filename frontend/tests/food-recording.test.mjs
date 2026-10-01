@@ -13,7 +13,8 @@ function load(file, globals = {}, imports = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const loadedModule = { exports: {} };
-  vm.runInNewContext(output, { module: loadedModule, exports: loadedModule.exports, process, console, Headers, FormData,
+  // Share Error across test modules as in the browser's single JavaScript realm.
+  vm.runInNewContext(output, { module: loadedModule, exports: loadedModule.exports, process, console, Headers, FormData, Error,
     require: (name) => {
       if (Object.hasOwn(imports, name)) return imports[name];
       if (name.startsWith("@/")) return load("src/" + name.slice(2) + ".ts", globals, imports);
