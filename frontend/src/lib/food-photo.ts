@@ -1,10 +1,12 @@
+const MAX_PIXEL_COUNT = 32_000_000;
+
 /** 원본/EXIF를 전송하지 않고 브라우저에서 JPEG로 정규화한다. */
 export async function prepareFoodPhoto(file: File): Promise<Blob> {
   if (!["image/jpeg", "image/png"].includes(file.type)) throw new Error("JPG 또는 PNG 사진을 선택해주세요.");
   if (file.size > 5 * 1024 * 1024) throw new Error("사진은 5 MiB 이하로 선택해주세요.");
   const bitmap = await createImageBitmap(file);
   try {
-    if (bitmap.width * bitmap.height > 16_000_000) throw new Error("이미지는 1600만 픽셀 이하여야 합니다.");
+    if (bitmap.width * bitmap.height > MAX_PIXEL_COUNT) throw new Error("이미지는 3200만 픽셀 이하여야 합니다.");
     const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));

@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class FoodPhotoImagePreparer {
+    private static final long MAX_PIXEL_COUNT = 32_000_000L;
+
     public byte[] prepare(FoodPhotoCommand command) {
         validateUpload(command);
         try (MemoryCacheImageInputStream input = new MemoryCacheImageInputStream(
@@ -64,7 +66,7 @@ public class FoodPhotoImagePreparer {
     }
 
     private void validateDimensions(int width, int height) {
-        if (width < 1 || height < 1 || (long) width * height > 16_000_000) {
+        if (width < 1 || height < 1 || (long) width * height > MAX_PIXEL_COUNT) {
             throw new InvalidFoodPhotoException(Reason.INVALID);
         }
     }
