@@ -90,12 +90,50 @@ test("photo normalization rejects unsupported/large inputs before decoding and c
   let decodes = 0;
   let closed = 0;
   const { prepareFoodPhoto } = load("src/lib/food-photo.ts", {
-    createImageBitmap: async () => { decodes++; return { width: 5000, height: 5000, close: () => closed++ }; },
+    createImageBitmap: async () => { decodes++; return { width: 6000, height: 6000, close: () => closed++ }; },
   });
   await assert.rejects(prepareFoodPhoto({ type: "image/webp", size: 100 }));
   await assert.rejects(prepareFoodPhoto({ type: "image/jpeg", size: 5 * 1024 * 1024 + 1 }));
   assert.equal(decodes, 0);
   await assert.rejects(prepareFoodPhoto({ type: "image/jpeg", size: 100 }));
+  assert.equal(closed, 1);
+});
+
+test("photo normalization accepts a 5712 x 4284 source photo", async () => {
+  let closed = 0;
+  let canvas;
+  const { prepareFoodPhoto } = load("src/lib/food-photo.ts", {
+    createImageBitmap: async () => ({
+      width: 5712,
+      height: 4284,
+      close: () => closed++,
+    }),
+    document: {
+      createElement: (name) => {
+        assert.equal(name, "canvas");
+        canvas = {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            fillStyle: "",
+            fillRect() {},
+            drawImage() {},
+          }),
+          toBlob: (callback) => callback(new Blob(["jpeg"], { type: "image/jpeg" })),
+        };
+        return canvas;
+      },
+    },
+  });
+
+  const result = await prepareFoodPhoto({
+    type: "image/jpeg",
+    size: Math.round(3.3 * 1024 * 1024),
+  });
+
+  assert.equal(result.type, "image/jpeg");
+  assert.equal(canvas.width, 1600);
+  assert.equal(canvas.height, 1200);
   assert.equal(closed, 1);
 });
 
