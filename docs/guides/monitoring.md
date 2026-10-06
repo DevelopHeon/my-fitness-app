@@ -209,8 +209,10 @@ node_exporter 32MiB, Caddy 64MiB입니다. 합계 1,376MiB이며 남은 672MiB�
 앱은 64/256MiB heap, RAM+swap 합계 512MiB로 제한합니다. 다른 컨테이너는 추가 swap을 허용하지 않습니다.
 
 이전 micro·Grafana 128MiB 구성은 실제 EC2에서 준비되지 않았습니다.
-사용자 승인에 따라 small·Grafana 512MiB로 조정하며, 기동 검증과 24시간 안정성 인수를 구분합니다.
-관측과 미확정 원인은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#push-이후-운영-확인과-복구-조건-보완)에 둡니다.
+2026-10-07 small·Grafana 512MiB 배포 후 기동과 실제 지표 조회를 확인했습니다.
+앱·Prometheus·node_exporter의 수집 상태는 모두 UP이며 Grafana 인증·데이터소스 조회도 정상입니다.
+기동 검증과 24시간 안정성 인수는 구분합니다.
+관측과 남은 검증은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#후속-작업-small-증설과-실제-모니터링-기동-확인)에 둡니다.
 
 기동·WAL 복구·재배포·대표 API·최대 사진·동시 사진·3일 쿼리·재부팅을 구분해 기록합니다.
 `free -m`, `df -h`, `vmstat 1`, `swapon --show`, `docker stats --no-stream`과 OOMKilled/restart를 확인합니다.

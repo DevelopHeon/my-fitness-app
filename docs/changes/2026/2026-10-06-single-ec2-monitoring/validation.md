@@ -169,10 +169,55 @@ Grafana 자원 구성을 다시 정한 뒤 전체 스택 인수 검증이 필요
 backend 236건·frontend 20건과 Checkstyle·ArchUnit·Modulith·convention,
 배포 대역 19건, CDK build·4건, native monitoring 검사 모두 통과했다.
 CDK의 small 및 고정 AMI 기대를 먼저 실패시킨 후 구현해 통과를 확인했다.
-운영 기동·지표 확인 결과는 실제 적용 이후 아래에 기록한다.
+운영 기동·지표 확인 결과는 아래와 같다.
 
 최초 small 변경 커밋의 CI는 기능·컨벤션·모니터링·CDK 테스트까지 통과했으나,
 마지막 CDK synth가 서울 AMI를 us-east-1에서 조회하려다 실패했다.
 CDK CLI가 `CDK_DEFAULT_REGION`을 자체 리전 결정 결과로 덮어쓰므로,
 CI synth에 `--region ap-northeast-2`를 명시하고 불필요한 환경변수 설정을 제거했다.
-검사 범위나 AMI 고정 기준은 유지한다. 자격 증명이 없는 CI 조건에서도 synth를 재검증한다.
+검사 범위나 AMI 고정 기준은 유지했다. 자격 증명이 없는 CI 조건에서도 synth가 통과했다.
+
+### 실제 AWS 변경과 배포
+
+2026-10-07 KST 기준 `MyFitnessApplication` CloudFormation change set을 검토한 뒤 실행해
+UPDATE_COMPLETE를 확인했다. 기존 EC2 `i-0722d8cac2c3a9c21`을 t4g.small로 증설했으며,
+AMI `ami-093fb7e528aec34e5`와 루트 EBS `vol-0501efff42c184c6f`·20GiB 용량·Elastic IP는 유지했다.
+최신 AMI의 자동 조회를 기존 AMI 고정으로 변경해 이번 증설이 AMI 교체로 이어지지 않게 했다.
+별도 인스턴스·볼륨·공인 IP·RDS 변경은 없다.
+
+운영 설정 변경은 `fce6457`, CI 리전 수정은 `1025e3f`에 포함했다.
+`1025e3f12e6d8839ff3883236a257f1d70099c95`의
+[CI](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37486042944)와
+[Deploy App](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37486986645)는 모두 성공했다.
+EC2의 current-image와 monitoring/current가 같은 검증 SHA를 가리키는 것도 확인했다.
+앱 JVM·swap·수집 주기·보관 기간은 기존 운영 설정을 유지했다.
+
+### 실제 모니터링 확인
+
+SSM의 읽기 전용 명령으로 00:26 KST에 확인했다. 암호는 호스트 파일에서 읽어
+curl 표준 입력의 인증 헤더로 전달했고, 키·암호·요청 원문은 출력하지 않았다.
+
+- 앱 health UP, Prometheus·Alertmanager ready, Grafana DB health OK, node_exporter 응답 정상.
+- Prometheus 수집 대상 앱·Prometheus·node_exporter 3개 모두 UP, lastError 없음.
+- JVM heap 약 60.4MiB, Hikari 최대 연결 5개, HTTP 요청 counter와 호스트 MemAvailable의 실제 시계열 조회 성공.
+- Grafana admin 인증과 Prometheus 데이터소스 health OK.
+  운영 대시보드의 48개 패널 설정 조회 및 Grafana 데이터소스 경유 PromQL `up{job="my-fitness"}` 결과 1 확인.
+- 비인증 앱 지표 접근 401, 공개 HTTPS health UP 및 공개 지표 접근 404.
+- 첫 관측에서 호스트 MemAvailable 776MiB, 루트 여유 9.2GiB, swap 사용 512KiB, swappiness 10.
+  Grafana 약 356.5MiB/512MiB, Prometheus 50MiB/256MiB, 앱 363.1MiB/448MiB.
+  여섯 컨테이너 모두 OOMKilled=false, restart 0회. 활성 경보 없음.
+
+00:28 KST 재검사에서도 동일한 health·인증·쿼리가 통과했다.
+Grafana HTTP 준비는 컨테이너 시작 약 8초 뒤였으며,
+`min_over_time(up[3m])`는 세 수집 대상 모두 1이었다.
+재관측 MemAvailable은 763MiB, Grafana 약 359.9MiB, Prometheus 52.4MiB,
+앱 363.6MiB였고 여섯 컨테이너의 OOM·재시작은 여전히 0회였다.
+
+이 검증은 실제 운영 기동·인증·지표 조회 확인이다. 브라우저 화면의 시각 검수,
+실제 Slack 알림 전송, 유료 JEV/OpenAI 호출, 최대·동시 사진 부하, 24시간 안정성,
+3일 보관 만료·compaction은 검증하지 않았다. 단일 EC2 장애 시 앱과 알림도 함께 중단되는 구조는 유지된다.
+
+검증 과정에서 만든 로컬 보고서·임시 명령 파일·로그와 CDK 산출물은 정리했다.
+테스트 소스·규칙 fixture·평가 원본은 유지했다. 운영 결과 기록만 반영하는 후속 문서 커밋에는
+`[skip ci]`를 사용해 동일 운영 설정의 불필요한 재배포를 피한다.
+코드·배포 설정 변경 커밋은 일반 CI와 자동 CD를 그대로 거쳤다.
