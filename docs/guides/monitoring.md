@@ -207,6 +207,10 @@ curl --fail --silent http://127.0.0.1:8080/actuator/health
 node_exporter 24MiB, Caddy 48MiB입니다. 합계 856MiB는 OS·Docker·SSM을 포함하지 않아 안전 여유를 보장하지 않습니다.
 앱은 64/256MiB heap, RAM+swap 합계 512MiB로 제한합니다. 다른 컨테이너는 추가 swap을 허용하지 않습니다.
 
+2026-10-06 실제 EC2에서는 Grafana가 128MiB 한도로 준비되지 않아 모니터링을 중지했습니다.
+현재 설정을 운영 기동이 검증된 구성으로 사용하지 마세요. 자원 구성 조정 후 인수를 다시 수행해야 합니다.
+관측과 미확정 원인은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#push-이후-운영-확인과-복구-조건-보완)에 둡니다.
+
 기동·WAL 복구·재배포·대표 API·최대 사진·동시 사진·3일 쿼리·재부팅을 구분해 기록합니다.
 `free -m`, `df -h`, `vmstat 1`, `swapon --show`, `docker stats --no-stream`과 OOMKilled/restart를 확인합니다.
 node_exporter root 지표가 host의 df와 일치하는지 대조합니다. swap 패널은 pages/s이며

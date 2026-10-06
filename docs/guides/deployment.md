@@ -80,6 +80,6 @@ CI는 `scripts/verify-monitoring.sh`로 local/prod를 함께 검사하며 테스
 처음에는 micro 시험이며 실제 자원 인수와 Slack 확인은 [모니터링 인수 기준](monitoring.md#운영-인수)을 따른다.
 
 앱은 성공했지만 모니터링만 실패하면 Actions/SSM 상태와 health를 각각 확인한다.
-이전 설정 release가 있으면 volume을 보존한 복원을 시도한다. 복원 로그만으로 정상 수집이라 판단하지 않는다.
+이전 release의 Compose 파일이 실제로 존재할 때만 volume을 보존한 복원을 시도한다. 복원 로그만으로 정상 수집이라 판단하지 않는다.
 메모리가 부족하면 현재 release의 모니터링을 먼저 stop하고 앱을 유지한다. prod에서 `down -v`하지 않는다.
 축소된 TSDB retention으로 이미 삭제된 데이터는 설정 복원으로 되살아나지 않는다.

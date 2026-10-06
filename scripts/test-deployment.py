@@ -238,6 +238,69 @@ printf '%s\\n' "$key" >> "$CALLS"
             return result, calls.read_text().splitlines()
 
 
+class MonitoringDeploymentTest(unittest.TestCase):
+    def deploy(self, ready_after=0, previous=False):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            release = directory / "release"
+            dashboard = release / "monitoring/grafana/dashboards/my-fitness.json"
+            dashboard.parent.mkdir(parents=True)
+            dashboard.write_text('{}')
+            base = directory / "host"
+            base.mkdir()
+            prior = base / "current"
+            if previous:
+                config = prior / "monitoring/docker-compose.prod.yml"
+                config.parent.mkdir(parents=True)
+                config.write_text('services: {}')
+            calls = directory / "docker-calls"
+            health = directory / "health-calls"
+            stubs = {
+                "docker": DOCKER_STUB,
+                # GNU readlink -f also resolves a missing final path component.
+                "readlink": '#!/bin/sh\necho "$2"\n',
+                "curl": '#!/usr/bin/env python3\nimport os, pathlib, sys\np = pathlib.Path(os.environ["HEALTH_CALLS"])\nn = int(p.read_text()) if p.exists() else 0\np.write_text(str(n + 1))\nsys.exit(1 if n < int(os.environ["READY_AFTER"]) else 0)\n',
+                "sleep": '#!/bin/sh\nexit 0\n',
+                "mv": '#!/usr/bin/env python3\nimport os, sys\nos.replace(sys.argv[-2], sys.argv[-1])\n',
+            }
+            for name, source in stubs.items():
+                command = directory / name
+                command.write_text(source)
+                command.chmod(0o755)
+            script = directory / "deploy.sh"
+            source = Path(__file__).with_name("deploy-monitoring.sh").read_text()
+            script.write_text(source.replace("BASE=/opt/my-fitness/monitoring", "BASE=" + str(base)))
+            env = dict(os.environ, PATH=str(directory) + os.pathsep + os.environ["PATH"],
+                       DOCKER_CALLS=str(calls), HEALTH_CALLS=str(health), READY_AFTER=str(ready_after))
+            result = subprocess.run(["bash", str(script), str(release)], env=env,
+                                    capture_output=True, text=True, timeout=15)
+            recorded = [json.loads(row) for row in calls.read_text().splitlines()]
+            linked = prior.is_symlink() and prior.resolve() == release.resolve()
+            return result, recorded, linked, int(health.read_text())
+
+    def test_healthy_deployment_links_release_after_all_four_checks(self):
+        result, calls, linked, health_calls = self.deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(linked)
+        self.assertEqual(health_calls, 4)
+        self.assertFalse(any("stop" in call for call in calls))
+
+    def test_first_failed_deployment_does_not_restore_missing_current(self):
+        result, calls, linked, _ = self.deploy(ready_after=1000)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(linked)
+        self.assertTrue(any("stop" in call for call in calls))
+        self.assertFalse(any("restored" in line for line in result.stderr.splitlines()))
+        self.assertFalse(any("/current/monitoring/" in " ".join(call) for call in calls))
+
+    def test_failure_restores_only_existing_previous_configuration(self):
+        result, calls, linked, _ = self.deploy(ready_after=1000, previous=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(linked)
+        self.assertIn("Previous monitoring configuration restored", result.stderr)
+        self.assertEqual(sum("/current/monitoring/" in " ".join(call) for call in calls), 1)
+
+
 class LocalMonitoringSetupTest(unittest.TestCase):
     def test_secret_creation_permissions_preservation_and_empty_file_rejection(self):
         with tempfile.TemporaryDirectory() as temp:

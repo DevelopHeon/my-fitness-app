@@ -76,7 +76,7 @@ fi
 
 echo 'Monitoring deployment failed; app deployment is not rolled back' >&2
 "${COMPOSE[@]}" stop prometheus grafana alertmanager node-exporter || true
-if [[ -n "$PREVIOUS" && "$PREVIOUS" != "$RELEASE" ]]; then
+if [[ "$PREVIOUS" != "$RELEASE" && -f "$PREVIOUS/monitoring/docker-compose.prod.yml" ]]; then
   export MONITORING_DASHBOARD_DIR="$PREVIOUS/generated-dashboards"
   docker compose -p my-fitness-monitoring-prod -f "$PREVIOUS/monitoring/docker-compose.prod.yml" \
     up -d --no-deps prometheus alertmanager node-exporter grafana

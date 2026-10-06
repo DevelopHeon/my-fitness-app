@@ -122,3 +122,42 @@ secret 준비와 모든 이미지 pull은 완료됐지만 Prometheus preflight�
 
 GitHub 실패 로그 조회와 로컬 재현·검증을 수행했다. 실제 EC2 재배포·Slack 전송·운영 자원 인수는
 실행하지 않았다. 한국어 commit만 작성하며 수정 SHA의 push·배포는 사용자가 수행한다.
+
+
+## Push 이후 운영 확인과 복구 조건 보완
+
+사용자가 push를 승인한 뒤 `749b361`을 main에 전달했다.
+[CI](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37477874479)는 통과했다.
+[Deploy App](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37478772735)에서는
+최초 credential mount 문제가 해결됐고 앱 배포도 성공했다. 이후 네 모니터링 컨테이너가
+생성됐지만 Grafana health 준비 제한에 걸려 전체 모니터링은 중지됐다.
+
+GNU `readlink -f`는 마지막 경로가 없어도 정상화된 경로를 반환할 수 있다.
+최초 배포에서는 이 값만으로 이전 release가 있다고 판단해 없는 Compose 파일로 복구를 시도했다.
+이전 Compose 파일의 실제 존재 여부를 확인하도록 수정했다. 실제 배포 스크립트를 대역 명령으로
+실행해 최초 실패의 불필요한 복구와 정상 release 복구를 구분하고,
+네 health 검사 후에만 current를 갱신하는 계약도 검사한다.
+
+동일 EC2에서 앱을 유지하고 Grafana만 기존 128MiB 한도로 기동했다.
+90회, 이어 초기 DB 변환 이후 150회(2초 간격)의 준비 검사를 수행했지만 두 번 모두 실패해 중지했다.
+검사 중 Grafana는 약 127MiB를 사용했고 호스트 MemAvailable은 147~157MiB였다.
+Docker OOMKilled는 false였고 커널 OOM 기록도 발견되지 않았다. CPUCreditBalance는 약 288로 충분했다.
+메모리 압박이 의심되지만 이 관측만으로 내부 정지 위치나 원인을 확정하지 않는다.
+준비 시간만 늘리는 수정은 채택하지 않았다. 인스턴스 크기·요금·메모리 한도도 변경하지 않았다.
+
+[Grafana 공식 설치 문서](https://grafana.com/docs/grafana/latest/setup-grafana/installation/)는
+최소 권장 메모리를 512MB로 제시한다. 기존 128MiB 설정은 운영 적합성이 확인되지 않았으며,
+이 구성의 CI 설정 검사 통과는 실제 운영 기동·안정성을 의미하지 않는다.
+Grafana 자원 구성을 다시 정한 뒤 전체 스택 인수 검증이 필요하다.
+현재 앱 health는 UP이며 모니터링은 중지 상태다. 실제 Slack 전송·대시보드 로그인·24시간 안정성은 미검증이다.
+
+- Java 21 `./gradlew build --no-daemon`: backend 236건, frontend 20건,
+  Checkstyle·ArchUnit·Modulith·convention 통과.
+- `bash scripts/verify-monitoring.sh`: 최초/기존 volume preflight, 암호 격리,
+  설정·규칙·route·Caddy·알림 그룹/해제/silence 검사 통과.
+- `python3 scripts/test-deployment.py`: 기존 16건과 모니터링 release 회귀 3건, 총 19건 통과.
+- 파일별 `bash -n`, `git diff --check`, 문서 40개·로컬 링크 217개 검사 통과.
+  생성한 테스트 보고서·로그와 격리된 임시 리소스는 정리했다. 평가 원본 8개는 변경하지 않았다.
+
+위 로컬 대역·격리 검사 결과와 실제 EC2에서 실패한 Grafana 기동 결과를 구분한다.
+후속 복구 조건 수정도 한국어 commit 후 main에 push한다.
