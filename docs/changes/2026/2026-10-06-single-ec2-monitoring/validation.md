@@ -170,3 +170,9 @@ backend 236건·frontend 20건과 Checkstyle·ArchUnit·Modulith·convention,
 배포 대역 19건, CDK build·4건, native monitoring 검사 모두 통과했다.
 CDK의 small 및 고정 AMI 기대를 먼저 실패시킨 후 구현해 통과를 확인했다.
 운영 기동·지표 확인 결과는 실제 적용 이후 아래에 기록한다.
+
+최초 small 변경 커밋의 CI는 기능·컨벤션·모니터링·CDK 테스트까지 통과했으나,
+마지막 CDK synth가 서울 AMI를 us-east-1에서 조회하려다 실패했다.
+CDK CLI가 `CDK_DEFAULT_REGION`을 자체 리전 결정 결과로 덮어쓰므로,
+CI synth에 `--region ap-northeast-2`를 명시하고 불필요한 환경변수 설정을 제거했다.
+검사 범위나 AMI 고정 기준은 유지한다. 자격 증명이 없는 CI 조건에서도 synth를 재검증한다.

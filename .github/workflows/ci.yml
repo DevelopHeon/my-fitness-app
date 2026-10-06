@@ -64,10 +64,8 @@ jobs:
 
       - name: CDK verify
         working-directory: infra
-        env:
-          CDK_DEFAULT_REGION: ap-northeast-2
         run: |
           npm ci
           npm run build
           npm test -- --runInBand
-          npx cdk synth --quiet
+          npx cdk synth --region ap-northeast-2 --quiet
