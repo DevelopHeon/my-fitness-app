@@ -92,6 +92,9 @@ Prometheus·Grafana·Alertmanager credential volume은 각각 분리하며 UID 6
 
 main의 CI 성공 후 AWS_DEPLOY_ROLE_ARN 변수가 있으면 Deploy App이 실행되며 workflow_dispatch도 지원한다.
 ECR에 같은 SHA가 있으면 이미지를 재사용한다. 검증 SHA의 설정 archive도 SSM으로 전달한다.
+`deploy-ssm.sh`는 해당 Git commit에서 운영 실행 파일만 선택하며 local 설정·테스트 소스를 배포하지 않는다.
+Grafana dashboard provider와 경보 규칙은 공통 파일을 사용하고, 환경별 수집·datasource 설정은
+`.local.yml`·`.prod.yml`로 구분한다. Compose는 환경별 설정 한 파일을 컨테이너의 표준 경로에 마운트한다.
 SSM은 secret·swap·자원·이미지·설정 preflight와 공개 지표 차단 뒤 새 앱을 실행한다.
 앱 health 실패 시 이전 이미지·환경·RAM/swap 한도를 함께 복구한다.
 이 복구는 DB schema 복원을 포함하지 않는다. 자세한 절차는 [Deployment](../guides/deployment.md)에 둔다.

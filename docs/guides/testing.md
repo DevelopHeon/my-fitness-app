@@ -79,8 +79,11 @@ CDK의 검증·배포 명령은 [Deployment](deployment.md#인프라-변경)에 
 입력·정책·코드 hash, 모델·임계값, live/replay 구분과 unknown 사용량을 유지한다.
 replay에는 원격 지연·과금 결과를 보고하지 않는다. [기존 평가](../README.md#정량-평가)는 원본을 덮어쓰지 않는다.
 
-배포 parameter의 로컬 stub 검사는 `python3 scripts/test-ai-policy-deploy.py`다.
+배포 parameter의 로컬 stub 검사는 `python3 scripts/test-deployment.py`다.
 이 검사는 운영 암호 preflight·앱 환경/자원 rollback·swap 멱등 준비·release 순서도 확인한다.
+로컬 암호 생성·보존과 SSM archive의 commit 일치·운영 파일 구성·checksum·실패 감지도 검사한다.
+AWS CLI를 대역으로 바꾸므로 실제 IAM·SSM 전달·AWS 배포 검증과 구분한다.
+CI의 shell 구문 검사는 `scripts/*.sh`의 각 파일에 `bash -n`을 따로 실행한다.
 최대 PNG 두 장의 전처리는 일반 테스트에서 별도 256MiB child JVM으로 검증하며 실공급자를 호출하지 않는다.
 전체 앱의 같은 heap 인수·RSS·운영 부하는 별도로 측정한다.
 모니터링 설정·규칙·연결 검사는 [Monitoring](monitoring.md#검증)을 따른다.

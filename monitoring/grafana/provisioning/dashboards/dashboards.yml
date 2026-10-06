@@ -1,6 +1,6 @@
 apiVersion: 1
 providers:
-  - name: My Fitness Local
+  - name: My Fitness
     folder: My Fitness
     type: file
     disableDeletion: false

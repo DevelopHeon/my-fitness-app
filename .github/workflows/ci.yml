@@ -37,25 +37,16 @@ jobs:
       - name: Java source conventions
         run: ./gradlew checkstyleMain checkstyleTest --no-daemon
 
-      - name: Deployment parameter contract
+      - name: Shell syntax
         run: |
-          bash -n scripts/deploy-ec2.sh
-          bash -n scripts/setup-ec2-monitoring.sh scripts/deploy-monitoring.sh scripts/deploy-release.sh scripts/setup-caddy.sh scripts/verify-monitoring.sh
-          python3 scripts/test-ai-policy-deploy.py
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
 
-      - name: Local monitoring configuration and rules
-        run: |
-          trap 'docker compose -f monitoring/docker-compose.yml down -v; rm -rf .local/monitoring' EXIT
-          bash -n scripts/setup-local-monitoring.sh
-          bash scripts/setup-local-monitoring.sh
-          docker compose -f monitoring/docker-compose.yml config --quiet
-          docker compose -f monitoring/docker-compose.yml run --rm secret-init
-          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh prometheus -ec 'test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
-          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh grafana -ec 'test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password'
-          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
-          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
+      - name: Deployment contracts
+        run: python3 scripts/test-deployment.py
 
-      - name: Production monitoring configuration and rules
+      - name: Local and production monitoring verification
         run: bash scripts/verify-monitoring.sh
 
       - name: Backend test

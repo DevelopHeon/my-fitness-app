@@ -68,3 +68,35 @@ micro 상시 운영을 보장하지 않으며 [운영 인수 기준](../../../gu
 
 설계와 현재 절차: [스펙](spec.md), [Monitoring](../../../guides/monitoring.md),
 [Infrastructure](../../../reference/infrastructure.md), [Deployment](../../../guides/deployment.md).
+
+## 후속 정리: 환경 이름·CI·release 전달
+
+기준은 `fcd4087` 이후 main 변경이다. `.local.yml`·`.prod.yml`로 환경 설정을 구분하고
+같은 dashboard provider는 하나로 합쳤다. 로컬 helper는 `setup-monitoring.local.sh`,
+배포 검사는 `test-deployment.py`로 이름을 바꿨다. project·volume·datasource·dashboard UID는 유지한다.
+fixture는 `monitoring/tests/`에 보존하며 두 환경의 실행 mount와 운영 archive에서 제외했다.
+
+CI의 local/prod 반복 검사를 verify-monitoring.sh로 통합했다. 암호 준비도 임시 경로에서 수행해
+실행 중인 `.local` 파일을 지우지 않는다. `bash -n 파일1 파일2 ...`가 첫 파일만 검사하던
+문제는 파일별 반복으로 수정했다. Deploy App은 deploy-ssm.sh 한 명령으로 release를 전달한다.
+helper는 검증 Git object에서 운영 파일 12개만 archive로 만들고 크기·checksum·SSM 성공을 확인한다.
+InvocationDoesNotExist만 초기 전파 지연으로 처리하고 조회 권한 오류는 즉시 실패한다.
+preflight·복구·900초 실행 계약과 main CI 성공 후 자동 배포는 유지했다.
+
+| 실행 | 결과 |
+| --- | --- |
+| `for script in scripts/*.sh; do bash -n "$script"; done` | 모든 shell 구문 통과 |
+| `python3 scripts/test-deployment.py` | 앱·host·release·local 암호·SSM 전달 검사 16건 통과 |
+| `bash scripts/verify-monitoring.sh` | local/prod config, 서비스 UID·secret 격리, 15/60초 경보 fixture, route, Caddy 공개 차단, 그룹·해제·silence 통과 |
+| 격리된 local Grafana 기동·HTTP API 확인 | 단일 datasource와 공통 dashboard 자동 등록 통과, 테스트 컨테이너·volume 제거 |
+| Java 21 `./gradlew build --no-daemon` | backend 236건·frontend 20건 통과, Checkstyle·ArchUnit·Modulith·convention 포함 |
+| 두 workflow YAML parser·문서 링크 검사 | YAML 구문, Markdown 40개·로컬 링크 216개 통과, 평가 원본 8개 변경 없음 |
+| AWS 대역 release archive | 미커밋 변경·private 파일·local 설정·tests 제외, commit 파일·checksum 일치. 당시 JSON 21,360 bytes·base64 20,508자 |
+
+새 SSM helper 구현 전 정상 전달 검사의 실패를 확인한 뒤 통과시켰다.
+최초 미존재→실행 중→성공 상태 전이, 실패·시간 초과·권한 거절·계속 실행 중,
+잘못된/없는 SHA와 48,000자 초과 archive를 검사했다. 실제 AWS CLI·SSM 전달은 대역으로 바꿨다.
+실제 EC2 적용·Slack 전송·운영 자원 인수는 이번에도 실행하지 않았다.
+이번 검증의 임시 Git fixture·archive·Compose 프로젝트·Grafana volume과 생성한
+Gradle test/Checkstyle 보고서·빌드 로그를 제거했다. 테스트 소스와 과거 평가 결과는 유지했다.
+한국어 commit만 작성하고 push하지 않는다. 운영 준비와 이후 push는 사용자가 수행한다.

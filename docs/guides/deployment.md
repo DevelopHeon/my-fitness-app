@@ -16,6 +16,9 @@
 이미지는 GitHub runner에서 ARM64로 빌드하며 EC2에서 앱을 빌드하지 않는다.
 기존 SHA tag는 재사용한다. health 실패 시 이전 이미지·runtime.env·RAM/swap 한도를 함께 복원한다.
 설정 archive는 같은 SHA의 `/opt/my-fitness/monitoring/releases/<sha>`로 전달하고 checksum을 확인한다.
+workflow는 `scripts/deploy-ssm.sh <sha>`를 실행한다. 이 스크립트가 `git archive`로 해당 SHA의
+운영 파일만 묶고 크기를 확인한 뒤 SSM에 전달·결과를 확인한다. 작업 디렉터리의 미커밋 변경·비밀값·
+local 설정·검증 소스는 포함하지 않는다. 조회 권한 오류를 실행 대기로 처리하지 않는다.
 secret·자원·모니터링 설정·앱 parameter/image preflight 뒤 Caddy가 공개 지표를 차단한다.
 이전 모니터링을 멈춘 뒤 앱을 교체하고, 앱 health 성공 후 모니터링을 시작한다.
 모니터링 실패는 workflow 실패로 표시하되 정상 앱을 다시 교체하지 않는다.
@@ -69,6 +72,7 @@ previous image rollback만으로 V11을 되돌릴 수 없다. 새 schema를 지�
 [Monitoring](monitoring.md#운영-단일-ec2)의 신규 SecureString 3개와 app-base-url을 먼저 준비한다.
 CI의 격리된 Compose 검사는 GitHub runner에서만 실행하며, Deploy App의 SSM 단계가 운영 스택을 설치한다.
 main 자동 배포와 수동 workflow_dispatch는 모두 이 release 경로를 사용한다.
+CI는 `scripts/verify-monitoring.sh`로 local/prod를 함께 검사하며 테스트용 프로젝트만 정리한다.
 기존 EC2도 SSM에서 setup-ec2-monitoring.sh가 실행되므로 UserData 업데이트만 기다리지 않는다.
 처음에는 micro 시험이며 실제 자원 인수와 Slack 확인은 [모니터링 인수 기준](monitoring.md#운영-인수)을 따른다.
 

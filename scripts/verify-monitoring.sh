@@ -7,12 +7,14 @@ TEMP="$(mktemp -d)"
 chmod 755 "$TEMP"
 export MONITORING_SECRET_DIR="$TEMP/secrets"
 PROJECT="my-fitness-monitoring-check-$$"
-COMPOSE=(docker compose -p "$PROJECT" -f "$ROOT/monitoring/docker-compose.prod.yml")
 NETWORK="$PROJECT-notifications"
 cleanup() {
   docker rm -fv "$PROJECT-receiver" "$PROJECT-alertmanager" "$PROJECT-caddy" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
-  "${COMPOSE[@]}" down -v >/dev/null 2>&1 || true
+  for environment in local prod; do
+    docker compose -p "$PROJECT-$environment" -f "$ROOT/monitoring/docker-compose.$environment.yml" \
+      down -v >/dev/null 2>&1 || true
+  done
   rm -rf "$TEMP"
 }
 trap cleanup EXIT
@@ -22,23 +24,26 @@ printf 'dummy-grafana\n' > "$MONITORING_SECRET_DIR/grafana_admin_password"
 printf 'https://hooks.slack.com/services/dummy/test/not-a-real-webhook\n' > "$MONITORING_SECRET_DIR/slack_webhook_url"
 chmod 600 "$MONITORING_SECRET_DIR"/*
 
-"${COMPOSE[@]}" config --quiet
-"${COMPOSE[@]}" run --rm secret-init
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh prometheus -ec \
-  'test "$(id -u)" = 65534; test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password; test ! -r /credentials/slack_webhook_url'
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh grafana -ec \
-  'test "$(id -u)" = 472; test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password; test ! -r /credentials/slack_webhook_url'
+for environment in local prod; do
+  COMPOSE=(docker compose -p "$PROJECT-$environment" -f "$ROOT/monitoring/docker-compose.$environment.yml")
+  "${COMPOSE[@]}" config --quiet
+  "${COMPOSE[@]}" run --rm secret-init
+  "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh prometheus -ec \
+    'test "$(id -u)" = 65534; test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password; test ! -r /credentials/slack_webhook_url'
+  "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh grafana -ec \
+    'test "$(id -u)" = 472; test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password; test ! -r /credentials/slack_webhook_url'
+  "${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
+done
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh alertmanager -ec \
   'test "$(id -u)" = 65534; test -r /credentials/slack_webhook_url; test ! -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/host-alerts.test.yml
 
 # Same six behavioral fixtures, evaluated at the production 60-second interval.
 cp "$ROOT/monitoring/prometheus/alerts.yml" "$TEMP/alerts.yml"
-jq '.evaluation_interval = "1m"' "$ROOT/monitoring/prometheus/alerts.test.yml" > "$TEMP/alerts.test.yml"
+cp "$ROOT/monitoring/tests/alerts.test.yml" "$TEMP/alerts.test.yml"
+cp "$ROOT/monitoring/tests/host-alerts.test.yml" "$TEMP/host-alerts.test.yml"
+jq '.evaluation_interval = "1m"' "$ROOT/monitoring/tests/alerts.test.yml" > "$TEMP/alerts.prod.test.yml"
 docker run --rm --entrypoint promtool -v "$TEMP:/tests:ro" \
-  prom/prometheus:v3.15.0 test rules /tests/alerts.test.yml
+  prom/prometheus:v3.15.0 test rules /tests/alerts.test.yml /tests/alerts.prod.test.yml /tests/host-alerts.test.yml
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint amtool alertmanager \
   check-config /etc/alertmanager/alertmanager.yml
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint amtool alertmanager \
@@ -48,7 +53,7 @@ docker run --rm --entrypoint promtool -v "$TEMP:/tests:ro" \
 sed -e 's/group_interval: 5m/group_interval: 1s/' \
   -e 's/repeat_interval: 4h/repeat_interval: 1m/' \
   -e 's@api_url_file: /credentials/slack_webhook_url@api_url: http://receiver:8080/@' \
-  "$ROOT/monitoring/production/alertmanager.yml" > "$TEMP/alertmanager.yml"
+  "$ROOT/monitoring/alertmanager/alertmanager.prod.yml" > "$TEMP/alertmanager.yml"
 # Exercise the actual Caddy template with an HTTP-only isolated test address.
 awk '/^cat > .*<<CADDY$/ {copy=1; next} /^CADDY$/ {copy=0} copy' \
   "$ROOT/scripts/setup-caddy.sh" | sed -e 's/\$DOMAIN/:8081/' \

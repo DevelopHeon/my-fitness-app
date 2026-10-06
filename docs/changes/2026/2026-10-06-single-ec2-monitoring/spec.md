@@ -271,17 +271,19 @@ Prometheus·Grafana는 기존 고정 버전을 유지한다. 신규 Alertmanager
   인프라는 `cd infra && npm run build && npm test -- --runInBand && npx cdk synth --quiet`로 검사한다.
   실제 배포 전에는 별도로 `cdk diff`와 인스턴스 변경 영향을 확인한다.
 
-운영 파일은 구현됐으며 로컬에서 가짜 secret과 격리된 프로젝트로 native 검증을 실행했다. 반복 실행은 `bash scripts/verify-monitoring.sh`를 사용한다. 아래 명령을 실제 운영 volume에 임의 실행하지 않는다.
+운영 파일은 구현됐으며 로컬에서 가짜 secret과 격리된 local/prod 프로젝트로 native 검증을 실행했다.
+반복 실행은 다음과 같다. 실제 운영 volume에는 시험 명령을 실행하지 않는다.
 
 ```bash
-docker compose -f monitoring/docker-compose.prod.yml config --quiet
-docker compose -f monitoring/docker-compose.prod.yml run --rm --no-deps \
-  --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
-docker compose -f monitoring/docker-compose.prod.yml run --rm --no-deps \
-  --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
-docker compose -f monitoring/docker-compose.prod.yml run --rm --no-deps \
-  --entrypoint amtool alertmanager check-config /etc/alertmanager/alertmanager.yml
+bash scripts/verify-monitoring.sh
+python3 scripts/test-deployment.py
 ```
+
+설정 파일은 `.local.yml`·`.prod.yml`로 구분하고 동일한 dashboard provider는 공통으로 둔다.
+경보 fixture는 `monitoring/tests/`에 유지하되 운영 mount와 배포 archive에서 제외한다.
+workflow의 반복 검사는 verify-monitoring.sh로, SSM 전달은 deploy-ssm.sh로 모은다.
+배포 helper는 `git archive`로 검증 SHA의 운영 파일만 전달한다. checksum·크기 제한·
+사전 검사·앱/모니터링 복구·900초 실행 확인 계약은 유지한다.
 
 ### Linux·운영 인수
 

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Check deployment parameters, rollback and host preparation with local command stubs."""
+"""Check deployment, rollback, secret preparation and SSM delivery with local stubs."""
+import base64
+import hashlib
+import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
+import tarfile
 import tempfile
 import unittest
 
@@ -39,7 +44,7 @@ if sys.argv[1] == "login":
     sys.stdin.read()
 '''
 
-class PolicyDeployTest(unittest.TestCase):
+class AppDeploymentTest(unittest.TestCase):
     def deploy(self, parameters, denied="", fail_health=False, action="apply"):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
@@ -231,6 +236,158 @@ printf '%s\\n' "$key" >> "$CALLS"
                        CALLS=str(calls), FAILURE=failure)
             result = subprocess.run(["bash", str(script), tag], env=env, capture_output=True, text=True, timeout=10)
             return result, calls.read_text().splitlines()
+
+
+class LocalMonitoringSetupTest(unittest.TestCase):
+    def test_secret_creation_permissions_preservation_and_empty_file_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            scripts = directory / "scripts"
+            scripts.mkdir()
+            script = scripts / "setup-monitoring.local.sh"
+            shutil.copyfile(Path(__file__).with_name(script.name), script)
+            for attempt in range(2):
+                result = subprocess.run(["bash", str(script)], capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                secrets = directory / ".local/monitoring/secrets"
+                values = {path.name: path.read_bytes() for path in secrets.iterdir()}
+                self.assertEqual(secrets.stat().st_mode & 0o777, 0o700)
+                self.assertEqual(len(values), 2)
+                for path in secrets.iterdir():
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+                    self.assertTrue(values[path.name])
+                if attempt == 0:
+                    original = values
+                else:
+                    self.assertEqual(values, original)
+            (secrets / "app.monitoring.password").write_text("")
+            result = subprocess.run(["bash", str(script)], capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((secrets / "grafana_admin_password").read_bytes(), original["grafana_admin_password"])
+
+
+class SsmDeploymentTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+        self.repository = self.directory / "repository"
+        root = Path(__file__).resolve().parent.parent
+        shutil.copytree(root / "monitoring", self.repository / "monitoring")
+        shutil.copytree(root / "scripts", self.repository / "scripts")
+        (self.repository / "private.env").write_text("must-not-be-shipped")
+        for args in [["init", "--quiet"], ["add", "."],
+                     ["-c", "user.name=Deployment Test", "-c", "user.email=test@example.invalid",
+                      "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "fixture"]]:
+            subprocess.run(["git", *args], cwd=self.repository, check=True, capture_output=True)
+        self.tag = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.repository, text=True).strip()
+        self.calls = self.directory / "calls"
+        self.parameters = self.directory / "parameters.json"
+        commands = self.directory / "bin"
+        commands.mkdir()
+        aws = commands / "aws"
+        aws.write_text('''#!/usr/bin/env python3
+import json
+import os
+import pathlib
+import sys
+args = sys.argv[1:]
+with open(os.environ["SSM_CALLS"], "a") as calls:
+    calls.write(json.dumps(args) + "\\n")
+status = os.environ["SSM_STATUS"]
+if args[1] == "get-command-invocation" and status == "EventuallySuccessful":
+    polls = pathlib.Path(os.environ["SSM_POLLS"])
+    if args[args.index("--query") + 1] == "Status":
+        count = int(polls.read_text()) if polls.exists() else 0
+        polls.write_text(str(count + 1))
+        status = ["InvocationDoesNotExist", "InProgress", "Success"][min(count, 2)]
+    else:
+        status = "Success"
+if args[1] == "get-parameter":
+    print("i-0123456789abcdef0")
+elif args[1] == "send-command":
+    source = args[args.index("--parameters") + 1].removeprefix("file://")
+    pathlib.Path(os.environ["SSM_PARAMETERS"]).write_text(pathlib.Path(source).read_text())
+    print("fake-command-id")
+elif status in ["AccessDenied", "InvocationDoesNotExist"]:
+    print("AccessDeniedException" if status == "AccessDenied" else status, file=sys.stderr)
+    sys.exit(1)
+elif args[args.index("--query") + 1] == "Status":
+    print(status)
+else:
+    print(json.dumps({"Status": status}))
+''')
+        aws.chmod(0o755)
+        sleep = commands / "sleep"
+        sleep.write_text("#!/bin/sh\nexit 0\n")
+        sleep.chmod(0o755)
+        if shutil.which("sha256sum") is None:
+            checksum = commands / "sha256sum"
+            checksum.write_text('#!/bin/sh\nexec shasum -a 256 "$@"\n')
+            checksum.chmod(0o755)
+        self.env = dict(os.environ, PATH=str(commands) + os.pathsep + os.environ["PATH"],
+                        SSM_CALLS=str(self.calls), SSM_PARAMETERS=str(self.parameters), SSM_STATUS="Success",
+                        SSM_POLLS=str(self.directory / "polls"))
+
+    def deploy(self, tag=None, status="Success"):
+        self.env["SSM_STATUS"] = status
+        return subprocess.run(["bash", str(self.repository / "scripts/deploy-ssm.sh"), tag or self.tag],
+                              env=self.env, capture_output=True, text=True, timeout=60)
+
+    def test_archive_contains_only_committed_production_runtime(self):
+        dashboard = self.repository / "monitoring/grafana/dashboards/my-fitness.json"
+        committed = dashboard.read_bytes()
+        dashboard.write_text("uncommitted-change-must-not-be-shipped")
+        result = self.deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        parameters = json.loads(self.parameters.read_text())
+        self.assertEqual(parameters["executionTimeout"], ["900"])
+        archive = base64.b64decode(parameters["commands"][2].split()[2])
+        self.assertIn(hashlib.sha256(archive).hexdigest(), parameters["commands"][3])
+        self.assertIn(self.tag, parameters["commands"][-1])
+        with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as release:
+            files = {name for name in release.getnames() if release.getmember(name).isfile()}
+            self.assertEqual(files, {
+                "monitoring/docker-compose.prod.yml", "monitoring/prometheus/prometheus.prod.yml",
+                "monitoring/prometheus/alerts.yml", "monitoring/grafana/dashboards/my-fitness.json",
+                "monitoring/grafana/provisioning/dashboards/dashboards.yml",
+                "monitoring/grafana/provisioning/datasources/prometheus.prod.yml",
+                "monitoring/alertmanager/alertmanager.prod.yml", "scripts/deploy-ec2.sh",
+                "scripts/setup-caddy.sh", "scripts/setup-ec2-monitoring.sh",
+                "scripts/deploy-monitoring.sh", "scripts/deploy-release.sh"})
+            self.assertEqual(release.extractfile("monitoring/grafana/dashboards/my-fitness.json").read(), committed)
+
+    def test_invalid_or_unknown_commit_stops_before_aws(self):
+        for tag in ["invalid", "0" * 40]:
+            with self.subTest(tag=tag):
+                result = self.deploy(tag=tag)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(self.calls.exists())
+
+    def test_eventual_invocation_and_in_progress_can_finish_successfully(self):
+        result = self.deploy(status="EventuallySuccessful")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.directory / "polls").read_text(), "3")
+
+    def test_oversized_archive_stops_before_aws(self):
+        dashboard = self.repository / "monitoring/grafana/dashboards/my-fitness.json"
+        dashboard.write_bytes(os.urandom(60000))
+        subprocess.run(["git", "-c", "user.name=Deployment Test", "-c", "user.email=test@example.invalid",
+                        "-c", "commit.gpgsign=false", "commit", "--quiet", "-am", "큰 archive fixture"],
+                       cwd=self.repository, check=True, capture_output=True)
+        tag = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.repository, text=True).strip()
+        result = self.deploy(tag=tag)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("delivery budget", result.stderr)
+        self.assertFalse(self.calls.exists())
+
+    def test_failed_timed_out_or_inaccessible_command_is_not_success(self):
+        for status in ["Failed", "TimedOut", "AccessDenied", "InProgress"]:
+            with self.subTest(status=status):
+                result = self.deploy(status=status)
+                self.assertNotEqual(result.returncode, 0)
+                expected = "AccessDeniedException" if status == "AccessDenied" else "did not succeed"
+                self.assertIn(expected, result.stderr)
 
 
 if __name__ == "__main__":

@@ -6,12 +6,32 @@ Spring Boot 지표를 Prometheus가 수집하고 Grafana가 시각화합니다. 
 [단일 EC2 계획](../changes/2026/2026-10-06-single-ec2-monitoring/spec.md)을 구현했으며,
 로컬 검증과 실제 AWS 배포·24시간 자원 인수는 구분합니다. 아래 실행은 기존 로컬 절차입니다.
 
+## 설정 파일의 역할
+
+| 역할 | 파일 |
+| --- | --- |
+| 환경별 실행 | `monitoring/docker-compose.local.yml`, `monitoring/docker-compose.prod.yml` |
+| 수집 주소·주기 | `monitoring/prometheus/prometheus.local.yml`, `prometheus.prod.yml` |
+| Grafana datasource 주소 | `monitoring/grafana/provisioning/datasources/prometheus.local.yml`, `prometheus.prod.yml` |
+| 공통 dashboard provider·화면 | `monitoring/grafana/provisioning/dashboards/dashboards.yml`, `monitoring/grafana/dashboards/my-fitness.json` |
+| 공통 경보 규칙 | `monitoring/prometheus/alerts.yml` |
+| 운영 Slack 경로 | `monitoring/alertmanager/alertmanager.prod.yml` |
+| 검증 전용 fixture·receiver | `monitoring/tests/` |
+
+각 Compose는 해당 환경의 datasource 한 파일만 마운트합니다. 컨테이너 내부 설정 이름은
+`prometheus.yml`로 유지합니다. 테스트 소스·local 설정은 운영 mount와 SSM 배포 archive에 포함하지 않습니다.
+기존 `monitoring/docker-compose.yml`과 `scripts/setup-local-monitoring.sh`는 각각
+`monitoring/docker-compose.local.yml`과 `scripts/setup-monitoring.local.sh`로 이름을 바꿨습니다.
+Compose project·volume 이름은 유지하므로 기존 로컬 데이터와 로그인 암호는 보존됩니다.
+경로 변경을 적용하려면 새 Compose 파일로 `up -d`를 실행해 mount를 갱신합니다.
+이전 파일의 디렉터리 mount를 사용하는 컨테이너에 단순 `restart`만 수행하지 않습니다.
+
 ## 실행
 
 Java 21, Node.js, Docker Compose가 필요합니다. repository root에서 실행합니다.
 
 ```bash
-bash scripts/setup-local-monitoring.sh
+bash scripts/setup-monitoring.local.sh
 docker compose up -d postgres
 SPRING_PROFILES_ACTIVE=monitoring ./gradlew bootRun
 ```
@@ -19,7 +39,7 @@ SPRING_PROFILES_ACTIVE=monitoring ./gradlew bootRun
 다른 터미널에서 실행합니다.
 
 ```bash
-docker compose -f monitoring/docker-compose.yml up -d
+docker compose -f monitoring/docker-compose.local.yml up -d
 ```
 
 이미 사용 중인 5432 포트·PostgreSQL 컨테이너가 있다면 기존 환경을 지우지 말고 앱의 `DB_URL`을 확인하거나 별도 개발 DB의 포트를 지정하세요. `.env`는 Spring Boot가 자동으로 읽지 않습니다. 기존 AI 환경변수 주입 방식은 유지하며 AI 키를 켜지 않아도 HTTP·JVM·DB 지표를 학습할 수 있습니다.
@@ -60,7 +80,7 @@ AI의 분포·오류·토큰·누적 평균 패널은 **조회 종료 시점에 
 대시보드 JSON 변경은 파일 provisioning으로 반영됩니다. 잠시 기다린 뒤 브라우저를 새로고침하세요. 앱과 Prometheus를 재시작할 필요가 없으며, 반영되지 않으면 Grafana만 재시작합니다.
 
 ```bash
-docker compose -f monitoring/docker-compose.yml restart grafana
+docker compose -f monitoring/docker-compose.local.yml restart grafana
 ```
 
 정책 `BLOCK/SAFE_REDIRECT/CLARIFY`, 사진 `NOT_FOOD/UNCERTAIN`은 정상 결정입니다. JEV 오류는 `UNAVAILABLE`, 공급자 오류는 `FAILURE`로 구분합니다. 정책 분포로 모델 정확도를 평가하지 않습니다. HTTP 시간에는 정책·생성 시간이 포함되므로 각 시간을 합산하지 않습니다.
@@ -92,26 +112,17 @@ Prometheus·Grafana는 로그나 SQL 원인을 자동 수집하지 않습니다.
 최대 30일 또는 TSDB 2GB 조건 중 먼저 도달한 조건이 적용됩니다. 2GB에 먼저 도달하면 보관 기간이 짧아집니다. WAL·head·compaction 때문에 실제 디스크 사용은 2GB를 넘을 수 있습니다. Docker volume 사용량도 함께 확인하세요.
 
 ```bash
-docker compose -f monitoring/docker-compose.yml down
-docker compose -f monitoring/docker-compose.yml up -d
+docker compose -f monitoring/docker-compose.local.yml down
+docker compose -f monitoring/docker-compose.local.yml up -d
 ```
 
 위 명령은 named volume을 보존합니다. `down -v`는 저장 지표와 Grafana DB를 지우는 초기화이므로 데이터 삭제를 의도한 경우에만 실행합니다. Grafana 초기 비밀번호 파일을 바꿔도 기존 볼륨의 관리자 암호는 자동으로 바뀌지 않습니다. 기존 관리자 암호 변경은 로그인 후 UI에서 수행합니다.
 
 ## 검증
 
-```bash
-bash -n scripts/setup-local-monitoring.sh
-docker compose -f monitoring/docker-compose.yml config --quiet
-bash scripts/setup-local-monitoring.sh
-docker compose -f monitoring/docker-compose.yml run --rm secret-init
-docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh prometheus -ec 'test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
-docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh grafana -ec 'test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password'
-docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
-docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
-```
-
-CI는 GitHub runner에서 임시 암호를 생성해 Compose·파일 접근 권한·promtool 설정과 규칙을 검사합니다. 실제 AI 키·AWS 연결은 필요하지 않습니다. 앱의 인증·지표 계약은 기존 Java 테스트로 검사합니다.
+[local/prod 자동 검증](#localprod-자동-검증)은 임시 암호와 별도 Compose 프로젝트를 사용합니다.
+실행 중인 로컬 스택이나 `.local` 암호 파일을 초기화하지 않으며, 실제 AI 키·AWS 연결은 필요하지 않습니다.
+앱의 인증·지표 계약은 기존 Java 테스트로 검사합니다.
 
 ### 실행 후 단계별 확인
 
@@ -220,16 +231,18 @@ small 변경 시 약 $7.59 추가이며 전체 AWS 청구액이 아닙니다.
 [AWS 공식 가격 데이터](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-northeast-2/index.json),
 [EC2 요금 안내](https://aws.amazon.com/ec2/pricing/on-demand/).
 
-### 운영 구성 자동 검증
+### local/prod 자동 검증
 
 repository root에서 실행합니다. Docker·jq가 필요하며 격리된 프로젝트와 가짜 비밀값을 생성·삭제합니다.
 기존 로컬 앱·모니터링 volume이나 실제 Slack·AWS에는 접근하지 않습니다.
 
 ```bash
 bash scripts/verify-monitoring.sh
-python3 scripts/test-ai-policy-deploy.py
+python3 scripts/test-deployment.py
 ```
 
-검사는 production/local interval 규칙, credential UID·서비스 격리, amtool route,
+검사는 local/prod Compose와 15/60초 interval 규칙, credential UID·서비스 격리, amtool route,
 로컬 receiver의 그룹·해제·silence, 실제 Caddy template의 공개 차단을 확인합니다.
 native 도구가 Docker Linux에서 동작해도 실제 EC2 host 연결·메모리·실제 Slack 전송을 완료했다고 표현하지 않습니다.
+fixture는 `monitoring/tests/`에서 별도 도구 컨테이너에만 마운트합니다.
+기존 `test-ai-policy-deploy.py`는 앱·호스트·release 전달을 함께 검사하므로 `test-deployment.py`로 이름을 바꿨습니다.

@@ -42,10 +42,8 @@ services:
       - --query.max-concurrency=2
       - --query.timeout=15s
     volumes:
-      - ./production/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - ./prometheus/alerts.test.yml:/etc/prometheus/alerts.test.yml:ro
-      - ./prometheus/host-alerts.test.yml:/etc/prometheus/host-alerts.test.yml:ro
       - prometheus-data:/prometheus
       - prometheus-credentials:/credentials:ro
     logging: *logging
@@ -66,7 +64,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: 'false'
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1m
     volumes:
-      - ./production/grafana:/etc/grafana/provisioning:ro
+      - ./grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./grafana/provisioning/datasources/prometheus.prod.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
       - ${MONITORING_DASHBOARD_DIR:-./grafana/dashboards}:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
       - grafana-credentials:/credentials:ro
@@ -85,7 +84,7 @@ services:
       - --cluster.listen-address=
       - --storage.path=/alertmanager
     volumes:
-      - ./production/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/alertmanager.prod.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
       - alertmanager-credentials:/credentials:ro
     logging: *logging

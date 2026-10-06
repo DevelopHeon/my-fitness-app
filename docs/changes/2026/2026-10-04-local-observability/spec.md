@@ -1,5 +1,7 @@
 # PR-014 로컬 Prometheus·Grafana 관측 구성
 
+이 문서는 당시 파일명과 명령을 보존한다. 이후 local/prod 파일 분리·이름 변경을 반영한 실행 절차는 [Monitoring](../../../guides/monitoring.md)을 따른다.
+
 > 2026-10-06 정리: 아래 README·Python 검사 언급은 당시 기록이다. 해당 중복 문서와 모니터링 Python 도구는 제거했으며, 현재 절차는 [Monitoring](../../../guides/monitoring.md)을 따른다.
 
 > Changes 기록: 정리 전 문서의 설계·상태·검증을 보존한 이력이다.
