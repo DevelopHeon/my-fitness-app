@@ -14,7 +14,11 @@
    조회 명령은 [Troubleshooting](troubleshooting.md)에 둔다.
 
 이미지는 GitHub runner에서 ARM64로 빌드하며 EC2에서 앱을 빌드하지 않는다.
-기존 SHA tag는 재사용한다. health 실패 시 이전 이미지를 실행하려고 시도하므로 새 이미지 적용 여부를 확인한다.
+기존 SHA tag는 재사용한다. health 실패 시 이전 이미지·runtime.env·RAM/swap 한도를 함께 복원한다.
+설정 archive는 같은 SHA의 `/opt/my-fitness/monitoring/releases/<sha>`로 전달하고 checksum을 확인한다.
+secret·자원·모니터링 설정·앱 parameter/image preflight 뒤 Caddy가 공개 지표를 차단한다.
+이전 모니터링을 멈춘 뒤 앱을 교체하고, 앱 health 성공 후 모니터링을 시작한다.
+모니터링 실패는 workflow 실패로 표시하되 정상 앱을 다시 교체하지 않는다.
 모델/정책 version 문자열만 바꿔 코드의 판정 규칙을 되돌릴 수는 없다. legacy/shadow 시점의 이미지 복원은 정책 경로도 바꾼다.
 로컬 stub 통과·원격 CI 통과·실공급자 검증·AWS 배포 확인을 각각 기록한다.
 
@@ -62,6 +66,13 @@ previous image rollback만으로 V11을 되돌릴 수 없다. 새 schema를 지�
 
 ## 모니터링 적용 범위
 
-현재 [Monitoring](monitoring.md)은 개발 PC 전용이다. prod 프로필·EC2 배포 컨테이너는 변경하지 않는다.
-CI의 promtool·credential 검사는 GitHub runner에서 실행한다. 이를 위해 AWS parameter를 추가하지 않는다.
-운영으로 옮길 때는 위치·수집 경로·인증·메모리·디스크·보관·알림을 별도로 결정한다.
+[Monitoring](monitoring.md#운영-단일-ec2)의 신규 SecureString 3개와 app-base-url을 먼저 준비한다.
+CI의 격리된 Compose 검사는 GitHub runner에서만 실행하며, Deploy App의 SSM 단계가 운영 스택을 설치한다.
+main 자동 배포와 수동 workflow_dispatch는 모두 이 release 경로를 사용한다.
+기존 EC2도 SSM에서 setup-ec2-monitoring.sh가 실행되므로 UserData 업데이트만 기다리지 않는다.
+처음에는 micro 시험이며 실제 자원 인수와 Slack 확인은 [모니터링 인수 기준](monitoring.md#운영-인수)을 따른다.
+
+앱은 성공했지만 모니터링만 실패하면 Actions/SSM 상태와 health를 각각 확인한다.
+이전 설정 release가 있으면 volume을 보존한 복원을 시도한다. 복원 로그만으로 정상 수집이라 판단하지 않는다.
+메모리가 부족하면 현재 release의 모니터링을 먼저 stop하고 앱을 유지한다. prod에서 `down -v`하지 않는다.
+축소된 TSDB retention으로 이미 삭제된 데이터는 설정 복원으로 되살아나지 않는다.

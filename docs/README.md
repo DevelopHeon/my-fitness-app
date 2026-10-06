@@ -15,7 +15,7 @@
 | 어떤 검사를 어떻게 실행하는가? | [Testing](guides/testing.md) |
 | 앱·인프라 배포와 schema 복구는 어떻게 하는가? | [Deployment](guides/deployment.md) |
 | 접속·로그·장애 원인은 어디서 확인하는가? | [Troubleshooting](guides/troubleshooting.md) |
-| 로컬 지표 수집·대시보드는 어떻게 사용하는가? | [Monitoring](guides/monitoring.md) |
+| 로컬·운영 지표와 Slack 알림은 어떻게 사용하는가? | [Monitoring](guides/monitoring.md) |
 
 ## 변경 기록
 
@@ -32,6 +32,7 @@
 | 2026-09-29 | JEV 단일 경로 [스펙·계획](changes/2026/2026-09-29-jev-single-path/spec.md) · [검증](changes/2026/2026-09-29-jev-single-path/validation.md), [아키텍처·패키지 정리 검증](changes/2026/2026-09-29-architecture-package-cleanup/validation.md) |
 | 2026-10-01 | [AI 책임 분리](changes/2026/2026-10-01-ai-responsibility-refactoring/spec.md), [사진과 직접 식단 기록](changes/2026/2026-10-01-food-photo-meal-recording/spec.md) |
 | 2026-10-04 | 로컬 관측 [스펙](changes/2026/2026-10-04-local-observability/spec.md) · [검증](changes/2026/2026-10-04-local-observability/validation.md) |
+| 2026-10-06 | 단일 EC2 운영 모니터링 [스펙·계획](changes/2026/2026-10-06-single-ec2-monitoring/spec.md) · [검증](changes/2026/2026-10-06-single-ec2-monitoring/validation.md) — 구현·로컬 검증, 운영 자원 인수는 별도 |
 
 ## 정량 평가
 

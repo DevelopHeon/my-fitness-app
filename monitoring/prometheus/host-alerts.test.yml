@@ -1,0 +1,35 @@
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: host pressure pending firing and recovery
+    interval: 1m
+    input_series:
+      - series: 'node_memory_MemAvailable_bytes{job="node",instance="host"}'
+        values: '104857600x6 314572800x8'
+      - series: 'node_filesystem_avail_bytes{job="node",instance="host",mountpoint="/",fstype="xfs"}'
+        values: '4294967296x6 8589934592x8'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: HostMemoryPressure
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: HostMemoryPressure
+        exp_alerts:
+          - exp_labels: {severity: warning, job: node, instance: host}
+            exp_annotations:
+              summary: Host available memory is low
+              description: See docs/guides/monitoring.md for diagnosis. Stop monitoring first if app resources are at risk.
+      - eval_time: 6m
+        alertname: HostDiskPressure
+        exp_alerts:
+          - exp_labels: {severity: warning, job: node, instance: host, mountpoint: /, fstype: xfs}
+            exp_annotations:
+              summary: Host root disk space is low
+              description: See docs/guides/monitoring.md for diagnosis. Check images, logs and TSDB without deleting volumes.
+      - eval_time: 8m
+        alertname: HostMemoryPressure
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: HostDiskPressure
+        exp_alerts: []

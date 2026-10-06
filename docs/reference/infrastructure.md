@@ -29,9 +29,10 @@ flowchart LR
 | RDS | PostgreSQL 17.9 / db.t4g.micro / Single-AZ, encrypted gp3 20 GiB, 최대 50 GiB, backup 7일 |
 | 네트워크 | 인터넷 ingress 80·443만, app 127.0.0.1:8080, RDS 5432는 EC2 Security Group에서만 |
 | ECR | my-fitness, immutable SHA tag, scan on push, 최근 10개 유지 |
-| 애플리케이션 | my-fitness-app, memory 700m, restart unless-stopped |
-| JVM / Hikari | Xms128m·Xmx512m·G1GC, pool max 5 / min idle 1 |
-| HTTPS | Caddy host network, Let's Encrypt, reverse proxy loopback 8080 |
+| 애플리케이션 | my-fitness-app, memory 448m / memory-swap 512m, restart unless-stopped |
+| JVM / Hikari | Xms64m·Xmx256m·G1GC, pool max 5 / min idle 1 |
+| HTTPS | Caddy host network, memory 48m, Let's Encrypt, health 외 actuator 404 |
+| 운영 수집 | Prometheus 160m, Grafana 128m, Alertmanager 48m, node_exporter 24m, swap 추가 사용 없음 |
 
 EC2 관리는 SSM을 사용한다. ALB·ECS·EKS·ASG는 구성하지 않는다.
 CDK stack은 MyFitnessNetwork → MyFitnessDatabase → MyFitnessApplication → MyFitnessCicd 순서로 의존한다.
@@ -52,6 +53,9 @@ CDK가 만드는 Parameter Store는 `/my-fitness/prod/instance-id`, `ecr-reposit
 | typesafe-api-key | SecureString | TYPESAFE_API_KEY, 배포 preflight 필수 |
 | ai-policy-model | String | AI_POLICY_MODEL, ParameterNotFound일 때 jev-1.13.0 |
 | ai-policy-version | String | AI_POLICY_VERSION, ParameterNotFound일 때 fitness-policy-v1 |
+| monitoring-password | SecureString | APP_MONITORING_PASSWORD·Prometheus password_file, 필수·동일 값 |
+| grafana-admin-password | SecureString | Grafana 첫 DB 초기화의 admin 암호, 필수 |
+| slack-webhook-url | SecureString | Alertmanager Incoming Webhook URL 파일, 필수 |
 
 JEV 키 누락·빈 값과 정책 parameter의 SSM 접근 실패는 실행 중 컨테이너·환경 파일 교체 전에 배포를 중단한다.
 모델·버전은 ParameterNotFound만 기본값으로 처리한다. 고객 관리 KMS 키를 쓰면 EC2 role의 decrypt 권한도 필요하다.
@@ -60,6 +64,9 @@ AI_POLICY_MODE·TYPESAFE_MODEL과 과거 ai-policy-mode parameter는 현재 코�
 
 RDS username/password는 RDS가 생성한 Secrets Manager secret에서 읽는다.
 배포 스크립트는 `/opt/my-fitness/runtime.env`를 권한 600으로 만들고 컨테이너에 전달한다.
+운영 release는 app-base-url의 HTTPS 도메인이 필요하며 `prod,monitoring`을 활성화한다.
+비밀값은 `/opt/my-fitness/monitoring/secrets`의 700 디렉터리·600 파일로 준비한다.
+Prometheus·Grafana·Alertmanager credential volume은 각각 분리하며 UID 65534·472·65534 소유 파일만 읽는다.
 키·환경 파일·DB 비밀번호를 로그나 문서에 출력하지 않는다.
 
 ### 앱 환경 기본값
@@ -84,14 +91,23 @@ RDS username/password는 RDS가 생성한 Secrets Manager secret에서 읽는다
 ## 배포와 관측의 범위
 
 main의 CI 성공 후 AWS_DEPLOY_ROLE_ARN 변수가 있으면 Deploy App이 실행되며 workflow_dispatch도 지원한다.
-ECR에 같은 SHA가 있으면 이미지를 재사용한다. SSM은 새 이미지 실행·health 확인을 수행하고 실패 시 이전 이미지 실행을 시도한다.
+ECR에 같은 SHA가 있으면 이미지를 재사용한다. 검증 SHA의 설정 archive도 SSM으로 전달한다.
+SSM은 secret·swap·자원·이미지·설정 preflight와 공개 지표 차단 뒤 새 앱을 실행한다.
+앱 health 실패 시 이전 이미지·환경·RAM/swap 한도를 함께 복구한다.
 이 복구는 DB schema 복원을 포함하지 않는다. 자세한 절차는 [Deployment](../guides/deployment.md)에 둔다.
 
 CloudWatch 기본 EC2/RDS metrics와 RDS PostgreSQL log export, Docker stdout/stderr와 Actions/SSM 기록을 확인할 수 있다.
 CloudWatch Agent IAM 권한만으로 앱 Docker 로그 수집이 활성화되지는 않는다. 해당 설치·설정은 현재 배포 구성에 없다.
 
-Prometheus·Grafana는 [로컬 학습용 Compose](../guides/monitoring.md)다. CI의 Compose 검사는 GitHub runner에서 수행하고 EC2에 설치하지 않는다.
-prod는 monitoring 프로필을 활성화하지 않는다. 운영 수집·로그 중앙화·외부 알림·자원·비용은 별도 결정 대상이다.
+로컬은 기존 15초·30일/2GB Compose를 유지한다. 운영은 별도 Compose의 Linux host network와
+loopback 9090·3001·9093·9100을 사용한다. SG 포트를 추가하지 않고 Grafana는 SSM 터널로 접근한다.
+운영 수집/평가는 60초, 보관은 3일/1GB, Grafana refresh는 1분이다. WAL·head 때문에 1GB를 초과할 수 있다.
+기존 6개 규칙과 host 메모리/디스크 2개 규칙은 Prometheus가 평가하고 Alertmanager가 Slack에 전달한다.
+Docker 로그는 local driver 10m×3이며 앱 로그의 CloudWatch 중앙 수집은 추가하지 않는다.
+모니터링 실패는 앱 배포 성공과 분리해 보고하며 설정 rollback은 volume을 보존한다.
+현재 micro·20GiB를 유지한 시험 한도이며 24시간 자원 인수 전 상시 운영 가능하다고 판단하지 않는다.
+현재 실행 방법·중단·비용과 인수 기준은 [Monitoring](../guides/monitoring.md),
+설계 근거와 미검증 범위는 [스펙](../changes/2026/2026-10-06-single-ec2-monitoring/spec.md)에 둔다.
 음식 사진에도 S3·CDN·원본 저장 테이블·별도 키를 추가하지 않는다.
 
 구현 근거: [CDK](../../infra/), [app 설정](../../src/main/resources/application.yml),

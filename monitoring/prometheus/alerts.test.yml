@@ -91,7 +91,7 @@
               },
               "exp_annotations": {
                 "summary": "App metrics scrape unavailable",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]
@@ -106,7 +106,7 @@
               },
               "exp_annotations": {
                 "summary": "API 5xx threshold exceeded",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]
@@ -121,7 +121,7 @@
               },
               "exp_annotations": {
                 "summary": "JEV evaluation failure threshold exceeded",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]
@@ -137,7 +137,7 @@
               },
               "exp_annotations": {
                 "summary": "AI provider failure threshold exceeded",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]
@@ -152,7 +152,7 @@
               },
               "exp_annotations": {
                 "summary": "JVM heap pressure",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]
@@ -168,7 +168,7 @@
               },
               "exp_annotations": {
                 "summary": "DB connection pool has waiting requests",
-                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+                "description": "See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content."
               }
             }
           ]

@@ -1,0 +1,63 @@
+# 단일 EC2 모니터링 구현 검증
+
+검증일: 2026-10-06. 기준은 `61a71e9` 이후 이번 main 변경이다.
+환경은 macOS ARM64, Java 21, Node 22, Docker Desktop Linux VM이다.
+AWS 운영에 직접 접속·변경하지 않았고 실제 JEV/OpenAI·Slack을 호출하지 않았다.
+
+## 구현한 계약
+
+- 기존 t4g.micro·20GiB를 유지한다. RAM/swap·JVM·로그 한도를 명시하고 운영 수집은 60초·3일/1GB로 분리했다.
+- 기존 swap을 재포맷하지 않고 활성화·권한·fstab을 확인한다. Compose ARM64 고정 바이너리는 checksum 확인 후 설치한다.
+- `prod,monitoring`과 전용 Basic 암호를 전달한다. Caddy는 올바른 Basic 값이 있어도 health 외 공개 actuator를 차단한다.
+- node_exporter·Prometheus self job과 Host 섹션을 추가했다. 대시보드 전체 사본을 Git에 추가하지 않고 운영 refresh만 전달 시 변환한다.
+- Prometheus 판정과 Alertmanager의 Slack 그룹·해제·silence 책임을 분리했다. credential volume도 서비스마다 분리했다.
+- 검증 SHA archive·checksum·preflight를 사용하며 앱의 이전 환경/자원을 복구한다. 모니터링 실패는 정상 앱을 다시 배포하지 않는다.
+- 기존 Checkstyle·ArchUnit·Modulith 규칙과 정책/생성·transaction·DB 계약은 완화하지 않았다.
+
+## 재현한 실패와 보완
+
+작은 heap의 입력 계약을 확인하기 위해 8000×4000 RGBA PNG를 생성했다. 파일 크기는 124,526 bytes이며
+5MiB·3,200만 픽셀 제한 안에 있다. 256MiB heap에서 64MiB를 예약하고 두 장을 동시에 전처리하자
+PNG reader의 `OutOfMemoryError`가 `IIOException`에 감싸져 기존 INVALID 사진 오류가 됐다.
+
+같은 조건을 child JVM으로 고정한 회귀 테스트를 추가해 실패를 확인했다. 원본 치수·형식 검증 뒤
+표준 ImageReadParam source subsampling을 사용하고 기존 1600 edge JPEG 정규화를 유지했다.
+변경 후 두 장이 모두 1600×800으로 처리됐다. 한계 초과 원본은 sampling 전에 거절한다.
+이 시험은 전처리 component의 heap 계약이며 전체 앱 RSS·모델 인식 품질 시험이 아니다.
+
+공백 암호는 앱 startup에서 실패할 수 있으므로 배포 대역에 실패 조건을 추가했다.
+기존 코드의 잘못된 성공을 확인한 뒤 secret 준비와 앱 preflight에서 공백 포함 값을 거절했다.
+모니터링 stop은 dashboard 생성보다 먼저 처리해 디스크 부족 중에도 중단을 시도할 수 있게 했다.
+
+## 실행 명령과 결과
+
+| 명령 | 결과와 범위 |
+| --- | --- |
+| Java 21 `./gradlew build --no-daemon` | backend 236건, frontend Node 20건 통과. Checkstyle, ArchUnit, Modulith·convention 포함 |
+| `python3 scripts/test-ai-policy-deploy.py` | 10건 통과. 필수 값 실패 시 앱 보존, preflight, 환경/자원 rollback, 기존 swap 멱등 준비, release 순서 |
+| `bash scripts/verify-monitoring.sh` | 운영 config·8개 규칙·기존 6개 fixture의 15/60초 평가·host pending/firing/recovery·route 통과 |
+| 같은 native helper의 credential 검사 | Prometheus/Grafana/Alertmanager UID 읽기와 다른 서비스 secret 접근 거절 통과 |
+| 같은 helper의 Caddy/로컬 receiver 검사 | health 200, 공개 actuator 404, 2개 경보 그룹 1회, 해제 알림, silence 억제 통과 |
+| `bash -n` 관련 setup/deploy/verify shell | 구문 통과 |
+| `cd frontend && npm run lint` | 통과 |
+| `cd infra && npm run build && npm test -- --runInBand` | TypeScript build·CDK 4건 통과 |
+| `cd infra && npx cdk synth --region ap-northeast-2 --no-lookups --quiet` | synth 통과. AWS deploy/diff는 실행하지 않음 |
+| workflow YAML·SSM archive 로컬 round trip | JSON 28,592 bytes, shell 구문·checksum·압축 해제 통과. macOS에서는 shasum으로 checksum 검사 |
+
+SSM parameter JSON 크기는 이 검증 시점 수치다. 이후 설정 증가에 대비해 archive base64 48,000자 제한을 둔다.
+실제 SSM 전달·IAM·도구 설치·외부 provider 권한을 이 로컬 round trip으로 입증하지 않는다.
+
+## 정리와 미검증
+
+시험용 Compose 프로젝트·receiver/Caddy/Alertmanager 컨테이너와 임시 credential/data volume을 제거했다.
+생성한 PNG·child JVM 소스·로그·압축 archive·검증 JSON·테스트 보고서와 CDK synth 산출물을 삭제했다.
+회귀 검사용 Java/Node 소스와 promtool fixture는 유지한다. 사용자 실행 중 로컬 앱·volume·기존 secret은 변경하지 않았다.
+CDK synth가 생성한 추가 region cache는 이 변경에 포함하지 않는다. 과거 Evaluations 원본도 보존한다.
+
+실제 EC2의 loopback 연결·host root 지표 대조·재부팅·swap·Grafana 로그인·volume 보존·최초 Slack 전송은 미실행이다.
+각 컨테이너 한도에서 전체 스택 cold start·WAL 복구·전체 앱 최대 사진/AI 부하·3일 쿼리·24시간 안정성을
+측정하지 않았다. 3일 보관 만료·compaction도 별도 관측이 필요하다.
+micro 상시 운영을 보장하지 않으며 [운영 인수 기준](../../../guides/monitoring.md#운영-인수) 실패 시 모니터링을 먼저 멈춘다.
+
+설계와 현재 절차: [스펙](spec.md), [Monitoring](../../../guides/monitoring.md),
+[Infrastructure](../../../reference/infrastructure.md), [Deployment](../../../guides/deployment.md).

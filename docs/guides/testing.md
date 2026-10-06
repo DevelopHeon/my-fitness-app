@@ -80,6 +80,9 @@ CDK의 검증·배포 명령은 [Deployment](deployment.md#인프라-변경)에 
 replay에는 원격 지연·과금 결과를 보고하지 않는다. [기존 평가](../README.md#정량-평가)는 원본을 덮어쓰지 않는다.
 
 배포 parameter의 로컬 stub 검사는 `python3 scripts/test-ai-policy-deploy.py`다.
+이 검사는 운영 암호 preflight·앱 환경/자원 rollback·swap 멱등 준비·release 순서도 확인한다.
+최대 PNG 두 장의 전처리는 일반 테스트에서 별도 256MiB child JVM으로 검증하며 실공급자를 호출하지 않는다.
+전체 앱의 같은 heap 인수·RSS·운영 부하는 별도로 측정한다.
 모니터링 설정·규칙·연결 검사는 [Monitoring](monitoring.md#검증)을 따른다.
 H2 검사는 PostgreSQL/Flyway 운영 검증을 대신하지 않는다.
 

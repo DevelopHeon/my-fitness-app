@@ -1,0 +1,125 @@
+name: my-fitness-monitoring-prod
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: '3'
+services:
+  secret-init:
+    image: prom/prometheus:v3.15.0
+    user: '0:0'
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        cp /run/secrets/metrics_password /prom/metrics_password
+        cp /run/secrets/grafana_admin_password /graf/grafana_admin_password
+        cp /run/secrets/slack_webhook_url /alert/slack_webhook_url
+        chmod 600 /prom/metrics_password /graf/grafana_admin_password /alert/slack_webhook_url
+        chown 65534:65534 /prom/metrics_password /alert/slack_webhook_url
+        chown 472:0 /graf/grafana_admin_password
+    volumes:
+      - prometheus-credentials:/prom
+      - grafana-credentials:/graf
+      - alertmanager-credentials:/alert
+    secrets: [metrics_password, grafana_admin_password, slack_webhook_url]
+    mem_limit: 32m
+    memswap_limit: 32m
+    logging: *logging
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 160m
+    memswap_limit: 160m
+    depends_on:
+      secret-init: {condition: service_completed_successfully}
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.listen-address=127.0.0.1:9090
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=3d
+      - --storage.tsdb.retention.size=1GB
+      - --query.max-concurrency=2
+      - --query.timeout=15s
+    volumes:
+      - ./production/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./prometheus/alerts.test.yml:/etc/prometheus/alerts.test.yml:ro
+      - ./prometheus/host-alerts.test.yml:/etc/prometheus/host-alerts.test.yml:ro
+      - prometheus-data:/prometheus
+      - prometheus-credentials:/credentials:ro
+    logging: *logging
+  grafana:
+    image: grafana/grafana:13.2.3
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    depends_on:
+      secret-init: {condition: service_completed_successfully}
+    environment:
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+      GF_SERVER_HTTP_PORT: '3001'
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /credentials/grafana_admin_password
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1m
+    volumes:
+      - ./production/grafana:/etc/grafana/provisioning:ro
+      - ${MONITORING_DASHBOARD_DIR:-./grafana/dashboards}:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+      - grafana-credentials:/credentials:ro
+    logging: *logging
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 48m
+    memswap_limit: 48m
+    depends_on:
+      secret-init: {condition: service_completed_successfully}
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --web.listen-address=127.0.0.1:9093
+      - --cluster.listen-address=
+      - --storage.path=/alertmanager
+    volumes:
+      - ./production/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+      - alertmanager-credentials:/credentials:ro
+    logging: *logging
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    mem_limit: 24m
+    memswap_limit: 24m
+    command:
+      - --web.listen-address=127.0.0.1:9100
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.disable-defaults
+      - --collector.meminfo
+      - --collector.vmstat
+      - --collector.filesystem
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker|run/docker)($|/)
+    volumes:
+      - /:/host:ro,rslave
+    logging: *logging
+volumes:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  prometheus-credentials:
+  grafana-credentials:
+  alertmanager-credentials:
+secrets:
+  metrics_password:
+    file: ${MONITORING_SECRET_DIR:-/opt/my-fitness/monitoring/secrets}/app.monitoring.password
+  grafana_admin_password:
+    file: ${MONITORING_SECRET_DIR:-/opt/my-fitness/monitoring/secrets}/grafana_admin_password
+  slack_webhook_url:
+    file: ${MONITORING_SECRET_DIR:-/opt/my-fitness/monitoring/secrets}/slack_webhook_url

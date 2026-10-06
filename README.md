@@ -15,7 +15,7 @@ Spring Boot와 Next.js PWA를 사용하고 정적 frontend를 같은 Spring Boot
 - [로컬 실행·빌드](docs/guides/development.md)
 - [제품 기능](docs/reference/product.md) · [구조와 규칙](docs/reference/architecture.md)
 - [테스트](docs/guides/testing.md) · [배포와 schema 복구](docs/guides/deployment.md)
-- [접속·장애 대응](docs/guides/troubleshooting.md) · [로컬 Prometheus·Grafana](docs/guides/monitoring.md)
+- [접속·장애 대응](docs/guides/troubleshooting.md) · [Prometheus·Grafana·Slack](docs/guides/monitoring.md)
 
 ## 소스 위치
 
@@ -24,6 +24,6 @@ Spring Boot와 Next.js PWA를 사용하고 정적 frontend를 같은 Spring Boot
 | src/ | Spring Boot backend |
 | frontend/ | Next.js 정적 PWA |
 | infra/ | AWS CDK |
-| monitoring/ | 로컬 수집·대시보드 설정 |
+| monitoring/ | 로컬·단일 EC2 수집, 대시보드·Alertmanager 설정 |
 | scripts/ | 배포·로컬 설정·검증 도구 |
 | docs/ | 현재 기준·절차·변경 이력·평가 근거 |

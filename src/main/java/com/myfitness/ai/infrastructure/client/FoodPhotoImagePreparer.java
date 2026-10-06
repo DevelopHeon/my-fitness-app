@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FoodPhotoImagePreparer {
     private static final long MAX_PIXEL_COUNT = 32_000_000L;
+    private static final int MAX_OUTPUT_EDGE = 1600;
 
     public byte[] prepare(FoodPhotoCommand command) {
         validateUpload(command);
@@ -51,8 +53,13 @@ public class FoodPhotoImagePreparer {
         try {
             reader.setInput(input, true, true);
             validateFormat(reader.getFormatName(), contentType);
-            validateDimensions(reader.getWidth(0), reader.getHeight(0));
-            return reader.read(0);
+            int width = reader.getWidth(0);
+            int height = reader.getHeight(0);
+            validateDimensions(width, height);
+            ImageReadParam parameters = reader.getDefaultReadParam();
+            int subsampling = Math.max(1, Math.max(width, height) / MAX_OUTPUT_EDGE);
+            parameters.setSourceSubsampling(subsampling, subsampling, 0, 0);
+            return reader.read(0, parameters);
         } finally {
             reader.dispose();
         }
@@ -72,7 +79,7 @@ public class FoodPhotoImagePreparer {
     }
 
     private BufferedImage normalize(BufferedImage source) {
-        double scale = Math.min(1, 1600.0 / Math.max(source.getWidth(), source.getHeight()));
+        double scale = Math.min(1, (double) MAX_OUTPUT_EDGE / Math.max(source.getWidth(), source.getHeight()));
         int width = Math.max(1, (int) (source.getWidth() * scale));
         int height = Math.max(1, (int) (source.getHeight() * scale));
         BufferedImage normalized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);

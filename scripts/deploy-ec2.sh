@@ -2,9 +2,17 @@
 set -euo pipefail
 
 IMAGE_TAG="${1:?image tag is required}"
+ACTION="${2:-apply}"
+if [[ "$ACTION" != apply && "$ACTION" != preflight ]]; then
+  echo 'Action must be preflight or apply' >&2
+  exit 1
+fi
 PARAM_PREFIX="/my-fitness/prod"
 APP_NAME="my-fitness-app"
 ENV_FILE="/opt/my-fitness/runtime.env"
+NEXT_ENV="$ENV_FILE.next"
+PREVIOUS_ENV="$ENV_FILE.previous"
+trap 'rm -f "$NEXT_ENV"' EXIT
 REGION_FILE="/opt/my-fitness/region"
 
 if [[ ! -f "$REGION_FILE" ]]; then
@@ -38,7 +46,7 @@ get_policy_parameter() {
   elif [[ "$result" == *ParameterNotFound* ]]; then
     return 0
   else
-    echo "Unable to load AI policy parameter: $1" >&2
+    echo "Unable to load runtime parameter: $1" >&2
     return 1
   fi
 }
@@ -72,9 +80,21 @@ AI_POLICY_VERSION="$(get_policy_parameter "$PARAM_PREFIX/ai-policy-version")"
 
 : "${AI_PROVIDER:=none}"
 
-install -m 600 /dev/null "$ENV_FILE"
+MONITORING_PASSWORD="$(get_policy_parameter "$PARAM_PREFIX/monitoring-password")"
+if [[ -z "$MONITORING_PASSWORD" || "$MONITORING_PASSWORD" =~ [[:space:]] ]]; then
+  echo "A non-empty monitoring password without whitespace is required" >&2
+  exit 1
+fi
+METRICS_SECRET_FILE=/opt/my-fitness/monitoring/secrets/app.monitoring.password
+if [[ -f "$METRICS_SECRET_FILE" && "$(cat "$METRICS_SECRET_FILE")" != "$MONITORING_PASSWORD" ]]; then
+  echo 'Monitoring password changed during preflight; rerun the release preparation' >&2
+  exit 1
+fi
+
+install -m 600 /dev/null "$NEXT_ENV"
 {
-  printf 'SPRING_PROFILES_ACTIVE=prod\n'
+  printf 'SPRING_PROFILES_ACTIVE=prod,monitoring\n'
+  printf 'APP_MONITORING_PASSWORD=%s\n' "$MONITORING_PASSWORD"
   printf 'DB_URL=jdbc:postgresql://%s:5432/my_fitness\n' "$DB_HOST"
   printf 'DB_USERNAME=%s\n' "$DB_USERNAME"
   printf 'DB_PASSWORD=%s\n' "$DB_PASSWORD"
@@ -86,7 +106,7 @@ install -m 600 /dev/null "$ENV_FILE"
   if [[ -n "$TYPESAFE_API_KEY" ]]; then
     printf 'TYPESAFE_API_KEY=%s\n' "$TYPESAFE_API_KEY"
   fi
-  printf 'JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -XX:+UseG1GC\n'
+  printf 'JAVA_TOOL_OPTIONS=-Xms64m -Xmx256m -XX:+UseG1GC\n'
 
   if [[ -n "$GOOGLE_CLIENT_ID" ]]; then
     printf 'GOOGLE_CLIENT_ID=%s\n' "$GOOGLE_CLIENT_ID"
@@ -104,7 +124,7 @@ install -m 600 /dev/null "$ENV_FILE"
   else
     printf 'SESSION_COOKIE_SECURE=false\n'
   fi
-} >> "$ENV_FILE"
+} >> "$NEXT_ENV"
 
 aws ecr get-login-password --region "$REGION" \
   | docker login --username AWS --password-stdin "${REPOSITORY_URI%%/*}"
@@ -112,15 +132,38 @@ aws ecr get-login-password --region "$REGION" \
 NEW_IMAGE="${REPOSITORY_URI}:${IMAGE_TAG}"
 OLD_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$APP_NAME" 2>/dev/null || true)"
 
+OLD_MEMORY="$(docker inspect --format '{{.HostConfig.Memory}}' "$APP_NAME" 2>/dev/null || true)"
+OLD_SWAP="$(docker inspect --format '{{.HostConfig.MemorySwap}}' "$APP_NAME" 2>/dev/null || true)"
+: "${OLD_MEMORY:=700m}"
+: "${OLD_SWAP:=1400m}"
+if [[ -n "$OLD_IMAGE" && ! -f "$ENV_FILE" ]]; then
+  echo "Cannot preserve previous app environment" >&2
+  exit 1
+fi
+
 docker pull "$NEW_IMAGE"
+if [[ "$ACTION" == preflight ]]; then
+  echo 'App configuration and image preflight succeeded'
+  exit 0
+fi
+if [[ -f "$ENV_FILE" ]]; then
+  cp -p "$ENV_FILE" "$PREVIOUS_ENV"
+fi
+mv "$NEXT_ENV" "$ENV_FILE"
 
 start_container() {
   local image="$1"
+  local memory="$2"
+  local memory_swap="$3"
   docker rm -f "$APP_NAME" >/dev/null 2>&1 || true
   docker run -d \
     --name "$APP_NAME" \
     --restart unless-stopped \
-    --memory 700m \
+    --memory "$memory" \
+    --memory-swap "$memory_swap" \
+    --log-driver local \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
     --env-file "$ENV_FILE" \
     -p 127.0.0.1:8080:8080 \
     "$image" >/dev/null
@@ -136,22 +179,18 @@ healthy() {
   return 1
 }
 
-start_container "$NEW_IMAGE"
-
-if healthy; then
+if start_container "$NEW_IMAGE" 448m 512m && healthy; then
   printf '%s\n' "$IMAGE_TAG" > /opt/my-fitness/current-image
-  docker image prune -f >/dev/null 2>&1 || true
   echo "Deployment succeeded: $NEW_IMAGE"
   exit 0
 fi
 
 echo "Health check failed for $NEW_IMAGE" >&2
-docker logs --tail 200 "$APP_NAME" >&2 || true
 
 if [[ -n "$OLD_IMAGE" ]]; then
   echo "Rolling back to $OLD_IMAGE" >&2
-  start_container "$OLD_IMAGE"
-  if healthy; then
+  cp -p "$PREVIOUS_ENV" "$ENV_FILE"
+  if start_container "$OLD_IMAGE" "$OLD_MEMORY" "$OLD_SWAP" && healthy; then
     echo "Rollback succeeded: $OLD_IMAGE" >&2
   else
     echo "Rollback health check also failed" >&2

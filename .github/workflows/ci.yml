@@ -40,6 +40,7 @@ jobs:
       - name: Deployment parameter contract
         run: |
           bash -n scripts/deploy-ec2.sh
+          bash -n scripts/setup-ec2-monitoring.sh scripts/deploy-monitoring.sh scripts/deploy-release.sh scripts/setup-caddy.sh scripts/verify-monitoring.sh
           python3 scripts/test-ai-policy-deploy.py
 
       - name: Local monitoring configuration and rules
@@ -53,6 +54,9 @@ jobs:
           docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh grafana -ec 'test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password'
           docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
           docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
+
+      - name: Production monitoring configuration and rules
+        run: bash scripts/verify-monitoring.sh
 
       - name: Backend test
         run: ./gradlew test --no-daemon

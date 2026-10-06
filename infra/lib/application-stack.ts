@@ -69,9 +69,11 @@ export class ApplicationStack extends cdk.Stack {
       "  fallocate -l 2G /swapfile",
       "  chmod 600 /swapfile",
       "  mkswap /swapfile",
-      "  swapon /swapfile",
-      "  echo '/swapfile swap swap defaults 0 0' >> /etc/fstab",
       "fi",
+      "chown root:root /swapfile",
+      "chmod 600 /swapfile",
+      "if ! swapon --show=NAME --noheadings | grep -Fxq /swapfile; then swapon /swapfile; fi",
+      "if ! awk '$1 == \"/swapfile\" {found=1} END {exit !found}' /etc/fstab; then echo '/swapfile swap swap defaults 0 0' >> /etc/fstab; fi",
     );
 
     this.instance = new ec2.Instance(this, "Instance", {

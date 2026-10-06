@@ -1,5 +1,5 @@
 groups:
-  - name: my-fitness-local
+  - name: my-fitness
     rules:
       - alert: AppMetricsUnavailable
         expr: up{job="my-fitness"} == 0
@@ -8,7 +8,7 @@ groups:
           severity: warning
         annotations:
           summary: App metrics scrape unavailable
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
       - alert: ApiServerErrors
         expr: sum(increase(http_server_requests_seconds_count{job="my-fitness",uri=~"/api/.*",status=~"5.."}[10m])) >= 3 and (sum(rate(http_server_requests_seconds_count{job="my-fitness",uri=~"/api/.*",status=~"5.."}[10m])) / sum(rate(http_server_requests_seconds_count{job="my-fitness",uri=~"/api/.*"}[10m]))) >= 0.05
         for: 2m
@@ -16,7 +16,7 @@ groups:
           severity: warning
         annotations:
           summary: API 5xx threshold exceeded
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
       - alert: PolicyUnavailable
         expr: sum(increase(app_ai_policy_seconds_count{job="my-fitness",action="UNAVAILABLE"}[10m])) >= 3 and (sum(rate(app_ai_policy_seconds_count{job="my-fitness",action="UNAVAILABLE"}[10m])) / sum(rate(app_ai_policy_seconds_count{job="my-fitness"}[10m]))) >= 0.2
         for: 2m
@@ -24,7 +24,7 @@ groups:
           severity: warning
         annotations:
           summary: JEV evaluation failure threshold exceeded
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
       - alert: AiProviderFailures
         expr: sum by (kind) (increase(app_ai_provider_seconds_count{job="my-fitness",outcome="FAILURE"}[10m])) >= 3 and (sum by (kind) (rate(app_ai_provider_seconds_count{job="my-fitness",outcome="FAILURE"}[10m])) / sum by (kind) (rate(app_ai_provider_seconds_count{job="my-fitness"}[10m]))) >= 0.2
         for: 2m
@@ -32,7 +32,7 @@ groups:
           severity: warning
         annotations:
           summary: AI provider failure threshold exceeded
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
       - alert: JvmHeapPressure
         expr: sum(jvm_memory_used_bytes{job="my-fitness",area="heap"} and on(job,instance,id) (jvm_memory_max_bytes{job="my-fitness",area="heap"} > 0)) / sum(jvm_memory_max_bytes{job="my-fitness",area="heap"} > 0) > 0.85
         for: 10m
@@ -40,7 +40,7 @@ groups:
           severity: warning
         annotations:
           summary: JVM heap pressure
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
       - alert: DbPoolWaiting
         expr: sum by (pool) (hikaricp_connections_pending{job="my-fitness"}) > 0
         for: 2m
@@ -48,4 +48,21 @@ groups:
           severity: warning
         annotations:
           summary: DB connection pool has waiting requests
-          description: See monitoring/README.md for diagnosis. Local learning rule; no external notification.
+          description: See docs/guides/monitoring.md for diagnosis. Check metric labels and existing app logs without exposing request content.
+
+      - alert: HostMemoryPressure
+        expr: node_memory_MemAvailable_bytes{job="node"} < 150 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host available memory is low
+          description: See docs/guides/monitoring.md for diagnosis. Stop monitoring first if app resources are at risk.
+      - alert: HostDiskPressure
+        expr: node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay"} < 5 * 1024 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host root disk space is low
+          description: See docs/guides/monitoring.md for diagnosis. Check images, logs and TSDB without deleting volumes.
