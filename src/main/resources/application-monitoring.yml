@@ -1,0 +1,15 @@
+spring:
+  config:
+    import: optional:configtree:.local/monitoring/secrets/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      slo:
+        http.server.requests: 50ms,100ms,250ms,500ms,1s,2s,5s,10s,30s,60s

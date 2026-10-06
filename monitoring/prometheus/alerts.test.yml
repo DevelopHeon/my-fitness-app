@@ -1,0 +1,388 @@
+{
+  "rule_files": [
+    "alerts.yml"
+  ],
+  "evaluation_interval": "15s",
+  "tests": [
+    {
+      "name": "pending firing and healthy recovery with continued telemetry",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"my-fitness\"}",
+          "values": "0x10 1x40"
+        },
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"503\"}",
+          "values": "0+1x30 30x20"
+        },
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"200\"}",
+          "values": "0+2x50"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"}",
+          "values": "0+1x30 30x20"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"ALLOW\"}",
+          "values": "0+1x50"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",outcome=\"FAILURE\",kind=\"chat\"}",
+          "values": "0+1x30 30x20"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",kind=\"chat\",outcome=\"SUCCESS\"}",
+          "values": "0+1x50"
+        },
+        {
+          "series": "jvm_memory_used_bytes{job=\"my-fitness\",area=\"heap\",id=\"heap\"}",
+          "values": "90x30 20x20"
+        },
+        {
+          "series": "jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\",id=\"heap\"}",
+          "values": "100x50"
+        },
+        {
+          "series": "hikaricp_connections_pending{job=\"my-fitness\",pool=\"local\"}",
+          "values": "1x30 0x20"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "1m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "1m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "1m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "1m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "1m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "1m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "3m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning",
+                "job": "my-fitness"
+              },
+              "exp_annotations": {
+                "summary": "App metrics scrape unavailable",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "15m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "API 5xx threshold exceeded",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "15m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "JEV evaluation failure threshold exceeded",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "15m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning",
+                "kind": "chat"
+              },
+              "exp_annotations": {
+                "summary": "AI provider failure threshold exceeded",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "15m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning"
+              },
+              "exp_annotations": {
+                "summary": "JVM heap pressure",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "15m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": [
+            {
+              "exp_labels": {
+                "severity": "warning",
+                "pool": "local"
+              },
+              "exp_annotations": {
+                "summary": "DB connection pool has waiting requests",
+                "description": "See monitoring/README.md for diagnosis. Local learning rule; no external notification."
+              }
+            }
+          ]
+        },
+        {
+          "eval_time": "12m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "45m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "no traffic no errors",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "up{job=\"my-fitness\"}",
+          "values": "1x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"}",
+          "values": "0x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"ALLOW\"}",
+          "values": "0x30"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "20m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "minimum volume gate",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"503\"}",
+          "values": "0+0.1x30"
+        },
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"200\"}",
+          "values": "0+0.1x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"}",
+          "values": "0+0.1x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"ALLOW\"}",
+          "values": "0+0.1x30"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",kind=\"chat\",outcome=\"FAILURE\"}",
+          "values": "0+0.1x30"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",kind=\"chat\",outcome=\"SUCCESS\"}",
+          "values": "0+0.1x30"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "20m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": []
+        }
+      ]
+    },
+    {
+      "name": "ratio gate",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"503\"}",
+          "values": "0+1x30"
+        },
+        {
+          "series": "http_server_requests_seconds_count{job=\"my-fitness\",uri=\"/api/test\",status=\"200\"}",
+          "values": "0+99x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"}",
+          "values": "0+1x30"
+        },
+        {
+          "series": "app_ai_policy_seconds_count{job=\"my-fitness\",action=\"ALLOW\"}",
+          "values": "0+99x30"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",kind=\"chat\",outcome=\"FAILURE\"}",
+          "values": "0+1x30"
+        },
+        {
+          "series": "app_ai_provider_seconds_count{job=\"my-fitness\",kind=\"chat\",outcome=\"SUCCESS\"}",
+          "values": "0+99x30"
+        }
+      ],
+      "alert_rule_test": [
+        {
+          "eval_time": "20m",
+          "alertname": "AppMetricsUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "ApiServerErrors",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "PolicyUnavailable",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "AiProviderFailures",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "JvmHeapPressure",
+          "exp_alerts": []
+        },
+        {
+          "eval_time": "20m",
+          "alertname": "DbPoolWaiting",
+          "exp_alerts": []
+        }
+      ]
+    }
+  ]
+}

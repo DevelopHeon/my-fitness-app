@@ -1,59 +1,56 @@
-# My Fitness Documentation
+# 문서 안내
 
-이 디렉터리는 현재 시스템을 이해하기 위한 문서와 구현 이력을 분리해서 관리합니다.
+현재 동작은 Reference, 실행 방법은 Guides, 당시 설계·검증은 Changes, 정량 실험은 Evaluations에서 찾는다.
+과거 스펙의 계획·수치가 현재 코드나 운영 배포 상태를 대신하지 않는다.
 
-## 처음 읽을 때
+## 현재 기준과 실행 방법
 
-아래 순서만 읽으면 현재 시스템의 전체 구조를 이해할 수 있습니다.
+| 알고 싶은 것 | 문서 |
+| --- | --- |
+| 어떤 기능과 입력 규칙이 있는가? | [제품 기능](reference/product.md) |
+| 모듈·계층·DTO·transaction·검사는 어떤 경계를 지키는가? | [Architecture](reference/architecture.md) |
+| AI 정책과 사진 분석은 어떤 계약으로 처리하는가? | [AI](reference/ai.md) |
+| AWS·환경 변수·Parameter Store는 무엇을 정의하는가? | [Infrastructure](reference/infrastructure.md) |
+| 로컬 실행·정적 PWA 빌드는 어떻게 하는가? | [Development](guides/development.md) |
+| 어떤 검사를 어떻게 실행하는가? | [Testing](guides/testing.md) |
+| 앱·인프라 배포와 schema 복구는 어떻게 하는가? | [Deployment](guides/deployment.md) |
+| 접속·로그·장애 원인은 어디서 확인하는가? | [Troubleshooting](guides/troubleshooting.md) |
+| 로컬 지표 수집·대시보드는 어떻게 사용하는가? | [Monitoring](guides/monitoring.md) |
 
-1. [Architecture](architecture/README.md)
-   - My Fitness가 어떤 시스템인지
-   - C4 Context / Container / Component
-   - Spring Modulith 모듈 경계
-   - 트랜잭션과 Port/Adapter 규칙
+## 변경 기록
 
-2. [Infrastructure](infra/README.md)
-   - AWS에 어떻게 배포되어 있는지
-   - EC2, RDS, ECR, SSM, GitHub Actions의 관계
-   - 보안 경계와 설정 관리
+폴더 이름은 당시 날짜와 주제다. 상태가 완료돼도 경로를 바꾸지 않는다.
+별도 결과가 없는 초기 스펙은 본문에 당시 검증을 포함한다.
 
-3. [Operations](infra/OPERATIONS.md)
-   - 서버 접속
-   - RDS 로컬 연결
-   - 로그 확인
-   - 배포 및 장애 확인 순서
+| 날짜 | 주제와 당시 근거 |
+| --- | --- |
+| 2026-09-18 | [프로젝트 시작](changes/2026/2026-09-18-project-bootstrap/spec.md), [운동 기반](changes/2026/2026-09-18-workout-foundation/spec.md), [루틴](changes/2026/2026-09-18-routine/spec.md), [운동 카탈로그](changes/2026/2026-09-18-exercise-catalog/spec.md) |
+| 2026-09-18 | [신체 기록](changes/2026/2026-09-18-body-record/spec.md), [운동 달력](changes/2026/2026-09-18-workout-calendar/spec.md), [운동 편집·이동](changes/2026/2026-09-18-workout-editing-navigation/spec.md), [대시보드](changes/2026/2026-09-18-dashboard/spec.md), [당시 식단 설계](changes/2026/2026-09-18-nutrition/spec.md) |
+| 2026-09-22 | [AI Coach](changes/2026/2026-09-22-ai-coach/spec.md) |
+| 2026-09-23 | [Google 로그인](changes/2026/2026-09-23-google-oauth2-auth/spec.md), [AWS·CI/CD](changes/2026/2026-09-23-aws-cdk-ecr-cicd/spec.md) |
+| 2026-09-28 | 정책 평가 [스펙](changes/2026/2026-09-28-ai-policy-validation/spec.md) · [독립 계획](changes/2026/2026-09-28-ai-policy-validation/plan.md) · [검증](changes/2026/2026-09-28-ai-policy-validation/validation.md) |
+| 2026-09-29 | JEV 단일 경로 [스펙·계획](changes/2026/2026-09-29-jev-single-path/spec.md) · [검증](changes/2026/2026-09-29-jev-single-path/validation.md), [아키텍처·패키지 정리 검증](changes/2026/2026-09-29-architecture-package-cleanup/validation.md) |
+| 2026-10-01 | [AI 책임 분리](changes/2026/2026-10-01-ai-responsibility-refactoring/spec.md), [사진과 직접 식단 기록](changes/2026/2026-10-01-food-photo-meal-recording/spec.md) |
+| 2026-10-04 | 로컬 관측 [스펙](changes/2026/2026-10-04-local-observability/spec.md) · [검증](changes/2026/2026-10-04-local-observability/validation.md) |
 
-4. [Product Spec](spec/PRODUCT_SPEC.md)
-   - 기존 사용자 기능과 제품 규칙
-   - 음식 사진·직접 식단 기록 변경은 [PR-013 계약](spec/2026-10-01-thu-pr-013-food-photo-meal-recording.md)과 현재 Architecture/Frontend README를 함께 확인
+## 정량 평가
 
-5. [Testing](testing/README.md)
-   - 자동 테스트와 수동 테스트 기준
+- [Router seed](evaluations/ai-policy/router-seed-v0/report.md): 초기 입력과 판정.
+- [변경 전 1,000건](evaluations/ai-policy/baseline-1000-v1/report.md): 기존 판정·manifest·metrics·cases.
+- [JEV 1,000건 실호출](evaluations/ai-policy/jev-live-1000-v1/report.md): 같은 ID 비교와 표본·실패 한계.
+- [저장 응답 규칙 재평가](evaluations/ai-policy/policy-rule-replay/report.md): 재호출 없는 replay, 모델 재실험과 구분.
 
-## 문서 역할
+원본 JSON/JSONL은 당시 결과다. 후속 평가로 덮어쓰지 않는다. 실행 방법은 [Testing](guides/testing.md#ai-정책-평가)에 둔다.
 
-| 문서 | 역할 | 최신 상태 기준 |
-| --- | --- | --- |
-| architecture/README.md | 현재 소프트웨어 구조 | 예 |
-| infra/README.md | 현재 운영 인프라 | 예 |
-| infra/OPERATIONS.md | 현재 운영 절차 | 예 |
-| spec/PRODUCT_SPEC.md | 기존 제품 요구사항 기준; 이번 변경은 PR-013 계약 참고 | 이번 작업에서는 갱신 제외 |
-| testing/ | 테스트 정책 | 예 |
-| spec/YYYY-...-pr-*.md | 구현 당시 판단과 작업 기록 | 아니오 |
+## 작성과 갱신 규칙
 
-구현 PR 스펙은 당시의 설계 의사결정을 남기는 이력입니다. 이후 리팩토링으로 구조가 바뀔 수 있으므로 현재 상태를 확인할 때는 Architecture / Infrastructure / Product Spec을 우선합니다.
+- 현재 계약의 소유 문서는 하나만 둔다. 다른 문서는 요약과 링크로 연결한다.
+- 실행 절차에는 작업 위치·전제 조건·명령을, 결과에는 실행 환경·대상·실패·미검증 범위를 적는다.
+- 구현 완료 시 Reference·Guides를 갱신한다. 당시 선택 이유와 결과는 Changes에 보존한다.
+- 작은 수정은 기존 기준 문서를 고친다. 의미 있는 설계 변경에만 Changes를 추가한다.
+- 짧은 계획은 spec.md에 포함한다. 별도 관리가 필요한 긴 계획만 plan.md로 분리한다.
+- templates에는 반복 사용하는 [수동 검사 양식](templates/manual-test.md)을 둔다.
+- 문서 이동 시 링크·앵커·실행 경로를 함께 수정하고 평가 원본 hash를 유지한다.
+- 루트 README는 프로젝트 소개, docs/README는 문서 탐색을 담당한다. 하위 코드 디렉터리에 중복 README를 만들지 않는다.
 
-## 문서 갱신 원칙
-
-- 모듈 경계가 바뀌면 Architecture를 갱신합니다.
-- AWS 리소스나 배포 방식이 바뀌면 Infrastructure와 Operations를 갱신합니다.
-- 사용자 기능이나 제품 규칙이 바뀌면 Product Spec을 갱신합니다.
-- 중요한 구현 단위는 spec 하위 PR 문서로 변경 이유를 남깁니다.
-- 실제 코드와 문서가 다르면 코드를 기준으로 문서를 수정합니다.
-
-
-## 음식 사진·직접 식단 기록 변경 문서
-
-[PR-013](spec/2026-10-01-thu-pr-013-food-photo-meal-recording.md)은 음식 카탈로그 제거, 사진 후보의 입력 초안, 한국 시간 기본값, 선택 탄단지와 실패 계약을 정리한 스펙입니다. 구현 이후 현재 동작은 [Architecture](architecture/README.md), [루트 README](../README.md), [Frontend README](../frontend/README.md), [Operations](infra/OPERATIONS.md#음식-사진과-직접-식단-기록-배포)에 반영했습니다.
-
-새 스펙과 탐색 링크를 추가했고, 사용자 요청에 따라 구현 후 최신화에서는 과거 스펙·테스트 문서와 평가 산출물을 제외했습니다. 해당 문서의 음식 카탈로그·회분 내용은 이번 구현과 다를 수 있습니다. 실제 모델 품질 평가와 운영 배포는 코드·일반 빌드 검증 완료와 별도입니다.
+이 구조의 세부 주제는 이 프로젝트의 선택이다. 공통 작성 스킬은 역할·중복·갱신·이력 보존 원칙만 정의한다.

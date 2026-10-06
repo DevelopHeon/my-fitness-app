@@ -1,6 +1,7 @@
 package com.myfitness.ai.application.support.policy;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
+import com.myfitness.ai.application.support.AiMetrics;
 import com.myfitness.ai.application.dto.request.AiClientContext;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -20,17 +21,20 @@ public class AiPolicyGuard {
     private final AiPolicyProperties properties;
     private final AiPolicyGateway gateway;
     private final AiPolicyEvaluator evaluator;
+    private final AiMetrics metrics;
 
     public AiPolicyGuard(
-            AiPolicyProperties properties, AiPolicyGateway gateway, AiPolicyEvaluator evaluator) {
+            AiPolicyProperties properties, AiPolicyGateway gateway, AiPolicyEvaluator evaluator, AiMetrics metrics) {
         this.properties = properties;
         this.gateway = gateway;
         this.evaluator = evaluator;
+        this.metrics = metrics;
     }
 
     public AiPolicyRun evaluate(
             String question, AiClientContext context, List<AiMessage> acceptedHistory) {
         long started = System.nanoTime();
+        AiPolicyRun run;
         try {
             AiPolicyGateway.AiPolicyAssessment assessment =
                     gateway.assess(
@@ -39,15 +43,17 @@ public class AiPolicyGuard {
                                     context == null ? null : context.normalizedScreen(),
                                     selectHistory(acceptedHistory)));
             AiPolicyDecision decision = evaluator.decide(assessment);
-            return new AiPolicyRun.Success(
+            run = new AiPolicyRun.Success(
                     properties.getVersion(), decision, assessment, elapsed(started));
         } catch (RuntimeException exception) {
             String code =
                     exception instanceof AiPolicyUnavailableException policy
                             ? policy.getCode()
                             : "POLICY_ERROR";
-            return new AiPolicyRun.Failure(properties.getVersion(), code, elapsed(started));
+            run = new AiPolicyRun.Failure(properties.getVersion(), code, elapsed(started));
         }
+        metrics.policy(run);
+        return run;
     }
 
     static List<HistoryMessage> selectHistory(List<AiMessage> messages) {

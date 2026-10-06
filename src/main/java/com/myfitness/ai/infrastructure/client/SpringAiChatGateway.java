@@ -9,6 +9,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.metadata.EmptyUsage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -72,6 +73,9 @@ public class SpringAiChatGateway implements AiChatGateway {
         Usage usage = response.getMetadata() == null
                 ? null
                 : response.getMetadata().getUsage();
+        if (usage instanceof EmptyUsage) {
+            usage = null;
+        }
 
         return new AiModelResponse(
                 response.getResult().getOutput().getText().trim(),

@@ -42,6 +42,18 @@ jobs:
           bash -n scripts/deploy-ec2.sh
           python3 scripts/test-ai-policy-deploy.py
 
+      - name: Local monitoring configuration and rules
+        run: |
+          trap 'docker compose -f monitoring/docker-compose.yml down -v; rm -rf .local/monitoring' EXIT
+          bash -n scripts/setup-local-monitoring.sh
+          bash scripts/setup-local-monitoring.sh
+          docker compose -f monitoring/docker-compose.yml config --quiet
+          docker compose -f monitoring/docker-compose.yml run --rm secret-init
+          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh prometheus -ec 'test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
+          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint sh grafana -ec 'test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password'
+          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
+          docker compose -f monitoring/docker-compose.yml run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
+
       - name: Backend test
         run: ./gradlew test --no-daemon
 

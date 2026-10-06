@@ -1,6 +1,7 @@
 package com.myfitness.ai.application.support;
 
 import com.myfitness.ai.application.config.AiCoachProperties;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -14,19 +15,38 @@ import org.springframework.stereotype.Component;
 public class AiProviderExecutor {
     private final AiChatGateway chatGateway;
     private final AiCoachProperties properties;
+    private final AiMetrics metrics;
 
     public AiProviderExecutor(
             AiChatGateway chatGateway,
-            AiCoachProperties properties) {
+            AiCoachProperties properties,
+            AiMetrics metrics) {
         this.chatGateway = chatGateway;
         this.properties = properties;
+        this.metrics = metrics;
     }
 
     public AiModelResponse generate(
             AiContextBundle context,
             List<HistoryMessage> history,
             String message) {
-        return chatGateway.chat(request(context, history, message));
+        long started = System.nanoTime();
+        AiModelResponse response;
+        try {
+            response = chatGateway.chat(request(context, history, message));
+        } catch (RuntimeException exception) {
+            String error = exception instanceof AiProviderUnavailableException failure
+                    ? failure.getErrorCode() : "OTHER";
+            metrics.provider("chat", provider(), "FAILURE", error, elapsed(started));
+            throw exception;
+        }
+        metrics.provider("chat", response.provider(), "SUCCESS", "NONE", elapsed(started));
+        metrics.tokens("chat", response.provider(), response.inputTokens(), response.outputTokens());
+        return response;
+    }
+
+    private static long elapsed(long started) {
+        return (System.nanoTime() - started) / 1_000_000;
     }
 
     public String provider() {

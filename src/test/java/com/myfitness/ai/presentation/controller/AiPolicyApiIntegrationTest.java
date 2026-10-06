@@ -4,6 +4,9 @@ import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -16,9 +19,11 @@ import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway;
 import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import com.myfitness.ai.application.support.context.AiContextBuilder;
+import com.myfitness.ai.application.service.AiMessageTransactionService;
 
 import jakarta.servlet.http.Cookie;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,16 +56,22 @@ import java.util.stream.Collectors;
 @Import(AiPolicyApiIntegrationTest.FakeConfiguration.class)
 class AiPolicyApiIntegrationTest {
     @Autowired WebApplicationContext context;
+    @Autowired MeterRegistry registry;
+    private long policyCountBefore;
+    private long providerCountBefore;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
     @Autowired FakePolicyGateway policy;
     @Autowired FakeChatGateway chat;
     @MockitoSpyBean AiContextBuilder contextBuilder;
+    @MockitoSpyBean AiMessageTransactionService transactions;
     MockMvc mvc;
     long conversation;
 
     @BeforeEach
     void setUp() throws Exception {
+        policyCountBefore = meterCount("app.ai.policy");
+        providerCountBefore = meterCount("app.ai.provider");
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         jdbc.update("delete from ai_request_logs");
         jdbc.update("delete from ai_messages");
@@ -96,7 +107,9 @@ class AiPolicyApiIntegrationTest {
                 .andExpect(jsonPath("$.policyDecision").value("SAFE_REDIRECT"))
                 .andExpect(jsonPath("$.providerCalled").value(false));
         assertThat(chat.calls.get()).isZero();
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
         assertThat(policy.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore + 1);
         assertThat(jdbc.queryForObject("select status from ai_request_logs", String.class))
                 .isEqualTo("REJECTED_POLICY");
         assertThat(
@@ -114,7 +127,9 @@ class AiPolicyApiIntegrationTest {
                 .andExpect(jsonPath("$.userMessage.queryType").value("WORKOUT"))
                 .andExpect(jsonPath("$.providerCalled").value(true));
         assertThat(policy.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore + 1);
         assertThat(chat.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
         assertThat(chat.last.context()).contains("운동");
         assertThat(
                         jdbc.queryForObject(
@@ -132,6 +147,7 @@ class AiPolicyApiIntegrationTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_POLICY_UNAVAILABLE"));
         assertThat(chat.calls.get()).isZero();
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
         assertThat(jdbc.queryForObject("select count(*) from ai_messages", Integer.class))
                 .isEqualTo(1);
         assertThat(
@@ -163,6 +179,7 @@ class AiPolicyApiIntegrationTest {
                 .andExpect(jsonPath("$.policyDecision").value("BLOCK"));
         assertThat(policy.calls.get()).isEqualTo(2);
         assertThat(chat.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
         assertThat(policy.last.previousTurns()).hasSize(2);
         assertThat(
                         jdbc.queryForObject(
@@ -213,6 +230,8 @@ class AiPolicyApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("AI_POLICY_UNAVAILABLE"));
         verifyNoInteractions(contextBuilder);
         assertThat(chat.calls.get()).isZero();
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore + 1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
         assertThat(
                         jdbc.queryForObject(
                                 "select policy_error_code from ai_request_logs", String.class))
@@ -265,6 +284,8 @@ class AiPolicyApiIntegrationTest {
                 .isEqualTo("jev-1.13.0");
         assertThat(jdbc.queryForObject("select count(*) from ai_messages", Integer.class))
                 .isEqualTo(1);
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore + 1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
     }
 
     @ParameterizedTest
@@ -285,6 +306,25 @@ class AiPolicyApiIntegrationTest {
         verifyNoInteractions(contextBuilder);
         assertThat(chat.calls.get()).isZero();
         assertThat(policy.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore + 1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
+    }
+
+    @Test
+    void doesNotCountDatabaseSaveFailureAsAnotherProviderCall() throws Exception {
+        long failuresBefore = registry.find("app.ai.provider").tag("outcome", "FAILURE")
+                .timers().stream().mapToLong(timer -> timer.count()).sum();
+        doThrow(new IllegalStateException("test database failure")).when(transactions)
+                .saveProviderSuccess(anyLong(), anyLong(), any(), any(), any(), any(), anyLong(), any());
+        send("운동 방법", 1L).andExpect(status().isServiceUnavailable());
+        assertThat(chat.calls.get()).isEqualTo(1);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
+        assertThat(registry.find("app.ai.provider").tag("outcome", "FAILURE")
+                .timers().stream().mapToLong(timer -> timer.count()).sum()).isEqualTo(failuresBefore);
+    }
+
+    private long meterCount(String name) {
+        return registry.find(name).timers().stream().mapToLong(timer -> timer.count()).sum();
     }
 
     private org.springframework.test.web.servlet.ResultActions send(String question, Long user)

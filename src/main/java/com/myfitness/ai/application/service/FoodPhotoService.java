@@ -7,6 +7,7 @@ import com.myfitness.ai.application.port.in.FoodPhotoUseCase;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoResponse;
 import com.myfitness.ai.application.support.AiMessageResultMapper;
+import com.myfitness.ai.application.support.AiMetrics;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.FoodPhotoAnalysis;
 import org.springframework.stereotype.Service;
@@ -20,16 +21,19 @@ public class FoodPhotoService implements FoodPhotoUseCase {
     private final FoodPhotoTransactionService transactions;
     private final AiConversationService conversations;
     private final AiMessageResultMapper messageMapper;
+    private final AiMetrics metrics;
 
     public FoodPhotoService(
             FoodPhotoGateway gateway,
             FoodPhotoTransactionService transactions,
             AiConversationService conversations,
-            AiMessageResultMapper messageMapper) {
+            AiMessageResultMapper messageMapper,
+            AiMetrics metrics) {
         this.gateway = gateway;
         this.transactions = transactions;
         this.conversations = conversations;
         this.messageMapper = messageMapper;
+        this.metrics = metrics;
     }
 
     @Override
@@ -55,15 +59,20 @@ public class FoodPhotoService implements FoodPhotoUseCase {
 
     private PhotoResponse analyzeAndLogFailure(
             Long userId, Long conversationId, AiMessage userMessage, byte[] image, long started) {
+        PhotoResponse response;
         try {
-            return gateway.analyze(image);
+            response = gateway.analyze(image);
         } catch (RuntimeException exception) {
             String errorCode = exception instanceof AiProviderUnavailableException failure
                     ? failure.getErrorCode() : "TRANSPORT_ERROR";
+            metrics.provider("photo", "openai", "FAILURE", errorCode, elapsedMillis(started));
             transactions.savePhotoFailure(
                     userId, conversationId, userMessage, gateway.model(), errorCode, elapsedMillis(started));
             throw exception;
         }
+        metrics.provider("photo", "openai", response.analysis().status().name(), "NONE", elapsedMillis(started));
+        metrics.tokens("photo", "openai", response.inputTokens(), response.outputTokens());
+        return response;
     }
 
     private static long elapsedMillis(long started) {

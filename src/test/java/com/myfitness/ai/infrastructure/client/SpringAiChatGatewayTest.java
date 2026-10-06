@@ -6,6 +6,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.myfitness.ai.application.config.AiCoachProperties;
+import com.myfitness.ai.application.support.AiMetrics;
+import com.myfitness.ai.application.support.AiProviderExecutor;
+import com.myfitness.ai.application.support.context.AiContextBundle;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -28,6 +33,45 @@ import org.springframework.core.env.Environment;
 import java.util.List;
 
 class SpringAiChatGatewayTest {
+
+    @Test
+    void defaultEmptyUsageDoesNotCreateTokenCounters() {
+        ChatResponse response = new ChatResponse(List.of(new Generation(new AssistantMessage("answer"))));
+        SimpleMeterRegistry registry = generateAndMeasure(response);
+        assertThat(registry.find("app.ai.tokens").meters()).isEmpty();
+        assertThat(registry.get("app.ai.provider").timer().count()).isEqualTo(1);
+    }
+
+    @Test
+    void explicitZeroUsageCreatesObservedZeroCounters() {
+        ChatResponse response = mock(ChatResponse.class);
+        ChatResponseMetadata metadata = mock(ChatResponseMetadata.class);
+        Usage usage = mock(Usage.class);
+        when(response.getResult()).thenReturn(new Generation(new AssistantMessage("answer")));
+        when(response.getMetadata()).thenReturn(metadata);
+        when(metadata.getUsage()).thenReturn(usage);
+        when(usage.getPromptTokens()).thenReturn(0);
+        when(usage.getCompletionTokens()).thenReturn(0);
+        SimpleMeterRegistry registry = generateAndMeasure(response);
+        assertThat(registry.get("app.ai.tokens").tag("direction", "input").counter().count()).isZero();
+        assertThat(registry.get("app.ai.tokens").tag("direction", "output").counter().count()).isZero();
+    }
+
+    private SimpleMeterRegistry generateAndMeasure(ChatResponse response) {
+        ChatModel model = mock(ChatModel.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<ChatModel> provider = mock(ObjectProvider.class);
+        Environment environment = mock(Environment.class);
+        when(provider.getIfAvailable()).thenReturn(model);
+        when(model.call(any(Prompt.class))).thenReturn(response);
+        when(environment.getProperty("spring.ai.model.chat", "none")).thenReturn("openai");
+        when(environment.getProperty("spring.ai.openai.chat.model", "gpt-4o-mini")).thenReturn("gpt-4o-mini");
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        AiProviderExecutor executor = new AiProviderExecutor(new SpringAiChatGateway(provider, environment),
+                new AiCoachProperties(), new AiMetrics(registry));
+        executor.generate(AiContextBundle.empty(), List.of(), "question");
+        return registry;
+    }
 
     @Test
     @DisplayName("Spring AI Gateway는 Context와 History를 ChatModel에 전달하고 token usage를 반환한다")

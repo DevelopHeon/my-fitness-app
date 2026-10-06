@@ -16,3 +16,6 @@ frontend/out/
 .env
 .env.*
 !.env.example
+
+# Local monitoring credentials
+.local/monitoring/

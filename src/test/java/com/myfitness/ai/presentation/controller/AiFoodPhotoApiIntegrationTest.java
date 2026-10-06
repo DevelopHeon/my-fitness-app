@@ -2,6 +2,7 @@ package com.myfitness.ai.presentation.controller;
 
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -14,6 +15,7 @@ import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import javax.imageio.ImageIO;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -26,6 +28,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import com.myfitness.ai.application.service.FoodPhotoTransactionService;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -37,17 +41,23 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest(properties = {"spring.ai.model.chat=openai", "spring.ai.openai.api-key=test"})
 class AiFoodPhotoApiIntegrationTest {
     @Autowired WebApplicationContext context;
+    @Autowired MeterRegistry registry;
+    private long policyCountBefore;
+    private long providerCountBefore;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
     @Autowired AiMessageRepositoryPort messages;
     @MockitoBean ChatModel model;
     @MockitoBean AiChatGateway textGateway;
     @MockitoBean AiPolicyGateway policyGateway;
+    @MockitoSpyBean FoodPhotoTransactionService transactions;
     private MockMvc mvc;
     private long conversationId;
 
     @BeforeEach
     void setUp() throws Exception {
+        policyCountBefore = meterCount("app.ai.policy");
+        providerCountBefore = meterCount("app.ai.provider");
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         jdbc.update("delete from ai_request_logs");
         jdbc.update("delete from ai_messages");
@@ -74,6 +84,8 @@ class AiFoodPhotoApiIntegrationTest {
                 .isNull();
         assertThat(messages.findAcceptedByConversationId(conversationId)).isEmpty();
         assertThat(jdbc.queryForObject("select count(*) from meal_foods", Integer.class)).isEqualTo(beforeMeals);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
+        assertThat(meterCount("app.ai.policy")).isEqualTo(policyCountBefore);
         verify(model, times(1)).call(any(Prompt.class));
         verifyNoInteractions(textGateway, policyGateway);
     }
@@ -86,6 +98,7 @@ class AiFoodPhotoApiIntegrationTest {
                     .andExpect(jsonPath("$.assistantMessage.foodPhotoResult.status").value(status))
                     .andExpect(jsonPath("$.assistantMessage.foodPhotoResult.items").isEmpty());
         }
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 2);
         verify(model, times(2)).call(any(Prompt.class));
         verifyNoInteractions(textGateway, policyGateway);
     }
@@ -101,6 +114,7 @@ class AiFoodPhotoApiIntegrationTest {
                 .isZero();
         assertThat(jdbc.queryForList("select error_code from ai_request_logs order by id", String.class))
                 .containsExactly("INVALID_RESPONSE", "TRANSPORT_ERROR");
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 2);
         verify(model, times(2)).call(any(Prompt.class));
         verifyNoInteractions(textGateway, policyGateway);
     }
@@ -116,6 +130,7 @@ class AiFoodPhotoApiIntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from ai_request_logs", Integer.class)).isZero();
         assertThat(jdbc.queryForObject("select title from ai_conversations where id=?", String.class, conversationId))
                 .isEqualTo("새 대화");
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
         verifyNoInteractions(model, textGateway, policyGateway);
     }
 
@@ -131,7 +146,26 @@ class AiFoodPhotoApiIntegrationTest {
                         .with(authenticatedUser(1L)))
                 .andExpect(status().isBadRequest());
         assertThat(jdbc.queryForObject("select count(*) from ai_messages", Integer.class)).isZero();
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore);
         verifyNoInteractions(model, textGateway, policyGateway);
+    }
+
+    @Test
+    void doesNotCountDatabaseSaveFailureAsAnotherPhotoCall() throws Exception {
+        long failuresBefore = registry.find("app.ai.provider").tag("outcome", "FAILURE")
+                .timers().stream().mapToLong(timer -> timer.count()).sum();
+        respond("{\"status\":\"NOT_FOOD\",\"items\":[]}");
+        doThrow(new IllegalStateException("test database failure")).when(transactions)
+                .savePhotoSuccess(anyLong(), anyLong(), any(), any(), any(), anyLong());
+        assertThatThrownBy(() -> send(1L)).hasRootCauseInstanceOf(IllegalStateException.class);
+        assertThat(meterCount("app.ai.provider")).isEqualTo(providerCountBefore + 1);
+        assertThat(registry.find("app.ai.provider").tag("outcome", "FAILURE")
+                .timers().stream().mapToLong(timer -> timer.count()).sum()).isEqualTo(failuresBefore);
+        verify(model, times(1)).call(any(Prompt.class));
+    }
+
+    private long meterCount(String name) {
+        return registry.find(name).timers().stream().mapToLong(timer -> timer.count()).sum();
     }
 
     private void respond(String json) {
