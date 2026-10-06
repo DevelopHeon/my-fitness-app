@@ -161,3 +161,12 @@ Grafana 자원 구성을 다시 정한 뒤 전체 스택 인수 검증이 필요
 
 위 로컬 대역·격리 검사 결과와 실제 EC2에서 실패한 Grafana 기동 결과를 구분한다.
 후속 복구 조건 수정도 한국어 commit 후 main에 push한다.
+
+
+## 후속 작업: small 증설과 실제 모니터링 기동 확인
+
+사용자가 단일 t4g.small 증설과 실제 운영 배포·모니터링 확인을 승인했다.
+backend 236건·frontend 20건과 Checkstyle·ArchUnit·Modulith·convention,
+배포 대역 19건, CDK build·4건, native monitoring 검사 모두 통과했다.
+CDK의 small 및 고정 AMI 기대를 먼저 실패시킨 후 구현해 통과를 확인했다.
+운영 기동·지표 확인 결과는 실제 적용 이후 아래에 기록한다.

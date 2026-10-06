@@ -47,6 +47,8 @@ npx cdk diff
 npx cdk deploy <StackName> --exclusively
 ```
 
+리전은 `--region ap-northeast-2`로 명시한다. EC2 타입 변경 전 현재 AMI와 루트 volume을 확인하고,
+변경 집합에서 인스턴스 교체가 없는지 확인한다. 타입 변경에는 일시 중단이 발생한다.
 `<StackName>`은 실제 stack 이름으로 바꾸는 자리다. EC2 UserData·네트워크 변경은 replacement 여부를 확인한다.
 Route 53 record와 Caddy는 별도 관리한다. EC2에 [setup-caddy.sh](../../scripts/setup-caddy.sh)를 배치한 뒤 그 위치에서 실행한다.
 
@@ -77,7 +79,7 @@ CI의 격리된 Compose 검사는 GitHub runner에서만 실행하며, Deploy Ap
 main 자동 배포와 수동 workflow_dispatch는 모두 이 release 경로를 사용한다.
 CI는 `scripts/verify-monitoring.sh`로 local/prod를 함께 검사하며 테스트용 프로젝트만 정리한다.
 기존 EC2도 SSM에서 setup-ec2-monitoring.sh가 실행되므로 UserData 업데이트만 기다리지 않는다.
-처음에는 micro 시험이며 실제 자원 인수와 Slack 확인은 [모니터링 인수 기준](monitoring.md#운영-인수)을 따른다.
+small 구성의 실제 자원 인수와 Slack 확인은 [모니터링 인수 기준](monitoring.md#운영-인수)을 따른다.
 
 앱은 성공했지만 모니터링만 실패하면 Actions/SSM 상태와 health를 각각 확인한다.
 이전 release의 Compose 파일이 실제로 존재할 때만 volume을 보존한 복원을 시도한다. 복원 로그만으로 정상 수집이라 판단하지 않는다.

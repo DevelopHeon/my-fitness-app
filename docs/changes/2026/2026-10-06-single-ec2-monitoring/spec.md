@@ -314,3 +314,19 @@ SSM 터널 Grafana 로그인, 대상 UP, host/root 지표 대조, 쿼리·패널
 
 현재 기준: [Infrastructure](../../../reference/infrastructure.md), [Monitoring](../../../guides/monitoring.md),
 [Testing](../../../guides/testing.md).
+
+
+## 후속 승인: small 증설과 Grafana 최소 메모리 반영
+
+micro·Grafana 128MiB 운영 기동 실패 후 사용자가 단일 t4g.small 증설과 배포 검증을 승인했다.
+후속 계약은 앱 448MiB/heap 256MiB, Prometheus 256MiB, Grafana 512MiB,
+Alertmanager 64MiB, node_exporter 32MiB, Caddy 64MiB다. 실행 상한 합계는 1,376MiB다.
+앞의 small 초기 제안 중 Grafana 192MiB는 이 승인으로 대체하며, 앱 heap은 추가로 조정하지 않는다.
+EC2의 AMI와 루트 volume을 보존하고 같은 T4g 계열에서 타입만 증설한다.
+CDK가 최신 AMI를 재조회해 기존 volume과 인스턴스를 교체하지 않도록 현재 서울 AMI를 고정한다.
+AMI 업데이트는 별도 교체·데이터 보존 검토를 거친다.
+
+기존 로컬·CI 검사 이후 CloudFormation 변경 집합을 검토해 EC2에 적용하고,
+같은 검증 SHA의 app/monitoring release를 배포한다. 앱 health, 네 모니터링 health,
+Prometheus의 세 target UP과 실제 JVM·DB·HTTP 지표, Grafana 인증·provisioning·datasource 조회를 확인한다.
+기동 성공과 24시간 안정성·최대 사진/AI 부하·3일 보관 만료·실제 Slack 전송을 구분해 보고한다.

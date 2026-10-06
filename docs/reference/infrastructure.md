@@ -25,15 +25,17 @@ flowchart LR
 | --- | --- |
 | Region / VPC | ap-northeast-2, 10.20.0.0/16, 2 AZ |
 | Subnet | Public application + Private Isolated database, NAT 없음 |
-| EC2 | t4g.micro ARM64 / Amazon Linux 2023, encrypted gp3 20 GiB, swap 2 GiB |
+| EC2 | t4g.small ARM64 / Amazon Linux 2023, encrypted gp3 20 GiB, swap 2 GiB |
 | RDS | PostgreSQL 17.9 / db.t4g.micro / Single-AZ, encrypted gp3 20 GiB, 최대 50 GiB, backup 7일 |
 | 네트워크 | 인터넷 ingress 80·443만, app 127.0.0.1:8080, RDS 5432는 EC2 Security Group에서만 |
 | ECR | my-fitness, immutable SHA tag, scan on push, 최근 10개 유지 |
 | 애플리케이션 | my-fitness-app, memory 448m / memory-swap 512m, restart unless-stopped |
 | JVM / Hikari | Xms64m·Xmx256m·G1GC, pool max 5 / min idle 1 |
-| HTTPS | Caddy host network, memory 48m, Let's Encrypt, health 외 actuator 404 |
-| 운영 수집 | Prometheus 160m, Grafana 128m, Alertmanager 48m, node_exporter 24m, swap 추가 사용 없음 |
+| HTTPS | Caddy host network, memory 64m, Let's Encrypt, health 외 actuator 404 |
+| 운영 수집 | Prometheus 256m, Grafana 512m, Alertmanager 64m, node_exporter 32m, swap 추가 사용 없음 |
 
+EC2 AMI는 서울의 기존 `ami-093fb7e528aec34e5`로 고정한다. 타입 증설에서 최신 AMI 조회로
+인스턴스가 교체되지 않게 하며, AMI 교체는 별도 변경 집합·디스크 보존 검토를 거친다.
 EC2 관리는 SSM을 사용한다. ALB·ECS·EKS·ASG는 구성하지 않는다.
 CDK stack은 MyFitnessNetwork → MyFitnessDatabase → MyFitnessApplication → MyFitnessCicd 순서로 의존한다.
 Route 53 record와 Caddy 실행은 stack 밖에서 관리한다. Amazon Linux bootstrap은 Docker·jq·AWS CLI·runtime 디렉터리와 swap을 준비하며 curl-minimal과 충돌하는 full curl을 추가하지 않는다.
@@ -108,7 +110,7 @@ loopback 9090·3001·9093·9100을 사용한다. SG 포트를 추가하지 않�
 기존 6개 규칙과 host 메모리/디스크 2개 규칙은 Prometheus가 평가하고 Alertmanager가 Slack에 전달한다.
 Docker 로그는 local driver 10m×3이며 앱 로그의 CloudWatch 중앙 수집은 추가하지 않는다.
 모니터링 실패는 앱 배포 성공과 분리해 보고하며 설정 rollback은 volume을 보존한다.
-현재 micro·20GiB를 유지한 시험 한도이며 24시간 자원 인수 전 상시 운영 가능하다고 판단하지 않는다.
+현재 small·20GiB의 초기 한도이며 24시간 자원 인수 전 상시 운영 가능하다고 판단하지 않는다.
 현재 실행 방법·중단·비용과 인수 기준은 [Monitoring](../guides/monitoring.md),
 설계 근거와 미검증 범위는 [스펙](../changes/2026/2026-10-06-single-ec2-monitoring/spec.md)에 둔다.
 음식 사진에도 S3·CDN·원본 저장 테이블·별도 키를 추가하지 않는다.

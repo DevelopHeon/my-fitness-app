@@ -203,12 +203,13 @@ curl --fail --silent http://127.0.0.1:8080/actuator/health
 
 ### 운영 인수
 
-현재 t4g.micro의 시험 한도는 앱 448MiB, Prometheus 160MiB, Grafana 128MiB, Alertmanager 48MiB,
-node_exporter 24MiB, Caddy 48MiB입니다. 합계 856MiB는 OS·Docker·SSM을 포함하지 않아 안전 여유를 보장하지 않습니다.
+현재 t4g.small(2GiB)의 초기 한도는 앱 448MiB, Prometheus 256MiB, Grafana 512MiB, Alertmanager 64MiB,
+node_exporter 32MiB, Caddy 64MiB입니다. 합계 1,376MiB이며 남은 672MiB에는 OS·Docker·SSM과 배포 작업이 포함됩니다.
+이는 메모리 상한이며 실제 사용량이나 예약량을 뜻하지 않습니다.
 앱은 64/256MiB heap, RAM+swap 합계 512MiB로 제한합니다. 다른 컨테이너는 추가 swap을 허용하지 않습니다.
 
-2026-10-06 실제 EC2에서는 Grafana가 128MiB 한도로 준비되지 않아 모니터링을 중지했습니다.
-현재 설정을 운영 기동이 검증된 구성으로 사용하지 마세요. 자원 구성 조정 후 인수를 다시 수행해야 합니다.
+이전 micro·Grafana 128MiB 구성은 실제 EC2에서 준비되지 않았습니다.
+사용자 승인에 따라 small·Grafana 512MiB로 조정하며, 기동 검증과 24시간 안정성 인수를 구분합니다.
 관측과 미확정 원인은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#push-이후-운영-확인과-복구-조건-보완)에 둡니다.
 
 기동·WAL 복구·재배포·대표 API·최대 사진·동시 사진·3일 쿼리·재부팅을 구분해 기록합니다.
@@ -221,13 +222,14 @@ byte 환산에는 `getconf PAGESIZE`를 사용합니다. 전체 환경이나 요
 - 같은 AI 대역·API 부하 비교에서 추가 5xx 0건, p95 악화 20% 이내.
 - 인증 수집 UP·SSM 로그인·공개 지표 404·volume 보존·재부팅 후 swap 유지.
 
-한 항목이라도 실패하면 모니터링을 멈추고 t4g.small 또는 배치 분리를 검토합니다.
+한 항목이라도 실패하면 모니터링을 멈추고 추가 증설 또는 배치 분리를 검토합니다.
 사진 전처리의 256MiB child JVM 시험은 전체 앱 RSS·동시 AI 부하와 EC2 24시간 인수를 대신하지 않습니다.
 3일 보관 만료·compaction은 24시간 시험과 별도로 관측해야 합니다.
 
 ### 비용
 
-현재 micro·20GiB EBS·RDS·Elastic IP를 유지하면 모니터링 서버·볼륨의 새 고정비는 없습니다.
+기존 micro를 small로 증설하므로 EC2 고정비가 증가합니다. 기존 20GiB EBS·RDS·Elastic IP는 유지하며
+별도 모니터링 서버·볼륨·공인 IPv4는 추가하지 않습니다.
 EBS는 할당 용량 기준이므로 기존 20GiB 안에서 사용하는 swap·TSDB가 별도 볼륨 청구로 이어지지는 않습니다.
 CPU credit·외부 전송량 증가와 실제 세금·할인은 별도로 확인합니다.
 서울 Linux On-Demand EC2만 월 730시간 기준 micro는 약 $7.59, small은 $15.18입니다.

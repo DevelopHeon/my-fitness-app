@@ -29,7 +29,7 @@ test("database uses a private micro PostgreSQL instance", () => {
   });
 });
 
-test("application uses t4g micro and private ECR", () => {
+test("application uses t4g small and private ECR", () => {
   const app = new cdk.App();
   const network = new NetworkStack(app, "Network");
   const database = new DatabaseStack(app, "Database", {
@@ -47,7 +47,13 @@ test("application uses t4g micro and private ECR", () => {
 
   const template = Template.fromStack(stack);
   template.hasResourceProperties("AWS::EC2::Instance", {
-    InstanceType: "t4g.micro",
+    InstanceType: "t4g.small",
+    ImageId: {
+      "Fn::FindInMap": [Match.anyValue(), { Ref: "AWS::Region" }, "ami"],
+    },
+  });
+  expect(Object.values(template.toJSON().Mappings)).toContainEqual({
+    "ap-northeast-2": { ami: "ami-093fb7e528aec34e5" },
   });
   template.hasResourceProperties("AWS::ECR::Repository", {
     RepositoryName: "my-fitness",

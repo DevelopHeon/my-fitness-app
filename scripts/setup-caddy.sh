@@ -74,7 +74,7 @@ healthy() {
   return 1
 }
 
-if start_caddy "$CADDY_IMAGE" 48m 48m && healthy; then
+if start_caddy "$CADDY_IMAGE" 64m 64m && healthy; then
   echo "Caddy HTTPS setup succeeded: https://$DOMAIN"
   exit 0
 fi

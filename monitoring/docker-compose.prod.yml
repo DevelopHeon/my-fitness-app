@@ -29,8 +29,8 @@ services:
     image: prom/prometheus:v3.15.0
     network_mode: host
     restart: unless-stopped
-    mem_limit: 160m
-    memswap_limit: 160m
+    mem_limit: 256m
+    memswap_limit: 256m
     depends_on:
       secret-init: {condition: service_completed_successfully}
     command:
@@ -51,8 +51,8 @@ services:
     image: grafana/grafana:13.2.3
     network_mode: host
     restart: unless-stopped
-    mem_limit: 128m
-    memswap_limit: 128m
+    mem_limit: 512m
+    memswap_limit: 512m
     depends_on:
       secret-init: {condition: service_completed_successfully}
     environment:
@@ -74,8 +74,8 @@ services:
     image: prom/alertmanager:v0.34.1
     network_mode: host
     restart: unless-stopped
-    mem_limit: 48m
-    memswap_limit: 48m
+    mem_limit: 64m
+    memswap_limit: 64m
     depends_on:
       secret-init: {condition: service_completed_successfully}
     command:
@@ -93,8 +93,8 @@ services:
     network_mode: host
     pid: host
     restart: unless-stopped
-    mem_limit: 24m
-    memswap_limit: 24m
+    mem_limit: 32m
+    memswap_limit: 32m
     command:
       - --web.listen-address=127.0.0.1:9100
       - --path.rootfs=/host

@@ -80,9 +80,10 @@ export class ApplicationStack extends cdk.Stack {
       vpc: props.vpc,
       vpcSubnets: { subnets: [props.publicSubnet] },
       securityGroup: props.securityGroup,
-      instanceType: new ec2.InstanceType("t4g.micro"),
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({
-        cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+      instanceType: new ec2.InstanceType("t4g.small"),
+      // Keep the deployed AMI when resizing; AMI upgrades require a separate replacement review.
+      machineImage: ec2.MachineImage.genericLinux({
+        "ap-northeast-2": "ami-093fb7e528aec34e5",
       }),
       role,
       userData,
