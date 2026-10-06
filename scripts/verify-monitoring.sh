@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TEMP="$(mktemp -d)"
+# promtool reads the mounted fixture directory as UID 65534 on Linux.
+chmod 755 "$TEMP"
 export MONITORING_SECRET_DIR="$TEMP/secrets"
 PROJECT="my-fitness-monitoring-check-$$"
 COMPOSE=(docker compose -p "$PROJECT" -f "$ROOT/monitoring/docker-compose.prod.yml")
@@ -23,11 +25,11 @@ chmod 600 "$MONITORING_SECRET_DIR"/*
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" run --rm secret-init
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh prometheus -ec \
-  'test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password; test ! -r /credentials/slack_webhook_url'
+  'test "$(id -u)" = 65534; test -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password; test ! -r /credentials/slack_webhook_url'
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh grafana -ec \
-  'test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password; test ! -r /credentials/slack_webhook_url'
+  'test "$(id -u)" = 472; test -r /credentials/grafana_admin_password; test ! -r /credentials/metrics_password; test ! -r /credentials/slack_webhook_url'
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh alertmanager -ec \
-  'test -r /credentials/slack_webhook_url; test ! -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
+  'test "$(id -u)" = 65534; test -r /credentials/slack_webhook_url; test ! -r /credentials/metrics_password; test ! -r /credentials/grafana_admin_password'
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus check config /etc/prometheus/prometheus.yml
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/alerts.test.yml
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint promtool prometheus test rules /etc/prometheus/host-alerts.test.yml
@@ -43,8 +45,7 @@ docker run --rm --entrypoint promtool -v "$TEMP:/tests:ro" \
   config routes test --config.file=/etc/alertmanager/alertmanager.yml \
   --verify.receivers=slack service=my-fitness environment=prod alertname=HostMemoryPressure
 
-sed -e 's/group_wait: 30s/group_wait: 1s/' \
-  -e 's/group_interval: 5m/group_interval: 1s/' \
+sed -e 's/group_interval: 5m/group_interval: 1s/' \
   -e 's/repeat_interval: 4h/repeat_interval: 1m/' \
   -e 's@api_url_file: /credentials/slack_webhook_url@api_url: http://receiver:8080/@' \
   "$ROOT/monitoring/production/alertmanager.yml" > "$TEMP/alertmanager.yml"

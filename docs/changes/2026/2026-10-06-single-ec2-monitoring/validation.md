@@ -46,6 +46,13 @@ PNG reader의 `OutOfMemoryError`가 `IIOException`에 감싸져 기존 INVALID �
 
 SSM parameter JSON 크기는 이 검증 시점 수치다. 이후 설정 증가에 대비해 archive base64 48,000자 제한을 둔다.
 실제 SSM 전달·IAM·도구 설치·외부 provider 권한을 이 로컬 round trip으로 입증하지 않는다.
+Linux CI에서 non-root promtool이 fixture 디렉터리를 읽도록 임시 상위 디렉터리에 755를 명시했다.
+dummy secret 하위 디렉터리 700·파일 600은 유지하며 각 서비스의 실제 UID도 검사한다.
+첫 [원격 CI](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37445348068)는
+`/tests/alerts.test.yml: permission denied`로 실패했다. 임시 디렉터리 접근을 보완했고 검증 범위·규칙은 유지했다.
+알림 시험의 1초 group_wait에서 간헐적으로 첫 알림만 전송되는 실패를 확인해 운영의 30초를 그대로 검사한다.
+silence도 최초 대기보다 긴 35초를 관측한다. group_interval·repeat_interval만 시험 시간을 줄이며
+운영의 5분·4시간 값은 amtool 설정 검증으로 확인한다.
 
 ## 정리와 미검증
 

@@ -18,7 +18,7 @@ const receiver = http.createServer(async (request, response) => {
 await new Promise(resolve => receiver.listen(8080, '0.0.0.0', resolve));
 
 async function waitFor(predicate, label) {
-  const deadline = Date.now() + 20000;
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
     if (await predicate()) {
       return;
@@ -83,7 +83,8 @@ try {
   });
   assert.ok((await silence.json()).silenceID);
   await post('alerts', alerts('SilencedProbe', new Date(Date.now() + 60000).toISOString()));
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  // Observe longer than group_wait so silence, rather than waiting, suppresses delivery.
+  await new Promise(resolve => setTimeout(resolve, 35000));
   assert.equal(messages.length, 2, 'silenced alerts must not be delivered');
   console.log('Caddy isolation, grouped firing, resolved and silence passed');
 } finally {
