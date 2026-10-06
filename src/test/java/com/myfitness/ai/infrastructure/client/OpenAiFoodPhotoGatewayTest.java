@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoResponse;
 import com.myfitness.ai.domain.model.FoodPhotoAnalysis;
@@ -82,16 +83,20 @@ class OpenAiFoodPhotoGatewayTest {
         when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(
                 AssistantMessage.builder().content("{\"status\":\"NOT_FOOD\",\"items\":[]}")
                         .properties(Map.of("refusal", "refused")).build()))));
-        assertThatThrownBy(() -> gateway.analyze(input)).isInstanceOf(AiProviderUnavailableException.class);
+        assertThatThrownBy(() -> gateway.analyze(input))
+                .isInstanceOfSatisfying(AiProviderUnavailableException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(Code.MODEL_REFUSAL));
         when(model.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of(new Generation(
                 new AssistantMessage("{\"status\":\"NOT_FOOD\",\"items\":[]}"),
                 ChatGenerationMetadata.builder().finishReason("length").build()))));
-        assertThatThrownBy(() -> gateway.analyze(input)).isInstanceOf(AiProviderUnavailableException.class);
+        assertThatThrownBy(() -> gateway.analyze(input))
+                .isInstanceOfSatisfying(AiProviderUnavailableException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(Code.INCOMPLETE_RESPONSE));
         when(model.call(any(Prompt.class))).thenThrow(new ResourceAccessException(
                 "private", new SocketTimeoutException()));
         assertThatThrownBy(() -> gateway.analyze(input)).isInstanceOf(AiProviderUnavailableException.class)
                 .hasMessageNotContaining("private")
-                .satisfies(error -> assertThat(((AiProviderUnavailableException) error).getErrorCode()).isEqualTo("TIMEOUT"));
+                .satisfies(error -> assertThat(((AiProviderUnavailableException) error).getErrorCode()).isEqualTo(Code.TIMEOUT));
         verify(model, times(3)).call(any(Prompt.class));
     }
 

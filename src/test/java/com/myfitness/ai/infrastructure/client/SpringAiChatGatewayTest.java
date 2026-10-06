@@ -1,12 +1,15 @@
 package com.myfitness.ai.infrastructure.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.myfitness.ai.application.config.AiCoachProperties;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.support.AiMetrics;
 import com.myfitness.ai.application.support.AiProviderExecutor;
 import com.myfitness.ai.application.support.context.AiContextBundle;
@@ -33,6 +36,23 @@ import org.springframework.core.env.Environment;
 import java.util.List;
 
 class SpringAiChatGatewayTest {
+
+    @Test
+    void missingModelReportsConfigurationError() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<ChatModel> provider = mock(ObjectProvider.class);
+        SpringAiChatGateway gateway = new SpringAiChatGateway(provider, mock(Environment.class));
+        assertThatThrownBy(() -> gateway.chat(new AiModelRequest("system", null, List.of(), "question")))
+                .isInstanceOfSatisfying(AiProviderUnavailableException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(Code.CONFIGURATION_ERROR));
+    }
+
+    @Test
+    void emptyResponseReportsInvalidResponse() {
+        assertThatThrownBy(() -> generateAndMeasure(null))
+                .isInstanceOfSatisfying(AiProviderUnavailableException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(Code.INVALID_RESPONSE));
+    }
 
     @Test
     void defaultEmptyUsageDoesNotCreateTokenCounters() {

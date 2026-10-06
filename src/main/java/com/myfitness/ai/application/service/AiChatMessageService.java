@@ -4,7 +4,6 @@ import com.myfitness.ai.application.config.AiCoachProperties;
 import com.myfitness.ai.application.dto.request.AiClientContext;
 import com.myfitness.ai.application.dto.request.AiMessageCommand;
 import com.myfitness.ai.application.dto.response.AiSendMessageResult;
-import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -126,7 +125,7 @@ public class AiChatMessageService {
             case AiPolicyRun.Success success -> success;
             case AiPolicyRun.Failure failure -> {
                 transactionService.savePolicyFailure(userId, conversationId, userMessage, failure);
-                throw new AiPolicyUnavailableException(failure.errorCode());
+                throw failure.error();
             }
         };
     }

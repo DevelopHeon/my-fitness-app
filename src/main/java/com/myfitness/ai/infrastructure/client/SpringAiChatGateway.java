@@ -1,6 +1,7 @@
 package com.myfitness.ai.infrastructure.client;
 
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.port.out.AiChatGateway;
 import com.myfitness.ai.domain.model.AiMessageRole;
 import java.util.ArrayList;
@@ -37,7 +38,8 @@ public class SpringAiChatGateway implements AiChatGateway {
         ChatModel chatModel = chatModelProvider.getIfAvailable();
         if (chatModel == null) {
             throw new AiProviderUnavailableException(
-                    "AI Provider가 설정되지 않았습니다. AI_PROVIDER를 설정해 주세요.");
+                    "AI Provider가 설정되지 않았습니다. AI_PROVIDER를 설정해 주세요.",
+                    null, Code.CONFIGURATION_ERROR);
         }
 
         List<Message> messages = new ArrayList<>();
@@ -67,7 +69,7 @@ public class SpringAiChatGateway implements AiChatGateway {
                 || response.getResult().getOutput().getText() == null
                 || response.getResult().getOutput().getText().isBlank()) {
             throw new AiProviderUnavailableException(
-                    "AI Provider가 빈 응답을 반환했습니다.");
+                    "AI Provider가 빈 응답을 반환했습니다.", null, Code.INVALID_RESPONSE);
         }
 
         Usage usage = response.getMetadata() == null

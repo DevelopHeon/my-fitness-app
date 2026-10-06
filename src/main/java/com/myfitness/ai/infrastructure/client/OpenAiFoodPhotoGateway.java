@@ -2,6 +2,7 @@ package com.myfitness.ai.infrastructure.client;
 
 import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway;
 import com.openai.errors.OpenAIServiceException;
 import java.net.SocketTimeoutException;
@@ -82,11 +83,11 @@ public class OpenAiFoodPhotoGateway implements FoodPhotoGateway {
         String key = environment.getProperty("spring.ai.openai.api-key", "");
         if (!"openai".equals(environment.getProperty("spring.ai.model.chat", "none"))
                 || key.isBlank() || "not-configured".equals(key)) {
-            throw unavailable("CONFIGURATION_ERROR");
+            throw unavailable(Code.CONFIGURATION_ERROR);
         }
         ChatModel chatModel = modelProvider.getIfAvailable();
         if (chatModel == null) {
-            throw unavailable("CONFIGURATION_ERROR");
+            throw unavailable(Code.CONFIGURATION_ERROR);
         }
         return chatModel;
     }
@@ -110,18 +111,18 @@ public class OpenAiFoodPhotoGateway implements FoodPhotoGateway {
         return new Prompt(List.of(new SystemMessage(SYSTEM_PROMPT), user), options);
     }
 
-    private String failureCode(RuntimeException exception) {
+    private Code failureCode(RuntimeException exception) {
         Throwable cause = exception;
         while (cause != null) {
             if (cause instanceof SocketTimeoutException || cause instanceof HttpTimeoutException) {
-                return "TIMEOUT";
+                return Code.TIMEOUT;
             }
             cause = cause.getCause();
         }
-        return exception instanceof OpenAIServiceException ? "HTTP_ERROR" : "TRANSPORT_ERROR";
+        return exception instanceof OpenAIServiceException ? Code.HTTP_ERROR : Code.TRANSPORT_ERROR;
     }
 
-    private AiProviderUnavailableException unavailable(String code) {
+    private AiProviderUnavailableException unavailable(Code code) {
         return new AiProviderUnavailableException(
                 "음식 사진 분석을 완료하지 못했습니다. 잠시 후 다시 시도하거나 직접 입력해주세요.", null, code);
     }

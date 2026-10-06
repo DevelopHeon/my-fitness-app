@@ -2,6 +2,7 @@ package com.myfitness.ai.application.support;
 
 import com.myfitness.ai.application.config.AiCoachProperties;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelRequest;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -35,12 +36,12 @@ public class AiProviderExecutor {
         try {
             response = chatGateway.chat(request(context, history, message));
         } catch (RuntimeException exception) {
-            String error = exception instanceof AiProviderUnavailableException failure
-                    ? failure.getErrorCode() : "OTHER";
+            Code error = exception instanceof AiProviderUnavailableException failure
+                    ? failure.getErrorCode() : Code.OTHER;
             metrics.provider("chat", provider(), "FAILURE", error, elapsed(started));
             throw exception;
         }
-        metrics.provider("chat", response.provider(), "SUCCESS", "NONE", elapsed(started));
+        metrics.provider("chat", response.provider(), "SUCCESS", Code.NONE, elapsed(started));
         metrics.tokens("chat", response.provider(), response.inputTokens(), response.outputTokens());
         return response;
     }

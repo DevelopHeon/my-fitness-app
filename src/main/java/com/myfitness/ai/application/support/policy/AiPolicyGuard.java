@@ -46,11 +46,11 @@ public class AiPolicyGuard {
             run = new AiPolicyRun.Success(
                     properties.getVersion(), decision, assessment, elapsed(started));
         } catch (RuntimeException exception) {
-            String code =
+            AiPolicyUnavailableException error =
                     exception instanceof AiPolicyUnavailableException policy
-                            ? policy.getCode()
-                            : "POLICY_ERROR";
-            run = new AiPolicyRun.Failure(properties.getVersion(), code, elapsed(started));
+                            ? policy
+                            : new AiPolicyUnavailableException(AiPolicyUnavailableException.Code.POLICY_ERROR, exception);
+            run = new AiPolicyRun.Failure(properties.getVersion(), error, elapsed(started));
         }
         metrics.policy(run);
         return run;

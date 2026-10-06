@@ -1,20 +1,33 @@
 package com.myfitness.ai.application.exception;
 
-public class AiProviderUnavailableException extends RuntimeException {
-    private final String errorCode;
+import java.util.Objects;
 
-    public AiProviderUnavailableException(String message) {
-        this(message, null, "AI_PROVIDER_UNAVAILABLE");
+public class AiProviderUnavailableException extends RuntimeException {
+    public enum Code {
+        NONE,
+        CONFIGURATION_ERROR,
+        TIMEOUT,
+        TRANSPORT_ERROR,
+        HTTP_ERROR,
+        INVALID_RESPONSE,
+        MODEL_REFUSAL,
+        INCOMPLETE_RESPONSE,
+        AI_PROVIDER_UNAVAILABLE,
+        OTHER
     }
+
+    private final Code errorCode;
 
     public AiProviderUnavailableException(String message, Throwable cause) {
-        this(message, cause, "AI_PROVIDER_UNAVAILABLE");
+        this(message, cause, Code.AI_PROVIDER_UNAVAILABLE);
     }
 
-    public AiProviderUnavailableException(String message, Throwable cause, String errorCode) {
+    public AiProviderUnavailableException(String message, Throwable cause, Code errorCode) {
         super(message, cause);
-        this.errorCode = errorCode;
+        this.errorCode = Objects.requireNonNull(errorCode);
     }
 
-    public String getErrorCode() { return errorCode; }
+    public Code getErrorCode() {
+        return errorCode;
+    }
 }

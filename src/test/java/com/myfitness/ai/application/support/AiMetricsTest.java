@@ -1,25 +1,51 @@
 package com.myfitness.ai.application.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.myfitness.ai.application.port.out.AiPolicyGateway;
+import com.myfitness.ai.application.port.out.AiChatGateway;
+import com.myfitness.ai.application.config.AiCoachProperties;
+import com.myfitness.ai.application.support.context.AiContextBundle;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.support.policy.AiPolicyDecision;
 import com.myfitness.ai.application.support.policy.AiPolicyRun;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class AiMetricsTest {
     @Test
+    void unexpectedChatFailureUsesBoundedCodeWithoutExceptionText() {
+        AiChatGateway gateway = mock(AiChatGateway.class);
+        IllegalStateException error = new IllegalStateException("private provider response");
+        when(gateway.chat(any())).thenThrow(error);
+        when(gateway.provider()).thenReturn("openai");
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        AiProviderExecutor executor = new AiProviderExecutor(gateway, new AiCoachProperties(), new AiMetrics(registry));
+        assertThatThrownBy(() -> executor.generate(AiContextBundle.empty(), List.of(), "question"))
+                .isSameAs(error);
+        assertThat(registry.get("app.ai.provider").tag("error", "OTHER").timer().count()).isEqualTo(1);
+        assertThat(registry.getMeters()).allSatisfy(meter ->
+                assertThat(meter.getId().toString()).doesNotContain("private provider response", "question"));
+    }
+
+    @Test
     void exportsProviderHistogramAndObservedTokensWithDashboardMetricNames() {
         PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         try {
             AiMetrics metrics = new AiMetrics(registry);
-            metrics.policy(new AiPolicyRun.Failure("version", "TIMEOUT", 25));
-            metrics.provider("chat", "openai", "SUCCESS", "NONE", 1000);
+            AiPolicyUnavailableException error = new AiPolicyUnavailableException(AiPolicyUnavailableException.Code.TIMEOUT);
+            metrics.policy(new AiPolicyRun.Failure("version", error, 25));
+            metrics.provider("chat", "openai", "SUCCESS", Code.NONE, 1000);
             metrics.tokens("chat", "openai", 12, 3);
             String scrape = registry.scrape();
             assertThat(scrape).contains("app_ai_policy_seconds_count{", "action=\"UNAVAILABLE\"",
@@ -44,7 +70,7 @@ class AiMetricsTest {
                     assessment, 25));
             assertThat(registry.get("app.ai.policy").tag("action", action.name()).timer().count()).isEqualTo(1);
         }
-        metrics.policy(new AiPolicyRun.Failure("version", "HTTP_429", 100));
+        metrics.policy(new AiPolicyRun.Failure("version", AiPolicyUnavailableException.httpFailure(429), 100));
         assertThat(registry.get("app.ai.policy").tag("action", "UNAVAILABLE").tag("error", "HTTP_4XX")
                 .timer().totalTime(TimeUnit.MILLISECONDS)).isEqualTo(100);
         assertThat(registry.get("app.ai.tokens").tag("kind", "policy").counter().count()).isEqualTo(48);
@@ -59,10 +85,10 @@ class AiMetricsTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         AiMetrics metrics = new AiMetrics(registry);
         for (String outcome : new String[] {"FOOD", "NOT_FOOD", "UNCERTAIN"}) {
-            metrics.provider("photo", "openai", outcome, "NONE", 20);
+            metrics.provider("photo", "openai", outcome, Code.NONE, 20);
             assertThat(registry.get("app.ai.provider").tag("outcome", outcome).timer().count()).isEqualTo(1);
         }
-        metrics.provider("chat", "unexpected-model-provider", "FAILURE", "secret error text", 15);
+        metrics.provider("chat", "unexpected-model-provider", "FAILURE", Code.OTHER, 15);
         assertThat(registry.get("app.ai.provider").tag("provider", "other").tag("error", "OTHER")
                 .timer().count()).isEqualTo(1);
         metrics.tokens("chat", "openai", null, null);

@@ -3,6 +3,7 @@ package com.myfitness.ai.application.service;
 import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
 import com.myfitness.ai.application.dto.response.AiFoodPhotoResult;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
+import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.port.in.FoodPhotoUseCase;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoResponse;
@@ -63,14 +64,14 @@ public class FoodPhotoService implements FoodPhotoUseCase {
         try {
             response = gateway.analyze(image);
         } catch (RuntimeException exception) {
-            String errorCode = exception instanceof AiProviderUnavailableException failure
-                    ? failure.getErrorCode() : "TRANSPORT_ERROR";
+            Code errorCode = exception instanceof AiProviderUnavailableException failure
+                    ? failure.getErrorCode() : Code.TRANSPORT_ERROR;
             metrics.provider("photo", "openai", "FAILURE", errorCode, elapsedMillis(started));
             transactions.savePhotoFailure(
-                    userId, conversationId, userMessage, gateway.model(), errorCode, elapsedMillis(started));
+                    userId, conversationId, userMessage, gateway.model(), errorCode.name(), elapsedMillis(started));
             throw exception;
         }
-        metrics.provider("photo", "openai", response.analysis().status().name(), "NONE", elapsedMillis(started));
+        metrics.provider("photo", "openai", response.analysis().status().name(), Code.NONE, elapsedMillis(started));
         metrics.tokens("photo", "openai", response.inputTokens(), response.outputTokens());
         return response;
     }

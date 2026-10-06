@@ -1,5 +1,6 @@
 package com.myfitness.ai.application.support.policy;
 
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
 
 import java.util.Objects;
@@ -25,11 +26,11 @@ public sealed interface AiPolicyRun {
         }
     }
 
-    record Failure(String version, String errorCode, long latencyMs) implements AiPolicyRun {
+    record Failure(String version, AiPolicyUnavailableException error, long latencyMs) implements AiPolicyRun {
         public Failure {
             Objects.requireNonNull(version);
-            Objects.requireNonNull(errorCode);
-            if (version.isBlank() || errorCode.isBlank() || latencyMs < 0) {
+            Objects.requireNonNull(error);
+            if (version.isBlank() || latencyMs < 0) {
                 throw new IllegalArgumentException("정책 실패의 버전·오류·지연 시간이 유효하지 않습니다.");
             }
         }

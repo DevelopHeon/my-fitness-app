@@ -20,7 +20,7 @@
 `AiCoachService`는 In Port 구현과 대화/메시지 위임을 담당한다.
 `AiChatMessageService`가 텍스트 처리 순서를 조정하고 `AiPolicyGuard`가 성공/실패를 반환한다.
 HTTP·wire 검증은 `AiPolicyGateway` Out Port 뒤의 `JevAiPolicyGateway`에 있다.
-`AiPolicyRun`은 필수 값이 있는 Success와 오류 코드가 있는 Failure로 표현한다.
+`AiPolicyRun`은 필수 값이 있는 Success와 타입이 지정된 정책 예외를 보존하는 Failure로 표현한다.
 
 ## 정책 평가 기준
 
@@ -49,10 +49,16 @@ confidence를 정답 확률로 해석하지 않는다.
 
 JEV의 key/설정 누락, timeout, HTTP·통신 오류, 모델 불일치, 응답 검증 실패는
 `AI_POLICY_UNAVAILABLE / 503`으로 종료한다. 답변 생성으로 우회하지 않으며 자동 재시도하지 않는다.
+정책 오류는 `AiPolicyUnavailableException.Code`, 답변·사진 공급자 오류는
+`AiProviderUnavailableException.Code` enum으로 생성·전달한다. 지표용 문자열 whitelist를 중복 관리하지 않는다.
 응답 검증 실패는 `INVALID_RESPONSE_` 뒤에 검증 단계만 기록한다. 원문 질문·응답·키를 오류 로그에 넣지 않는다.
 
 허용 뒤 답변은 Spring AI의 선택된 ChatModel로 생성한다. Provider 미설정·빈 응답·생성 실패는
 `AI_PROVIDER_UNAVAILABLE / 503`이며 정책 평가 실패와 구분한다.
+채팅의 모델 미설정은 `CONFIGURATION_ERROR`, 빈 응답은 `INVALID_RESPONSE`로 관측한다.
+DB·평가 보고서에서는 enum을 문자열로 변환하며 기존 로그를 재작성하지 않는다.
+JEV HTTP 오류는 로그에 `HTTP_429`처럼 상태를 보존하고 지표에서는
+`HTTP_4XX/HTTP_5XX/HTTP_OTHER`로 묶는다. 알 수 없는 채팅 생성 오류의 지표는 `OTHER`다.
 모델·timeout 기본값은 [설정 계약](infrastructure.md#앱-환경-기본값), 로컬 Provider 주입은 [개발 가이드](../guides/development.md#ai와-로그인-설정)를 따른다.
 
 ## Context·이력·저장

@@ -2,7 +2,7 @@
   "uid": "my-fitness-local",
   "title": "My Fitness · Local Observability",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "timezone": "Asia/Seoul",
   "refresh": "15s",
   "time": {
@@ -15,6 +15,34 @@
   ],
   "panels": [
     {
+      "id": 101,
+      "type": "row",
+      "title": "요약 · 이상 신호부터 확인",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 100,
+      "type": "text",
+      "title": "읽는 순서",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**수집 UP 확인 → API 오류·지연 확인 → AI / DB / JVM에서 같은 시각 비교**\n\n**현재** = 조회 종료 시점의 마지막 관측값 · **선택 구간** = 우측 시간 범위의 증가 추정 · **10분** = 각 시점 직전 10분 · **앱 누적** = 실행 중인 앱의 전체 기록(재시작 시 초기화). N/A는 미사용·표본 부족·미수집일 수 있습니다."
+      }
+    },
+    {
       "id": 1,
       "title": "수집 상태",
       "type": "stat",
@@ -25,9 +53,9 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
-        "w": 12,
-        "h": 8
+        "y": 5,
+        "w": 8,
+        "h": 4
       },
       "targets": [
         {
@@ -56,62 +84,75 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "decimals": 0
         },
         "overrides": []
       },
-      "options": {}
-    },
-    {
-      "id": 2,
-      "title": "앱 가동 시간",
-      "type": "stat",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "process_uptime_seconds{job=\"my-fitness\"}",
-          "legendFormat": "",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "overrides": []
-      },
-      "options": {}
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
     },
     {
       "id": 3,
       "title": "API 요청 수 · 선택 구간",
       "type": "stat",
-      "description": "scrape 기반 추정 건수입니다.",
+      "description": "선택 구간의 scrape 기반 증가 추정값입니다. 새 label의 첫 관측 요청은 포함되지 않을 수 있습니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
-        "x": 0,
-        "y": 8,
-        "w": 12,
-        "h": 8
+        "x": 8,
+        "y": 5,
+        "w": 8,
+        "h": 4
       },
       "targets": [
         {
@@ -128,63 +169,62 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "options": {}
-    },
-    {
-      "id": 4,
-      "title": "API 5xx 비율",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 8,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "((sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\",status=~\"5..\"}[10m])) or (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) * 0)) / sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))) and (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
-          "legendFormat": "",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "noValue": "N/A"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
       }
     },
     {
       "id": 5,
-      "title": "API 5xx 건수",
+      "title": "API 5xx · 선택 구간",
       "type": "stat",
-      "description": "",
+      "description": "선택 구간의 scrape 기반 추정 건수입니다. 요청 지표 자체가 없으면 N/A입니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
-        "x": 0,
-        "y": 16,
-        "w": 12,
-        "h": 8
+        "x": 16,
+        "y": 5,
+        "w": 8,
+        "h": 4
       },
       "targets": [
         {
@@ -199,48 +239,515 @@
           "unit": "short",
           "noValue": "N/A",
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
-      "options": {}
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
     },
     {
-      "id": 6,
-      "title": "API 평균 응답 시간",
+      "id": 26,
+      "title": "API 5xx 비율 · 10분",
+      "type": "stat",
+      "description": "0〜100%로 고정합니다. 최근 10분 API 요청이 없으면 N/A입니다. API 요청 추이와 같은 시각을 비교하고 오류의 경로·원인은 로그에서 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "((sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\",status=~\"5..\"}[10m])) or (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) * 0)) / sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))) and (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.05
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 27,
+      "title": "API 평균 시간 · 10분",
+      "type": "stat",
+      "description": "지연에는 DB·JEV·답변 생성 등이 포함됩니다. 아래 AI·DB 시간 추이에서 같은 시각을 비교하세요. 시간을 더하면 중복 계산입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 9,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) / (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 28,
+      "title": "활성 알림 · 현재",
+      "type": "stat",
+      "description": "이 대시보드의 6개 규칙 중 pending/firing 상태 개수입니다. API 섹션의 알림 표에서 규칙·상태를 확인합니다. Prometheus 수집 지표가 없으면 N/A입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(ALERTS{alertname=~\"AppMetricsUnavailable|ApiServerErrors|PolicyUnavailable|AiProviderFailures|JvmHeapPressure|DbPoolWaiting\",alertstate=~\"pending|firing\"}) or (max(up{job=\"my-fitness\"}) * 0)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "API · 요청량 → 오류 → 느린 경로",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 29,
+      "title": "API 요청 추이 · 10분",
       "type": "timeseries",
-      "description": "",
+      "description": "최근 10분 평균 요청/초입니다. 5xx와 지연 변화가 요청량 변화와 겹치는지 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))",
+          "legendFormat": "요청/초",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "noValue": "N/A",
+          "min": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "API 5xx 비율 · 10분",
+      "type": "timeseries",
+      "description": "0〜100%로 고정합니다. 최근 10분 API 요청이 없으면 N/A입니다. API 요청 추이와 같은 시각을 비교하고 오류의 경로·원인은 로그에서 확인합니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
         "x": 12,
-        "y": 16,
+        "y": 14,
         "w": 12,
-        "h": 8
+        "h": 7
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) / sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))",
-          "legendFormat": "",
+          "expr": "((sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\",status=~\"5..\"}[10m])) or (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) * 0)) / sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))) and (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
+          "legendFormat": "5xx 비율",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "API 평균 시간 · 10분",
+      "type": "timeseries",
+      "description": "지연에는 DB·JEV·답변 생성 등이 포함됩니다. 아래 AI·DB 시간 추이에서 같은 시각을 비교하세요. 시간을 더하면 중복 계산입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) / (sum(rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
+          "legendFormat": "API 전체 평균",
           "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
@@ -248,16 +755,16 @@
       "id": 7,
       "title": "경로별 API p95 · 10분 20건 이상",
       "type": "timeseries",
-      "description": "",
+      "description": "최근 10분 경로별 요청 증가가 20건 이상일 때만 표시합니다. 적은 표본의 빈 그래프는 정상입니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
-        "x": 0,
-        "y": 24,
+        "x": 12,
+        "y": 21,
         "w": 12,
-        "h": 8
+        "h": 7
       },
       "targets": [
         {
@@ -270,57 +777,1026 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 8,
-      "title": "CPU 사용률",
-      "type": "timeseries",
-      "description": "",
+      "id": 30,
+      "title": "경로별 API 평균·표본 · 10분",
+      "type": "table",
+      "description": "느린 API 경로를 평균 내림차순으로 확인합니다. 요청 증가량은 scrape 기반 추정이며 새 label의 첫 요청은 빠질 수 있습니다. 시간·오류 원인은 앱 로그에서 확인합니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
-        "x": 12,
-        "y": 24,
-        "w": 12,
+        "x": 0,
+        "y": 28,
+        "w": 14,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(uri) (rate(http_server_requests_seconds_sum{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) / (sum by(uri) (rate(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m])) > 0)",
+          "legendFormat": "",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by(uri) (increase(http_server_requests_seconds_count{job=\"my-fitness\",uri=~\"/api/.*\"}[10m]))",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "평균 시간"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "요청 증가 (추정)"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "평균 시간",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "uri",
+            "mode": "outerTabular"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "uri": "API 경로",
+              "Value #A": "평균 시간",
+              "Value #B": "요청 증가 (추정)"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "알림 상세 · 현재",
+      "type": "table",
+      "description": "pending은 지속 조건을 기다리는 상태, firing은 조건을 충족한 상태입니다. 빈 표는 현재 활성 알림이 없다는 뜻입니다. 수집 상태도 함께 확인하세요. 외부 알림은 전송하지 않습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 28,
+        "w": 10,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ALERTS{alertname=~\"AppMetricsUnavailable|ApiServerErrors|PolicyUnavailable|AiProviderFailures|JvmHeapPressure|DbPoolWaiting\",alertstate=~\"pending|firing\"}",
+          "legendFormat": "{{alertname}} {{alertstate}}",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "string",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "상태"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "pending": {
+                        "text": "대기",
+                        "color": "orange"
+                      },
+                      "firing": {
+                        "text": "발생",
+                        "color": "red"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "job": true
+            },
+            "renameByName": {
+              "alertname": "규칙",
+              "alertstate": "상태",
+              "severity": "수준",
+              "instance": "대상"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "type": "row",
+      "title": "AI · 정책 판정 / 답변 생성 / 사진 분석",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 104,
+      "type": "text",
+      "title": "AI 지표의 관계",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**대화: JEV 정책 평가 → ALLOW일 때만 답변 생성** · BLOCK / SAFE_REDIRECT / CLARIFY는 정상 안내입니다.\n\n**사진 분석은 별도 흐름**이며 NOT_FOOD / UNCERTAIN도 정상입니다. **빨간 항목은 UNAVAILABLE / FAILURE 오류**입니다. 분포·평균 카드·토큰은 **앱 누적**, 아래 시간 추이는 **10분** 기준입니다."
+      }
+    },
+    {
+      "id": 18,
+      "title": "JEV 평균 시간 · 앱 누적",
+      "type": "stat",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다. 누적 지연 합계 / 누적 평가 수이며, 기록이 없으면 N/A입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(app_ai_policy_seconds_sum{job=\"my-fitness\"}) / (sum(app_ai_policy_seconds_count{job=\"my-fitness\"}) > 0)",
+          "legendFormat": "평균",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "min": 0,
+          "decimals": 3,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 22,
+      "title": "답변·사진 평균 시간 · 앱 누적",
+      "type": "stat",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다. 종류별 누적 지연 합계 / 누적 호출 수이며, 기록이 없으면 N/A입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 40,
+        "w": 16,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(kind) (app_ai_provider_seconds_sum{job=\"my-fitness\"}) / (sum by(kind) (app_ai_provider_seconds_count{job=\"my-fitness\"}) > 0)",
+          "legendFormat": "{{kind}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "min": 0,
+          "decimals": 3,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 15,
+      "title": "JEV 최종 결정 분포 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다. 결정 분포이며 모델 정확도가 아닙니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 8,
         "h": 8
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "{__name__=~\"process_cpu_usage|system_cpu_usage\",job=\"my-fitness\"}",
-          "legendFormat": "{{__name__}}",
+          "expr": "sum by(action) (app_ai_policy_seconds_count{job=\"my-fitness\"})",
+          "legendFormat": "{{action}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*UNAVAILABLE.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "JEV 주제 분포 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 44,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(topic) (app_ai_policy_seconds_count{job=\"my-fitness\"})",
+          "legendFormat": "{{topic}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "답변·사진 결과 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다. NOT_FOOD/UNCERTAIN은 정상 판별 결과입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 44,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(kind,outcome) (app_ai_provider_seconds_count{job=\"my-fitness\"})",
+          "legendFormat": "{{kind}} {{outcome}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*FAILURE.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 17,
+      "title": "JEV 오류 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(error) (app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"})",
+          "legendFormat": "{{error}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "답변·사진 오류 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 52,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(kind,error) (app_ai_provider_seconds_count{job=\"my-fitness\",outcome=\"FAILURE\"})",
+          "legendFormat": "{{kind}} {{error}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 24,
+      "title": "관측된 토큰 · 앱 누적",
+      "type": "bargauge",
+      "description": "각 시점에 실행 중인 앱의 누적값입니다. 앱 재시작 시 초기화되며 선택 구간의 증가량이 아닙니다. 첫 요청도 포함합니다. usage 누락·실패 과금은 제외되며 공급자 청구량이 아닙니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 52,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(kind,provider,direction) (app_ai_tokens_total{job=\"my-fitness\"})",
+          "legendFormat": "{{kind}} {{provider}} {{direction}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "N/A",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "text",
+        "namePlacement": "top",
+        "showUnfilled": false,
+        "sizing": "auto",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 20
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "AI 단계별 평균 시간 · 10분",
+      "type": "timeseries",
+      "description": "API·DB 그래프와 같은 최근 10분 평균입니다. 새 label의 첫 호출만 관측하면 rate 분모가 0이어서 비어 있을 수 있습니다. 위 누적 평균 카드에서 첫 요청을 확인하세요. 정책 이후 chat은 ALLOW일 때만 호출되며 photo는 별도 흐름입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(app_ai_policy_seconds_sum{job=\"my-fitness\"}[10m])) / (sum(rate(app_ai_policy_seconds_count{job=\"my-fitness\"}[10m])) > 0)",
+          "legendFormat": "JEV 정책",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "sum by(kind) (rate(app_ai_provider_seconds_sum{job=\"my-fitness\"}[10m])) / (sum by(kind) (rate(app_ai_provider_seconds_count{job=\"my-fitness\"}[10m])) > 0)",
+          "legendFormat": "{{kind}}",
           "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
-          "noValue": "N/A"
+          "unit": "s",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 9,
-      "title": "Heap 사용률",
+      "id": 19,
+      "title": "JEV p95 · 10분 20건 이상",
       "type": "timeseries",
       "description": "",
       "datasource": {
@@ -329,35 +1805,64 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 66,
         "w": 12,
-        "h": 8
+        "h": 7
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(jvm_memory_used_bytes{job=\"my-fitness\",area=\"heap\"} and on(job,instance,id) (jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)) / sum(jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)",
-          "legendFormat": "",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(app_ai_policy_seconds_bucket{job=\"my-fitness\"}[10m]))) and (sum(increase(app_ai_policy_seconds_count{job=\"my-fitness\"}[10m])) >= 20)",
+          "legendFormat": "JEV p95",
           "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit",
-          "noValue": "N/A"
+          "unit": "s",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 10,
-      "title": "GC 소요 시간 / 초",
+      "id": 23,
+      "title": "답변·사진 p95 · 10분 20건 이상",
       "type": "timeseries",
       "description": "",
       "datasource": {
@@ -366,30 +1871,554 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 32,
+        "y": 66,
         "w": 12,
-        "h": 8
+        "h": 7
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"my-fitness\"}[5m]))",
-          "legendFormat": "",
+          "expr": "histogram_quantile(0.95, sum by(le,kind) (rate(app_ai_provider_seconds_bucket{job=\"my-fitness\"}[10m]))) and on(kind) (sum by(kind) (increase(app_ai_provider_seconds_count{job=\"my-fitness\"}[10m])) >= 20)",
+          "legendFormat": "{{kind}}",
           "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
+      }
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "DB · 풀 사용률 → 대기 → 커넥션 획득 시간",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 33,
+      "title": "DB 풀 사용률 · 현재",
+      "type": "gauge",
+      "description": "풀별 현재 사용 중 / 최대 커넥션입니다. 사용률이 높다는 이유만으로 장애로 판단하지 않고 대기·획득 시간을 함께 확인합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(pool) (hikaricp_connections_active{job=\"my-fitness\"}) / (sum by(pool) (hikaricp_connections_max{job=\"my-fitness\"}) > 0)",
+          "legendFormat": "{{pool}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 32,
+      "title": "DB 대기 요청 · 현재",
+      "type": "stat",
+      "description": "커넥션을 기다리는 현재 요청 수입니다. 0 초과가 2분 지속되면 기존 DbPoolWaiting 규칙이 발생합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 74,
+        "w": 16,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(pool) (hikaricp_connections_pending{job=\"my-fitness\"})",
+          "legendFormat": "{{pool}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 13,
+      "title": "DB 풀 사용·대기 추이",
+      "type": "timeseries",
+      "description": "사용 중이 최대에 가까워지면서 대기·획득 시간이 함께 증가하는지 확인합니다. 지표만으로 느린 SQL의 원인을 단정할 수 없습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 79,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_active{job=\"my-fitness\"}",
+          "legendFormat": "사용 중 {{pool}}",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "hikaricp_connections_idle{job=\"my-fitness\"}",
+          "legendFormat": "유휴 {{pool}}",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "expr": "hikaricp_connections_max{job=\"my-fitness\"}",
+          "legendFormat": "최대 {{pool}}",
+          "instant": false
+        },
+        {
+          "refId": "D",
+          "expr": "hikaricp_connections_pending{job=\"my-fitness\"}",
+          "legendFormat": "대기 {{pool}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "DB 커넥션 획득 평균 시간 · 10분",
+      "type": "timeseries",
+      "description": "API·AI와 같은 최근 10분 평균입니다. 풀 대기와 같은 시각을 비교합니다. 최근 획득이 없으면 N/A입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 79,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"my-fitness\"}[10m])) / (sum(rate(hikaricp_connections_acquire_seconds_count{job=\"my-fitness\"}[10m])) > 0)",
+          "legendFormat": "획득 평균",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 106,
+      "type": "row",
+      "title": "JVM · 자원 사용 → GC → API 지연과 비교",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 86,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 9,
+      "title": "Heap 사용률 · 현재",
+      "type": "gauge",
+      "description": "양수인 heap max 대비 현재 사용률입니다. 85% 초과가 10분 지속되면 기존 JvmHeapPressure 규칙이 발생합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 87,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(jvm_memory_used_bytes{job=\"my-fitness\",area=\"heap\"} and on(job,instance,id) (jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)) / sum(jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.85
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "앱 가동 시간",
+      "type": "stat",
+      "description": "현재 JVM의 가동 시간입니다. 앱 누적 AI 지표가 초기화된 시점을 이해하는 데 사용합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 87,
+        "w": 8,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_uptime_seconds{job=\"my-fitness\"}",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
       }
     },
     {
@@ -402,10 +2431,10 @@
         "uid": "my-fitness-prometheus"
       },
       "gridPos": {
-        "x": 0,
-        "y": 40,
-        "w": 12,
-        "h": 8
+        "x": 16,
+        "y": 87,
+        "w": 8,
+        "h": 5
       },
       "targets": [
         {
@@ -422,11 +2451,257 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "text"
-          }
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
-      "options": {}
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "title": "CPU 사용률",
+      "type": "timeseries",
+      "description": "앱 프로세스와 JVM이 보고하는 시스템 CPU입니다. API 지연·GC 변화와 같은 시각을 비교합니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 92,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_cpu_usage{job=\"my-fitness\"}",
+          "legendFormat": "앱 프로세스",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "system_cpu_usage{job=\"my-fitness\"}",
+          "legendFormat": "시스템",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "title": "Heap 사용률 추이",
+      "type": "timeseries",
+      "description": "같은 시각의 GC 시간·API 지연과 비교하세요. 높아진 메모리 사용만으로 누수를 단정할 수 없습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 92,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(jvm_memory_used_bytes{job=\"my-fitness\",area=\"heap\"} and on(job,instance,id) (jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)) / sum(jvm_memory_max_bytes{job=\"my-fitness\",area=\"heap\"} > 0)",
+          "legendFormat": "Heap",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "N/A",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "GC 소요 시간 / 초",
+      "type": "timeseries",
+      "description": "최근 5분의 GC pause 누적 시간 증가/초입니다. JVM 진단용이며 다른 10분 평균과 집계 기간이 다릅니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "my-fitness-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 99,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{job=\"my-fitness\"}[5m]))",
+          "legendFormat": "GC 시간/초",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
     },
     {
       "id": 12,
@@ -439,510 +2714,58 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 40,
+        "y": 99,
         "w": 12,
-        "h": 8
+        "h": 7
       },
       "targets": [
         {
           "refId": "A",
           "expr": "jvm_threads_live_threads{job=\"my-fitness\"}",
-          "legendFormat": "",
+          "legendFormat": "활성 스레드",
           "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "noValue": "N/A"
+          "noValue": "N/A",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "nan",
+                "result": {
+                  "text": "N/A",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 13,
-      "title": "DB 풀 사용·대기",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 48,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "{__name__=~\"hikaricp_connections_active|hikaricp_connections_idle|hikaricp_connections_max|hikaricp_connections_pending\",job=\"my-fitness\"}",
-          "legendFormat": "{{__name__}} {{pool}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 14,
-      "title": "DB 커넥션 획득 평균 시간",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 48,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"my-fitness\"}[5m])) / sum(rate(hikaricp_connections_acquire_seconds_count{job=\"my-fitness\"}[5m]))",
-          "legendFormat": "",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 15,
-      "title": "JEV 최종 결정 분포",
-      "type": "timeseries",
-      "description": "결정 분포이며 모델 정확도가 아닙니다.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 56,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(action) (increase(app_ai_policy_seconds_count{job=\"my-fitness\"}[$__range]))",
-          "legendFormat": "{{action}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 16,
-      "title": "JEV 주제 분포",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 56,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(topic) (increase(app_ai_policy_seconds_count{job=\"my-fitness\"}[$__range]))",
-          "legendFormat": "{{topic}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 17,
-      "title": "JEV 오류",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 64,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(error) (increase(app_ai_policy_seconds_count{job=\"my-fitness\",action=\"UNAVAILABLE\"}[$__range]))",
-          "legendFormat": "{{error}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 18,
-      "title": "JEV 평균 시간",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 64,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(app_ai_policy_seconds_sum{job=\"my-fitness\"}[10m])) / sum(rate(app_ai_policy_seconds_count{job=\"my-fitness\"}[10m]))",
-          "legendFormat": "",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 19,
-      "title": "JEV p95 · 10분 20건 이상",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 72,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(app_ai_policy_seconds_bucket{job=\"my-fitness\"}[10m]))) and (sum(increase(app_ai_policy_seconds_count{job=\"my-fitness\"}[10m])) >= 20)",
-          "legendFormat": "",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 20,
-      "title": "답변·사진 결과",
-      "type": "timeseries",
-      "description": "NOT_FOOD/UNCERTAIN은 정상 판별 결과입니다.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 72,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(kind,outcome) (increase(app_ai_provider_seconds_count{job=\"my-fitness\"}[$__range]))",
-          "legendFormat": "{{kind}} {{outcome}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 21,
-      "title": "답변·사진 오류",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 80,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(kind,error) (increase(app_ai_provider_seconds_count{job=\"my-fitness\",outcome=\"FAILURE\"}[$__range]))",
-          "legendFormat": "{{kind}} {{error}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 22,
-      "title": "답변·사진 평균 시간",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 80,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(kind) (rate(app_ai_provider_seconds_sum{job=\"my-fitness\"}[10m])) / sum by(kind) (rate(app_ai_provider_seconds_count{job=\"my-fitness\"}[10m]))",
-          "legendFormat": "{{kind}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 23,
-      "title": "답변·사진 p95 · 10분 20건 이상",
-      "type": "timeseries",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 88,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by(le,kind) (rate(app_ai_provider_seconds_bucket{job=\"my-fitness\"}[10m]))) and on(kind) (sum by(kind) (increase(app_ai_provider_seconds_count{job=\"my-fitness\"}[10m])) >= 20)",
-          "legendFormat": "{{kind}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 24,
-      "title": "관측된 토큰 · 선택 구간",
-      "type": "timeseries",
-      "description": "usage 누락·실패 과금은 제외되며 공급자 청구량이 아닙니다.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 88,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(kind,provider,direction) (increase(app_ai_tokens_total{job=\"my-fitness\"}[$__range]))",
-          "legendFormat": "{{kind}} {{provider}} {{direction}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 25,
-      "title": "학습용 알림 상태",
-      "type": "timeseries",
-      "description": "외부 알림은 전송하지 않습니다.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "my-fitness-prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 96,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "ALERTS{alertstate=~\"pending|firing\"}",
-          "legendFormat": "{{alertname}} {{alertstate}}",
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "N/A"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     }

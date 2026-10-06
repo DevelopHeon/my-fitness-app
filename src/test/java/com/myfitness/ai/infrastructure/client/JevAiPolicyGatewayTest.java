@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException.Code;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyRequest;
 import com.sun.net.httpserver.HttpServer;
@@ -117,9 +118,12 @@ class JevAiPolicyGatewayTest {
             assertThatThrownBy(() -> gateway.assess(request()))
                     .isInstanceOf(AiPolicyUnavailableException.class)
                     .satisfies(
-                            error ->
-                                    assertThat(((AiPolicyUnavailableException) error).getCode())
-                                            .isEqualTo("HTTP_" + errorStatus));
+                            error -> {
+                                AiPolicyUnavailableException failure = (AiPolicyUnavailableException) error;
+                                assertThat(failure.getCode()).isEqualTo(Code.HTTP_ERROR);
+                                assertThat(failure.getHttpStatus()).isEqualTo(errorStatus);
+                                assertThat(failure.getLogCode()).isEqualTo("HTTP_" + errorStatus);
+                            });
             assertThat(calls.get()).isEqualTo(1);
         }
     }
@@ -186,7 +190,7 @@ class JevAiPolicyGatewayTest {
                     .satisfies(
                             error ->
                                     assertThat(((AiPolicyUnavailableException) error).getCode())
-                                            .isEqualTo(expectedCode));
+                                            .isEqualTo(Code.valueOf(expectedCode)));
             assertThat(calls.get()).isEqualTo(1);
         }
     }
@@ -201,7 +205,7 @@ class JevAiPolicyGatewayTest {
                     .satisfies(
                             error ->
                                     assertThat(((AiPolicyUnavailableException) error).getCode())
-                                            .isEqualTo("NETWORK"));
+                                            .isEqualTo(Code.NETWORK));
             assertThat(calls.get()).isEqualTo(1);
         }
     }
@@ -218,7 +222,7 @@ class JevAiPolicyGatewayTest {
                     .satisfies(
                             error ->
                                     assertThat(((AiPolicyUnavailableException) error).getCode())
-                                            .isEqualTo("TIMEOUT"));
+                                            .isEqualTo(Code.TIMEOUT));
             assertThat(Duration.ofNanos(System.nanoTime() - start).toMillis()).isLessThan(800);
         }
     }

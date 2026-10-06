@@ -213,7 +213,7 @@ public class AiMessageTransactionService {
                 null,
                 failure.latencyMs(),
                 null,
-                failure.errorCode(),
+                failure.error().getLogCode(),
                 null);
         requestLogRepository.save(log);
     }

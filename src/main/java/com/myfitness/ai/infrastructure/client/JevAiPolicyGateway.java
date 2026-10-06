@@ -2,6 +2,7 @@ package com.myfitness.ai.infrastructure.client;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException.Code;
 import com.myfitness.ai.application.port.out.AiPolicyGateway;
 
 import jakarta.annotation.PreDestroy;
@@ -40,7 +41,7 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
     @Override
     public AiPolicyAssessment assess(AiPolicyRequest request) {
         if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
-            throw new AiPolicyUnavailableException("CONFIGURATION");
+            throw new AiPolicyUnavailableException(Code.CONFIGURATION);
         }
         long started = System.nanoTime();
         LinkedHashMap<String, Object> state = new LinkedHashMap<String, Object>();
@@ -73,32 +74,32 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
             HttpResponse<String> response =
                     future.get(properties.getRequestTimeout().toMillis(), TimeUnit.MILLISECONDS);
             if (response.statusCode() != 200)
-                throw new AiPolicyUnavailableException("HTTP_" + response.statusCode());
+                throw AiPolicyUnavailableException.httpFailure(response.statusCode());
             return parse(
                     response.body(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new AiPolicyUnavailableException("TIMEOUT");
+            throw new AiPolicyUnavailableException(Code.TIMEOUT, e);
         } catch (InterruptedException e) {
             future.cancel(true);
             Thread.currentThread().interrupt();
-            throw new AiPolicyUnavailableException("INTERRUPTED");
+            throw new AiPolicyUnavailableException(Code.INTERRUPTED, e);
         } catch (ExecutionException e) {
             throw new AiPolicyUnavailableException(
                     e.getCause() instanceof java.net.http.HttpTimeoutException
-                            ? "TIMEOUT"
-                            : "NETWORK");
+                            ? Code.TIMEOUT
+                            : Code.NETWORK, e.getCause());
         }
     }
 
     private AiPolicyAssessment parse(String body, long latencyMs) {
-        String stage = "JSON";
+        Code errorCode = Code.INVALID_RESPONSE_JSON;
         try {
             JsonNode root = mapper.readTree(body);
             if (root == null || !properties.getModel().equals(root.path("model").asText())) {
-                throw new AiPolicyUnavailableException("MODEL_MISMATCH");
+                throw new AiPolicyUnavailableException(Code.MODEL_MISMATCH);
             }
-            stage = "TOPIC";
+            errorCode = Code.INVALID_RESPONSE_TOPIC;
             JsonNode answers = root.path("answers");
             JsonNode topic = answers.path("topic");
             if (!"choice".equals(topic.path("type").asText())) throw new IllegalArgumentException();
@@ -112,7 +113,7 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
                             topic.path("choice").asText(),
                             probabilities,
                             number(topic.path("confidence")));
-            stage = "USAGE";
+            errorCode = Code.INVALID_RESPONSE_USAGE;
             JsonNode usage = root.path("usage");
             if (!usage.path("input_tokens").isIntegralNumber()
                     || !usage.path("input_tokens").canConvertToInt()
@@ -121,15 +122,15 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
                     || !usage.path("output_tokens").canConvertToInt()
                     || usage.path("output_tokens").asInt() < 0)
                 throw new IllegalArgumentException();
-            stage = "MEDICAL_DECISION";
+            errorCode = Code.INVALID_RESPONSE_MEDICAL_DECISION;
             double medicalDecision = noul(answers, "medical_decision");
-            stage = "UNSAFE_ACTION";
+            errorCode = Code.INVALID_RESPONSE_UNSAFE_ACTION;
             double unsafeAction = noul(answers, "unsafe_action");
-            stage = "URGENT_SIGNAL";
+            errorCode = Code.INVALID_RESPONSE_URGENT_SIGNAL;
             double urgentSignal = noul(answers, "urgent_signal");
-            stage = "POLICY_BYPASS";
+            errorCode = Code.INVALID_RESPONSE_POLICY_BYPASS;
             double policyBypass = noul(answers, "policy_bypass");
-            stage = "ASSESSMENT";
+            errorCode = Code.INVALID_RESPONSE_ASSESSMENT;
             return new AiPolicyAssessment(
                     root.path("model").asText(),
                     medicalDecision,
@@ -142,7 +143,7 @@ public class JevAiPolicyGateway implements AiPolicyGateway, AutoCloseable {
         } catch (AiPolicyUnavailableException e) {
             throw e;
         } catch (RuntimeException e) {
-            throw new AiPolicyUnavailableException("INVALID_RESPONSE_" + stage);
+            throw new AiPolicyUnavailableException(errorCode, e);
         }
     }
 

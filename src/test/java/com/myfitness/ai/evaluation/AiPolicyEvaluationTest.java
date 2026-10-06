@@ -108,8 +108,9 @@ class AiPolicyEvaluationTest {
                                 throw new IllegalArgumentException("replay case 누락");
                             if (cached.path("assessment").isNull()
                                     || cached.path("assessment").isMissingNode()) {
-                                throw new AiPolicyUnavailableException(
-                                        cached.path("errorCode").asText("REPLAY_UNAVAILABLE"));
+                                // 과거 평가 코드 문자열은 재해석하지 않고 그대로 보고서에 보존한다.
+                                values.put("errorCode", cached.path("errorCode").asText("REPLAY_UNAVAILABLE"));
+                                throw new AiPolicyUnavailableException(AiPolicyUnavailableException.Code.POLICY_ERROR);
                             }
                             assessment =
                                     mapper.treeToValue(
@@ -127,7 +128,7 @@ class AiPolicyEvaluationTest {
                                 mode.equals("jev-live") ? assessment.inputTokens() : null);
                     } catch (AiPolicyUnavailableException e) {
                         values.put("prediction", "UNAVAILABLE");
-                        values.put("errorCode", e.getCode());
+                        values.putIfAbsent("errorCode", e.getLogCode());
                     }
                     values.put(
                             "latencyMs",

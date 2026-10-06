@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
+import com.myfitness.ai.application.exception.AiPolicyUnavailableException.Code;
 import com.myfitness.ai.application.port.out.AiChatGateway;
 import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import com.myfitness.ai.application.support.context.AiContextBuilder;
@@ -80,7 +81,7 @@ class AiPolicyApiIntegrationTest {
         policy.calls.set(0);
         chat.calls.set(0);
         policy.error = false;
-        policy.errorCode = "TIMEOUT";
+        policy.failure = new AiPolicyUnavailableException(Code.TIMEOUT);
         policy.entered = null;
         policy.release = null;
         chat.fail = false;
@@ -224,7 +225,9 @@ class AiPolicyApiIntegrationTest {
     @DisplayName("설정·네트워크·응답 장애는 모두 503이며 Context와 답변을 호출하지 않는다")
     void failsClosedForEveryPolicyError(String code) throws Exception {
         policy.error = true;
-        policy.errorCode = code;
+        policy.failure = code.startsWith("HTTP_")
+                ? AiPolicyUnavailableException.httpFailure(Integer.parseInt(code.substring(5)))
+                : new AiPolicyUnavailableException(Code.valueOf(code));
         send("운동 방법", 1L)
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("AI_POLICY_UNAVAILABLE"));
@@ -384,7 +387,7 @@ class AiPolicyApiIntegrationTest {
         AiPolicyAssessment assessment;
         AiPolicyRequest last;
         boolean error;
-        String errorCode = "TIMEOUT";
+        AiPolicyUnavailableException failure = new AiPolicyUnavailableException(Code.TIMEOUT);
         volatile java.util.concurrent.CountDownLatch entered;
         volatile java.util.concurrent.CountDownLatch release;
 
@@ -397,13 +400,13 @@ class AiPolicyApiIntegrationTest {
                 entered.countDown();
                 try {
                     if (!release.await(5, java.util.concurrent.TimeUnit.SECONDS))
-                        throw new AiPolicyUnavailableException("TIMEOUT");
+                        throw new AiPolicyUnavailableException(Code.TIMEOUT);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new AiPolicyUnavailableException("INTERRUPTED");
+                    throw new AiPolicyUnavailableException(Code.INTERRUPTED);
                 }
             }
-            if (error) throw new AiPolicyUnavailableException(errorCode);
+            if (error) throw failure;
             return assessment;
         }
     }
