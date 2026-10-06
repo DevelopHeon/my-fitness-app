@@ -100,3 +100,25 @@ preflight·복구·900초 실행 계약과 main CI 성공 후 자동 배포는 �
 이번 검증의 임시 Git fixture·archive·Compose 프로젝트·Grafana volume과 생성한
 Gradle test/Checkstyle 보고서·빌드 로그를 제거했다. 테스트 소스와 과거 평가 결과는 유지했다.
 한국어 commit만 작성하고 push하지 않는다. 운영 준비와 이후 push는 사용자가 수행한다.
+
+## 최초 운영 배포의 credential mount 실패 수정
+
+`4a7e7ea`의 [Deploy App 실패 로그](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37475880503)에서
+secret 준비와 모든 이미지 pull은 완료됐지만 Prometheus preflight의 container 생성이 실패했다.
+빈 credential volume을 읽기 전용으로 mount한 상태에서 `/credentials/metrics_password`에
+추가 파일 mount를 만들려다 `read-only file system`이 발생했다. 앱 교체 전 단계다.
+기존 native 검사는 secret-init을 먼저 실행해 mount 지점이 이미 존재하는 상태만 검사했다.
+
+실제 deploy-monitoring.sh의 preflight를 빈 volume에서 실행해 동일 실패를 재현했다.
+수정 후 서비스별 임시 암호 디렉터리를 통째로 읽기 전용 mount하고 EXIT에서 삭제한다.
+호스트 암호 권한과 운영 credential volume을 유지하며 preflight에서 secret-init을 실행하지 않는다.
+
+- `bash scripts/verify-monitoring.sh`: 최초 빈 volume·기존 암호가 있는 volume 모두 preflight 통과.
+  기존 암호 미변경·임시 암호 정리와 기존 config·규칙·UID·route·Caddy·알림 검사도 통과했다.
+  실제 스크립트를 실행하되 host 경로·project 이름·memory 입력만 격리용 값으로 바꿨다.
+- `python3 scripts/test-deployment.py`: 16건 통과.
+- Java 21 `./gradlew build --no-daemon`: backend 236건·frontend 20건, Checkstyle·ArchUnit·Modulith·convention 통과.
+- 파일별 `bash -n`, `git diff --check`, 문서 링크 검사 통과. 생성한 로그·보고서·임시 리소스는 정리했다.
+
+GitHub 실패 로그 조회와 로컬 재현·검증을 수행했다. 실제 EC2 재배포·Slack 전송·운영 자원 인수는
+실행하지 않았다. 한국어 commit만 작성하며 수정 SHA의 push·배포는 사용자가 수행한다.

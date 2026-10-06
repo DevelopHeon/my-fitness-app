@@ -27,11 +27,18 @@ if [[ "$ACTION" == preflight ]]; then
   "${COMPOSE[@]}" config --quiet
   "${COMPOSE[@]}" pull
   # One-off tools use staged source secrets; active credential volumes stay untouched.
+  umask 077
+  PREFLIGHT_CREDENTIALS="$(mktemp -d)"
+  trap 'rm -rf "$PREFLIGHT_CREDENTIALS"' EXIT
+  mkdir -m 700 "$PREFLIGHT_CREDENTIALS/prometheus" "$PREFLIGHT_CREDENTIALS/alertmanager"
+  cp "$MONITORING_SECRET_DIR/app.monitoring.password" "$PREFLIGHT_CREDENTIALS/prometheus/metrics_password"
+  cp "$MONITORING_SECRET_DIR/slack_webhook_url" "$PREFLIGHT_CREDENTIALS/alertmanager/slack_webhook_url"
+  # Replace the credential directory; nested file mounts fail on an empty read-only volume.
   "${COMPOSE[@]}" run --rm --no-deps --user 0:0 --entrypoint promtool \
-    -v "$MONITORING_SECRET_DIR/app.monitoring.password:/credentials/metrics_password:ro" \
+    -v "$PREFLIGHT_CREDENTIALS/prometheus:/credentials:ro" \
     prometheus check config /etc/prometheus/prometheus.yml
   "${COMPOSE[@]}" run --rm --no-deps --user 0:0 --entrypoint amtool \
-    -v "$MONITORING_SECRET_DIR/slack_webhook_url:/credentials/slack_webhook_url:ro" \
+    -v "$PREFLIGHT_CREDENTIALS/alertmanager:/credentials:ro" \
     alertmanager check-config /etc/alertmanager/alertmanager.yml
   if (( $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) < 153600 \
       || $(df -Pk /opt/my-fitness | awk 'END {print $4}') < 5242880 )); then

@@ -24,6 +24,38 @@ printf 'dummy-grafana\n' > "$MONITORING_SECRET_DIR/grafana_admin_password"
 printf 'https://hooks.slack.com/services/dummy/test/not-a-real-webhook\n' > "$MONITORING_SECRET_DIR/slack_webhook_url"
 chmod 600 "$MONITORING_SECRET_DIR"/*
 
+# Run the real deployment preflight before secret-init creates credential files.
+# Only host paths, the project name and host memory input are replaced for isolation.
+mkdir -p "$TEMP/host/secrets" "$TEMP/release"
+mkdir -m 700 "$TEMP/preflight-tmp"
+chmod 700 "$TEMP/host/secrets"
+cp "$MONITORING_SECRET_DIR"/* "$TEMP/host/secrets/"
+cp -R "$ROOT/monitoring" "$TEMP/release/monitoring"
+printf 'MemAvailable: 300000 kB\n' > "$TEMP/meminfo"
+sed -e "s@BASE=/opt/my-fitness/monitoring@BASE=$TEMP/host@" \
+  -e "s@my-fitness-monitoring-prod@$PROJECT-prod@g" \
+  -e "s@/proc/meminfo@$TEMP/meminfo@g" \
+  -e "s@df -Pk /opt/my-fitness@df -Pk $TEMP@g" \
+  "$ROOT/scripts/deploy-monitoring.sh" > "$TEMP/deploy-monitoring.sh"
+TMPDIR="$TEMP/preflight-tmp" bash "$TEMP/deploy-monitoring.sh" "$TEMP/release" preflight
+test -z "$(ls -A "$TEMP/preflight-tmp")"
+
+# Preflight must leave persistent credentials untouched on both fresh and existing volumes.
+COMPOSE=(docker compose -p "$PROJECT-prod" -f "$ROOT/monitoring/docker-compose.prod.yml")
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh prometheus -ec 'test ! -e /credentials/metrics_password'
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh alertmanager -ec 'test ! -e /credentials/slack_webhook_url'
+printf 'previous-metrics\n' > "$MONITORING_SECRET_DIR/app.monitoring.password"
+printf 'https://hooks.slack.com/services/dummy/previous/webhook\n' > "$MONITORING_SECRET_DIR/slack_webhook_url"
+"${COMPOSE[@]}" run --rm secret-init
+printf 'dummy-metrics\n' > "$MONITORING_SECRET_DIR/app.monitoring.password"
+printf 'https://hooks.slack.com/services/dummy/test/not-a-real-webhook\n' > "$MONITORING_SECRET_DIR/slack_webhook_url"
+TMPDIR="$TEMP/preflight-tmp" bash "$TEMP/deploy-monitoring.sh" "$TEMP/release" preflight
+test -z "$(ls -A "$TEMP/preflight-tmp")"
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh prometheus -ec \
+  'test "$(cat /credentials/metrics_password)" = previous-metrics'
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh alertmanager -ec \
+  'test "$(cat /credentials/slack_webhook_url)" = https://hooks.slack.com/services/dummy/previous/webhook'
+
 for environment in local prod; do
   COMPOSE=(docker compose -p "$PROJECT-$environment" -f "$ROOT/monitoring/docker-compose.$environment.yml")
   "${COMPOSE[@]}" config --quiet

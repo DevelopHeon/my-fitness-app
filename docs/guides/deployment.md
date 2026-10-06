@@ -20,6 +20,9 @@ workflow는 `scripts/deploy-ssm.sh <sha>`를 실행한다. 이 스크립트가 `
 운영 파일만 묶고 크기를 확인한 뒤 SSM에 전달·결과를 확인한다. 작업 디렉터리의 미커밋 변경·비밀값·
 local 설정·검증 소스는 포함하지 않는다. 조회 권한 오류를 실행 대기로 처리하지 않는다.
 secret·자원·모니터링 설정·앱 parameter/image preflight 뒤 Caddy가 공개 지표를 차단한다.
+모니터링 preflight는 서비스별 임시 암호 디렉터리를 읽기 전용으로 mount한다.
+빈 credential volume에서도 검사할 수 있으며 실행 중인 credential volume은 갱신하지 않는다.
+실제 secret-init은 적용 단계에서 실행하고 임시 암호는 preflight 종료 시 삭제한다.
 이전 모니터링을 멈춘 뒤 앱을 교체하고, 앱 health 성공 후 모니터링을 시작한다.
 모니터링 실패는 workflow 실패로 표시하되 정상 앱을 다시 교체하지 않는다.
 모델/정책 version 문자열만 바꿔 코드의 판정 규칙을 되돌릴 수는 없다. legacy/shadow 시점의 이미지 복원은 정책 경로도 바꾼다.
