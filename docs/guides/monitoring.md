@@ -215,7 +215,7 @@ Grafana는 `GOMEMLIMIT=320MiB`를 설정합니다. Go의 soft limit이므로 전
 앱·Prometheus·node_exporter의 수집 상태는 모두 UP이며 Grafana 인증·데이터소스 조회도 정상입니다.
 기동 검증과 24시간 안정성 인수는 구분합니다.
 최초 기동 이후 메모리 상한 접근·응답 지연이 발생해 Go 메모리 기준을 추가했습니다.
-관측과 남은 검증은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#후속-작업-small-증설과-실제-모니터링-기동-확인)에 둡니다.
+관측과 남은 검증은 [운영 검증 기록](../changes/2026/2026-10-06-single-ec2-monitoring/validation.md#small-기동-이후-grafana-흰-화면과-응답-정지)에 둡니다.
 
 기동·WAL 복구·재배포·대표 API·최대 사진·동시 사진·3일 쿼리·재부팅을 구분해 기록합니다.
 `free -m`, `df -h`, `vmstat 1`, `swapon --show`, `docker stats --no-stream`과 OOMKilled/restart를 확인합니다.

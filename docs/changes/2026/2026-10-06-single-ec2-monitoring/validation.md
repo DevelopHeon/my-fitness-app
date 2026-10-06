@@ -256,3 +256,32 @@ frontend 설정·운영 대시보드 48개 패널 설정·Grafana 경유 PromQL 
 첫 관측 Grafana 328.8MiB/512MiB, 호스트 MemAvailable 644MiB였다.
 최종 설정으로 native monitoring 검사를 다시 실행해 통과했다.
 기동 직후 결과와 시간 경과 후 관측을 구분하며, 초기 재시작만으로 장기 해결을 확정하지 않는다.
+
+영구 설정 커밋 `002828899ebcf557708de12a59549c709eb2bacd`의
+[CI](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37492039181)와
+[Deploy App](https://github.com/DevelopHeon/my-fitness-app/actions/runs/37492937161)는 성공했다.
+EC2 current-image와 monitoring/current가 해당 SHA이며,
+실행 중 Grafana의 `GOMEMLIMIT=320MiB`와 컨테이너 512MiB 한도를 확인했다.
+임시 override에 의존하지 않는 저장소 배포 후에도 실제 브라우저 로그인 폼이 렌더링됐다.
+
+### 시간 경과 후 운영 검증
+
+01:09:16~01:29:17 KST, 20분 1초 동안 1분 간격으로 21회 관측했다.
+이는 이전 첫 오류가 나타난 기동 약 18분 시점을 넘긴 검사다.
+
+- health·login·인증 사용자 API 각각 21회, 총 63회 모두 HTTP 200.
+  EC2 내부 최대 응답은 각각 8.0ms·6.8ms·21.2ms였다. SSM 터널을 포함한 응답 시간과 구분한다.
+- Grafana 경유 PromQL 21회 모두 성공했고 앱·Prometheus·node_exporter 3개 모두 UP이었다.
+- 관측 중 최소 호스트 MemAvailable 639.4MiB, OOM·OOM kill 0회.
+  마지막 메모리 회수 full 압력 avg10·avg60·avg300은 모두 0.00이었다.
+- 종료 전 인증·login 20회 반복과 frontend 설정·48개 패널 설정·PromQL 조회도 다시 통과했다.
+  새 Grafana 컨테이너의 오류 로그·SQLITE_BUSY·settings 오류 모두 0건,
+  여섯 컨테이너의 OOMKilled=false·restart=0을 확인했다.
+  그 시점 Grafana 276.6MiB/512MiB, 호스트 MemAvailable 779MiB, 앱 health UP이었다.
+- 종료 시 기존 13001 터널을 통한 브라우저 새로고침에서도 실제 로그인 폼이 표시됐다.
+
+현재 증상은 위 검사에서 재현되지 않았다. 초기 재시작 효과와 메모리 기준의 영향을
+완전히 분리한 대조 실험이나 24시간 안정성·전체 동시 부하 검증은 아니다.
+Grafana의 전체 RSS·cgroup 사용량은 Go soft limit보다 높을 수 있고, 파일 캐시도 포함하므로
+한 숫자만으로 응답 정지나 안정성을 판단하지 않는다. 실제 Slack·JEV/OpenAI 호출은 실행하지 않았다.
+생성한 로컬 보고서·임시 로그/명령 파일·EC2 샘플 로그는 정리했다. volume·과거 운영 로그·평가 원본은 보존했다.
