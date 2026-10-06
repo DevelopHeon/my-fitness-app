@@ -221,3 +221,38 @@ Grafana HTTP 준비는 컨테이너 시작 약 8초 뒤였으며,
 테스트 소스·규칙 fixture·평가 원본은 유지했다. 운영 결과 기록만 반영하는 후속 문서 커밋에는
 `[skip ci]`를 사용해 동일 운영 설정의 불필요한 재배포를 피한다.
 코드·배포 설정 변경 커밋은 일반 CI와 자동 CD를 그대로 거쳤다.
+
+## small 기동 이후 Grafana 흰 화면과 응답 정지
+
+2026-10-07 KST 사용자가 SSM 접속 화면의 흰 화면·계속 대기 증상을 보고했다.
+로컬 13001 터널은 연결 중이었지만 health·login 요청이 10초 내 응답하지 않았다.
+EC2 내부 3001 health도 시간 초과였으며 앱·Prometheus는 즉시 200을 반환했다.
+앞선 기동 직후 API 확인만으로 이 후속 문제를 발견하지 못했다.
+
+Grafana는 Docker 표시 약 507.5MiB/512MiB였고 cgroup memory.current는 536,805,376 bytes였다.
+memory.events의 max는 269,251회, oom·oom_kill은 0이었다.
+메모리 회수 full 압력 avg10은 6.99였고 로그에 context deadline exceeded와 SQLITE_BUSY가 확인됐다.
+즉 OOMKilled=false·restart=0만으로 정상 응답을 보장할 수 없었다.
+
+컨테이너 한도·인스턴스 크기·DB 설정은 유지한 채 Grafana의 Go 메모리 관리 기준으로
+`GOMEMLIMIT=384MiB`를 임시 override에 넣어 Grafana만 재생성했다. volume과 암호는 보존했다.
+health가 복구됐고 기존 SSM 터널 health 약 30ms·login 약 106ms 응답 및 실제 브라우저의
+로그인 폼 렌더링을 확인했다. 다만 이후에도 cgroup 메모리가 상한에 가까워,
+Go heap 할당 약 225.6MiB·Go sys 약 370.1MiB와 별도 plugin 프로세스·전체 RSS를 대조했다.
+Go 외 메모리와 캐시 여유를 더 확보하도록 최종 운영 Compose에는 `GOMEMLIMIT=320MiB`를 반영했다.
+이 값은 RSS를 강제 제한하지 않는 soft limit이며 [Go GC 문서](https://go.dev/doc/gc-guide#Memory_limit)에 따라
+컨테이너 상한보다 여유를 두었다. 재시작 자체와 메모리 기준의 효과를 구분하기 위해 이후 응답·회수 압력을 계속 관측한다.
+
+- Java 21 `./gradlew build --no-daemon`: backend 236건·frontend 20건,
+  Checkstyle·ArchUnit·Modulith·convention 통과.
+- `bash scripts/verify-monitoring.sh`: 설정·규칙·credential 격리·Caddy·알림 그룹/해제/silence 통과.
+- `python3 scripts/test-deployment.py`: 19건 통과.
+- `git diff --check`·문서 40개/로컬 링크 217개 검사 통과. 평가 원본 8개는 변경하지 않았다.
+
+영구 설정의 CI/CD와 후속 운영 관측 결과는 아래에 기록한다.
+
+320MiB 임시 적용 후 인증 사용자 조회·login을 20회 반복해 모두 통과했다.
+frontend 설정·운영 대시보드 48개 패널 설정·Grafana 경유 PromQL 조회도 통과했다.
+첫 관측 Grafana 328.8MiB/512MiB, 호스트 MemAvailable 644MiB였다.
+최종 설정으로 native monitoring 검사를 다시 실행해 통과했다.
+기동 직후 결과와 시간 경과 후 관측을 구분하며, 초기 재시작만으로 장기 해결을 확정하지 않는다.

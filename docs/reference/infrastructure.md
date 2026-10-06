@@ -107,6 +107,8 @@ CloudWatch Agent IAM 권한만으로 앱 Docker 로그 수집이 활성화되지
 로컬은 기존 15초·30일/2GB Compose를 유지한다. 운영은 별도 Compose의 Linux host network와
 loopback 9090·3001·9093·9100을 사용한다. SG 포트를 추가하지 않고 Grafana는 SSM 터널로 접근한다.
 운영 수집/평가는 60초, 보관은 3일/1GB, Grafana refresh는 1분이다. WAL·head 때문에 1GB를 초과할 수 있다.
+Grafana는 `GOMEMLIMIT=320MiB`로 Go 메모리 관리 기준을 명시한다. 컨테이너의 512MiB 상한과는 별개인
+soft limit이며, Go 외 메모리와 파일·커널 메모리의 여유를 남긴다. 실제 사용량·응답·회수 압력을 함께 확인한다.
 기존 6개 규칙과 host 메모리/디스크 2개 규칙은 Prometheus가 평가하고 Alertmanager가 Slack에 전달한다.
 Docker 로그는 local driver 10m×3이며 앱 로그의 CloudWatch 중앙 수집은 추가하지 않는다.
 모니터링 실패는 앱 배포 성공과 분리해 보고하며 설정 rollback은 volume을 보존한다.
