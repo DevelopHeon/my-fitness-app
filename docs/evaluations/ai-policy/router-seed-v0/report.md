@@ -1,13 +1,13 @@
 # 변경 전 Router 소규모 진단
 
 > 당시 평가 기록이다. 아래 legacy 실행 명령과 test-only Router는 후속 작업에서 제거됐다.
-> 현재 평가 절차는 [Testing](../../../guides/testing.md#ai-정책-평가)을 따른다.
+> 현재 평가 절차는 [Testing](../../../testing.md#ai-정책-평가)을 따른다.
 
 - 실행일: 2026-09-28 (월요일)
 - 기준 commit: `0bd9787b7577b4d5d808f4b8d63d73e830476291`
 - 평가 범위: 실제 컴파일된 `AiQueryRouter.route(question, context, previousType)`의 입력 gate만 확인.
 - 데이터: [seed-v0.jsonl](seed-v0.jsonl), 24개, 작성자 1명의 초안 라벨. 독립 검토 전.
-- 제안 정책과 정식 평가 방향: [정책 spec](../../../changes/2026/2026-09-28-ai-policy-validation/spec.md)
+- 제안 정책과 정식 평가 방향: [정책 spec](../../../archive/specs/2026-09-28-ai-policy-validation-spec.md)
 
 ## 해석 범위
 
@@ -74,6 +74,6 @@ env JAVA_HOME=/Users/gimhuiheon/Library/Java/JavaVirtualMachines/jbr-21.0.11/Con
 /Users/gimhuiheon/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home/bin/java --class-path build/classes/java/main /tmp/my-fitness-policy-baseline-20260928.java
 ```
 
-임시 runner는 영구 저장소 산출물이 아니며 환경 정리 시 사라질 수 있다. 보존된 seed의 `currentQuestion`, `screen`, `previousType`을 같은 commit의 Router에 전달하면 이 표의 `baselineQueryType`과 `baselineGateAction`을 검증할 수 있다. 영구 실행 도구와 immutable legacy fixture는 [구현 계획 단계 2·7](../../../changes/2026/2026-09-28-ai-policy-validation/plan.md)에 포함했다. 후속 구현에서 해당 도구와 test-only Router를 구현했다. `./gradlew aiPolicyEval -PaiPolicyEval.mode=legacy`로 같은 24개/hash와 누락 9/10, 오차단 2/10을 재현한다. [구현 기록](../../../changes/2026/2026-09-28-ai-policy-validation/validation.md)을 참조한다.
+임시 runner는 영구 저장소 산출물이 아니며 환경 정리 시 사라질 수 있다. 보존된 seed의 `currentQuestion`, `screen`, `previousType`을 같은 commit의 Router에 전달하면 이 표의 `baselineQueryType`과 `baselineGateAction`을 검증할 수 있다. 영구 실행 도구와 immutable legacy fixture는 [구현 계획 단계 2·7](../../../archive/specs/2026-09-28-ai-policy-validation-plan.md)에 포함했다. 후속 구현에서 해당 도구와 test-only Router를 구현했다. `./gradlew aiPolicyEval -PaiPolicyEval.mode=legacy`로 같은 24개/hash와 누락 9/10, 오차단 2/10을 재현한다. [구현 기록](../../../archive/specs/2026-09-28-ai-policy-validation-validation.md)을 참조한다.
 
 이 진단에 맞추어 기존 Router의 키워드·순서나 검사를 수정하지 않았다. 전체 backend·frontend·infra 검사와 정책 mutation 탐지는 이번 문서 작업의 실행 범위에 포함하지 않았다.

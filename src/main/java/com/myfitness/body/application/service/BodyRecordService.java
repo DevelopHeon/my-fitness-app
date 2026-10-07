@@ -96,6 +96,10 @@ public class BodyRecordService {
                         userId, start, end);
     }
 
+    public List<BodyRecord> listLatestPair(Long userId) {
+        return bodyRecordRepository.findRecentByUserId(userId, 2);
+    }
+
 
     private void validateMeasuredAtAvailable(
             Long userId,

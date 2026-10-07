@@ -5,6 +5,8 @@ import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,6 +72,82 @@ class BodyRecordApiIntegrationTest {
                 .andExpect(jsonPath("$.changeFromPrevious.weightKg").value(-0.5))
                 .andExpect(jsonPath("$.changeFromPrevious.bodyFatPercentage").value(-0.3))
                 .andExpect(jsonPath("$.changeFromPrevious.skeletalMuscleKg").value(0.2));
+    }
+
+    @Test
+    @DisplayName("90일 이력이 없어도 전체 최신 기록과 직전 변화량을 반환한다")
+    void returnsLatestRecordOutsideHistoryWindow() throws Exception {
+        Instant now = Instant.now();
+        createRecord(
+                31L,
+                "72.80",
+                "19.20",
+                "33.90",
+                now.minus(110, ChronoUnit.DAYS).toString(),
+                null);
+        MvcResult latest = createRecord(
+                31L,
+                "72.30",
+                "18.90",
+                "34.10",
+                now.minus(100, ChronoUnit.DAYS).toString(),
+                null);
+        createRecord(
+                32L,
+                "80.00",
+                "20.00",
+                "35.00",
+                now.minus(1, ChronoUnit.DAYS).toString(),
+                null);
+
+        mockMvc.perform(get("/api/body-records/trend")
+                        .with(authenticatedUser(31L))
+                        .param("days", "90"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latest.id")
+                        .value(json(latest).path("id").asLong()))
+                .andExpect(jsonPath("$.changeFromPrevious.weightKg").value(-0.5))
+                .andExpect(jsonPath("$.records").isEmpty());
+    }
+
+    @Test
+    @DisplayName("기본 이력은 최근 90일이며 기간 밖 직전 기록도 변화량에 사용한다")
+    void defaultsToNinetyDaysAndComparesWithPreviousOutsideWindow() throws Exception {
+        Instant now = Instant.now();
+        createRecord(
+                33L,
+                "72.80",
+                "19.20",
+                "33.90",
+                now.minus(100, ChronoUnit.DAYS).toString(),
+                null);
+        MvcResult latest = createRecord(
+                33L,
+                "72.30",
+                "18.90",
+                "34.10",
+                now.minus(60, ChronoUnit.DAYS).toString(),
+                null);
+        long latestId = json(latest).path("id").asLong();
+
+        mockMvc.perform(get("/api/body-records/trend")
+                        .with(authenticatedUser(33L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latest.id").value(latestId))
+                .andExpect(jsonPath("$.changeFromPrevious.weightKg").value(-0.5))
+                .andExpect(jsonPath("$.records.length()").value(1))
+                .andExpect(jsonPath("$.records[0].id").value(latestId));
+    }
+
+    @Test
+    @DisplayName("신체 기록이 없는 사용자는 빈 최신 기록과 빈 이력을 반환한다")
+    void returnsEmptyTrendWithoutRecords() throws Exception {
+        mockMvc.perform(get("/api/body-records/trend")
+                        .with(authenticatedUser(34L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latest").isEmpty())
+                .andExpect(jsonPath("$.changeFromPrevious").isEmpty())
+                .andExpect(jsonPath("$.records").isEmpty());
     }
 
     @Test

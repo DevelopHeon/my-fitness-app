@@ -9,9 +9,13 @@ public record BodyTrendResult(
         Change changeFromPrevious,
         List<BodyRecordResult> records
 ) {
-    public static BodyTrendResult from(List<BodyRecord> records) {
-        BodyRecord latest = records.isEmpty() ? null : records.getFirst();
-        Change change = records.size() < 2 ? null : Change.between(latest, records.get(1));
+    public static BodyTrendResult from(
+            List<BodyRecord> latestRecords,
+            List<BodyRecord> records) {
+        BodyRecord latest = latestRecords.isEmpty() ? null : latestRecords.getFirst();
+        Change change = latestRecords.size() < 2
+                ? null
+                : Change.between(latest, latestRecords.get(1));
         return new BodyTrendResult(
                 BodyRecordResult.from(latest),
                 change,

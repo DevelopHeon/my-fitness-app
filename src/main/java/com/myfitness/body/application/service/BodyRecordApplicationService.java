@@ -84,6 +84,7 @@ public class BodyRecordApplicationService implements BodyRecordUseCase {
         List<BodyRecord> records =
                 bodyRecordService.listRecent(userId, safeDays);
 
-        return BodyTrendResult.from(records);
+        return BodyTrendResult.from(
+                bodyRecordService.listLatestPair(userId), records);
     }
 }

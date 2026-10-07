@@ -1,40 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import {
-  BodyRecord,
-  BodyRecordInput,
-  BodyTrend,
-  bodyApi,
-} from "@/lib/body-api";
-import {
-  currentTimeString,
-  localDateString,
-  localTimeString,
-  sanitizeDecimal,
-  sanitizeText,
-  todayString,
-} from "@/lib/input-utils";
-
-type FormState = {
-  weightKg: string;
-  bodyFatPercentage: string;
-  skeletalMuscleKg: string;
-  measuredDate: string;
-  measuredTime: string;
-  memo: string;
-};
-
-function emptyForm(): FormState {
-  return {
-    weightKg: "",
-    bodyFatPercentage: "",
-    skeletalMuscleKg: "",
-    measuredDate: todayString(),
-    measuredTime: currentTimeString(),
-    memo: "",
-  };
-}
+import { useEffect, useState } from "react";
+import { BodyRecord, BodyRecordInput, BodyTrend, bodyApi } from "@/lib/body-api";
+import BodyRecordForm from "./body-record-form";
 
 function changeText(value: number) {
   if (value > 0) return "+" + value.toFixed(2);
@@ -54,10 +22,10 @@ export default function BodyScreen() {
     changeFromPrevious: null,
     records: [],
   });
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formSource, setFormSource] = useState<{ record?: BodyRecord } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
+  const [loadState, setLoadState] = useState<"loading" | "loaded" | "error">("loading");
 
   useEffect(() => {
     let cancelled = false;
@@ -66,9 +34,13 @@ export default function BodyScreen() {
       setBusy(true);
       try {
         const next = await bodyApi.getTrend(90);
-        if (!cancelled) setTrend(next);
+        if (!cancelled) {
+          setTrend(next);
+          setLoadState("loaded");
+        }
       } catch (caught) {
         if (!cancelled) {
+          setLoadState("error");
           setError(
             caught instanceof Error
               ? caught.message
@@ -104,124 +76,75 @@ export default function BodyScreen() {
   }
 
   async function refreshTrend() {
+    setLoadState("loading");
     const next = await run(() => bodyApi.getTrend(90));
-    if (next) setTrend(next);
+    if (next) {
+      setTrend(next);
+      setLoadState("loaded");
+    } else {
+      setLoadState("error");
+    }
   }
 
-  function resetForm() {
-    setEditingId(null);
-    setForm(emptyForm());
+  function openForm(record?: BodyRecord) {
+    if (busy) return;
+    setError(null);
+    setFormSource({ record });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  function toInput(): BodyRecordInput | null {
-    const weightKg = Number(form.weightKg);
-    const bodyFatPercentage = Number(form.bodyFatPercentage);
-    const skeletalMuscleKg = Number(form.skeletalMuscleKg);
-
-    if (!form.measuredDate || !form.measuredTime) {
-      setError("측정 날짜와 시간을 입력해주세요.");
-      return null;
-    }
-
-    if (!Number.isFinite(weightKg) || weightKg <= 0) {
-      setError("체중은 0보다 큰 숫자로 입력해주세요.");
-      return null;
-    }
-
-    if (
-      !Number.isFinite(bodyFatPercentage) ||
-      bodyFatPercentage < 0 ||
-      bodyFatPercentage > 100
-    ) {
-      setError("체지방률은 0에서 100 사이 숫자로 입력해주세요.");
-      return null;
-    }
-
-    if (
-      !Number.isFinite(skeletalMuscleKg) ||
-      skeletalMuscleKg <= 0
-    ) {
-      setError("골격근량은 0보다 큰 숫자로 입력해주세요.");
-      return null;
-    }
-
-    const measuredDate = new Date(
-      form.measuredDate + "T" + form.measuredTime + ":00",
-    );
-    if (Number.isNaN(measuredDate.getTime())) {
-      setError("측정 일시를 확인해주세요.");
-      return null;
-    }
-
-    return {
-      weightKg,
-      bodyFatPercentage,
-      skeletalMuscleKg,
-      measuredAt: measuredDate.toISOString(),
-      memo: form.memo.trim() || null,
-    };
+  function closeForm() {
+    setFormSource(null);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    const input = toInput();
-    if (!input) return;
-
-    const saved = await run(() =>
-      editingId
-        ? bodyApi.updateRecord(editingId, input)
-        : bodyApi.createRecord(input),
-    );
+  async function saveRecord(input: BodyRecordInput) {
+    if (busy) return;
+    const record = formSource?.record;
+    const saved = await run(() => record
+      ? bodyApi.updateRecord(record.id, input)
+      : bodyApi.createRecord(input));
     if (!saved) return;
-
-    resetForm();
+    closeForm();
     await refreshTrend();
   }
 
-  function handleEdit(record: BodyRecord) {
-    const measuredAt = new Date(record.measuredAt);
-
-    setEditingId(record.id);
-    setForm({
-      weightKg: String(record.weightKg),
-      bodyFatPercentage: String(record.bodyFatPercentage),
-      skeletalMuscleKg: String(record.skeletalMuscleKg),
-      measuredDate: localDateString(measuredAt),
-      measuredTime: localTimeString(measuredAt),
-      memo: record.memo ?? "",
-    });
-
-    requestAnimationFrame(() => {
-      document
-        .getElementById("body-record-editor")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    });
-  }
-
   async function handleDelete(recordId: number) {
+    if (busy) return;
     const deleted = await run(async () => {
       await bodyApi.deleteRecord(recordId);
       return true;
     });
     if (!deleted) return;
 
-    if (editingId === recordId) resetForm();
     await refreshTrend();
   }
 
   const latest = trend.latest;
   const change = trend.changeFromPrevious;
 
+  const pageClass = "mx-auto min-h-screen w-full max-w-2xl px-4 py-6 pb-24 sm:px-6";
+  const errorNotice = error && (
+    <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {error}
+    </div>
+  );
+
+  if (formSource) return (
+    <main className={pageClass}>
+      {errorNotice}
+      <BodyRecordForm record={formSource.record} busy={busy} onSave={saveRecord} onCancel={closeForm} />
+    </main>
+  );
+
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-6 sm:px-6">
+    <main className={pageClass}>
       <header className="mb-6">
         <p className="text-xs font-semibold tracking-[0.18em] text-zinc-400">
           MY FITNESS
         </p>
-        <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-zinc-950">
               Body
@@ -230,16 +153,26 @@ export default function BodyScreen() {
               체중과 체성분을 측정 시각 기준으로 기록하고 변화를 확인하세요.
             </p>
           </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => openForm()}
+            className="rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            기록 추가
+          </button>
         </div>
       </header>
 
-      {error && (
-        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {errorNotice}
 
-      <section className="grid grid-cols-3 gap-2">
+      <h2 className="mb-3 font-semibold">가장 최근 기록</h2>
+      {loadState === "loading" && (
+        <p role="status" className="mb-3 text-sm text-zinc-500">
+          신체 기록을 불러오는 중...
+        </p>
+      )}
+      <section aria-label="가장 최근 기록" className="grid grid-cols-3 gap-2">
         <MetricCard
           label="체중"
           value={latest ? latest.weightKg.toFixed(2) : "-"}
@@ -261,137 +194,19 @@ export default function BodyScreen() {
       </section>
 
       {latest && (
-        <p className="mt-2 text-right text-xs text-zinc-400">
-          최근 측정 {formatMeasuredAt(latest.measuredAt)}
-        </p>
-      )}
-
-      <section
-        id="body-record-editor"
-        className="mt-6 scroll-mt-20 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold">
-              {editingId ? "신체 기록 수정" : "신체 기록 추가"}
-            </h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              같은 날 여러 번 기록할 수 있지만 동일한 측정 일시는 중복 저장할 수 없습니다.
-            </p>
-          </div>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-xs font-medium text-zinc-400 hover:text-zinc-900"
-            >
-              수정 취소
-            </button>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs font-medium text-zinc-500">
-              측정 날짜
-              <input
-                type="date"
-                max={todayString()}
-                required
-                value={form.measuredDate}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    measuredDate: event.target.value,
-                  }))
-                }
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              측정 시간
-              <input
-                type="time"
-                required
-                value={form.measuredTime}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    measuredTime: event.target.value,
-                  }))
-                }
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MeasurementInput
-              label="체중"
-              unit="kg"
-              value={form.weightKg}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  weightKg: value,
-                }))
-              }
-            />
-            <MeasurementInput
-              label="체지방률"
-              unit="%"
-              value={form.bodyFatPercentage}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  bodyFatPercentage: value,
-                }))
-              }
-            />
-            <MeasurementInput
-              label="골격근량"
-              unit="kg"
-              value={form.skeletalMuscleKg}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  skeletalMuscleKg: value,
-                }))
-              }
-            />
-          </div>
-
-          <label className="block text-xs font-medium text-zinc-500">
-            메모
-            <textarea
-              value={form.memo}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  memo: sanitizeText(event.target.value, 500),
-                }))
-              }
-              rows={3}
-              maxLength={500}
-              placeholder="컨디션이나 측정 상황 메모"
-              className="mt-1.5 w-full resize-none rounded-xl border border-zinc-200 px-3 py-3 text-sm outline-none focus:border-zinc-500"
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            {editingId ? "기록 수정" : "기록 저장"}
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
+          <p className="text-xs text-zinc-400">최근 측정 {formatMeasuredAt(latest.measuredAt)}</p>
+          <button type="button" disabled={busy} onClick={() => openForm(latest)}
+            className="text-xs font-medium text-zinc-500 disabled:opacity-40">
+            최신 기록 수정
           </button>
-        </form>
-      </section>
+        </div>
+      )}
 
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold">최근 변화</h2>
+            <h2 className="font-semibold">최근 90일 기록</h2>
             <p className="mt-1 text-xs text-zinc-400">
               최근 90일 측정 기록
             </p>
@@ -402,9 +217,19 @@ export default function BodyScreen() {
         </div>
 
         <div className="space-y-3">
-          {trend.records.length === 0 ? (
+          {loadState === "loading" ? null : loadState === "error" && trend.records.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-6 text-center">
+              <button
+                type="button"
+                onClick={() => { void refreshTrend(); }}
+                className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700"
+              >
+                다시 불러오기
+              </button>
+            </div>
+          ) : trend.records.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-400">
-              아직 신체 기록이 없습니다.
+              최근 90일 동안 등록한 신체 기록이 없습니다.
             </div>
           ) : (
             trend.records.map((record) => (
@@ -426,7 +251,8 @@ export default function BodyScreen() {
                   <div className="flex gap-3 text-xs font-medium">
                     <button
                       type="button"
-                      onClick={() => handleEdit(record)}
+                      disabled={busy}
+                      onClick={() => openForm(record)}
                       className="text-zinc-500 hover:text-zinc-900"
                     >
                       수정
@@ -482,9 +308,9 @@ function MetricCard({
   change?: number;
 }) {
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <article className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
       <p className="text-xs font-medium text-zinc-400">{label}</p>
-      <p className="mt-2 text-xl font-bold tracking-tight text-zinc-950">
+      <p className="mt-2 text-lg font-bold tracking-tight text-zinc-950 sm:text-xl">
         {value}
         {value !== "-" && (
           <span className="ml-1 text-xs font-medium text-zinc-400">
@@ -498,40 +324,6 @@ function MetricCard({
           : "직전 대비 " + changeText(change) + unit}
       </p>
     </article>
-  );
-}
-
-function MeasurementInput({
-  label,
-  unit,
-  value,
-  onChange,
-}: {
-  label: string;
-  unit: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="text-xs font-medium text-zinc-500">
-      {label}
-      <div className="relative mt-1.5">
-        <input
-          type="text"
-          inputMode="decimal"
-          pattern="[0-9]*[.]?[0-9]*"
-          value={value}
-          required
-          onChange={(event) =>
-            onChange(sanitizeDecimal(event.target.value, 2))
-          }
-          className="w-full rounded-xl border border-zinc-200 px-3 py-3 pr-10 text-sm outline-none focus:border-zinc-500"
-        />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
-          {unit}
-        </span>
-      </div>
-    </label>
   );
 }
 

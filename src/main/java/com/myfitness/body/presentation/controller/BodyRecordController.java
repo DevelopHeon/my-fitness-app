@@ -89,7 +89,7 @@ public class BodyRecordController {
     @GetMapping("/trend")
     public BodyTrendResponse trend(
             @AuthenticationPrincipal(expression = "userId") Long userId,
-            @RequestParam(defaultValue = "30") int days) {
+            @RequestParam(defaultValue = "90") int days) {
         return BodyTrendResponse.from(
                 bodyRecordUseCase.trend(userId, days));
     }

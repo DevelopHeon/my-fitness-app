@@ -239,7 +239,7 @@ test("nutrition browsing offers daily and calendar views without embedding the e
 });
 
 // Exercise handlers on the real form with persistent state, without mocking its food rows.
-function componentDriver(file, props, imports = {}) {
+function componentDriver(file, props, imports = {}, globals = {}) {
   const states = [];
   const refs = [];
   let stateIndex = 0;
@@ -280,7 +280,7 @@ function componentDriver(file, props, imports = {}) {
       });
     }
   };
-  const Component = load(file, {}, { ...imports, react: hooks }).default;
+  const Component = load(file, globals, { ...imports, react: hooks }).default;
   function render() {
     stateIndex = 0;
     refIndex = 0;
@@ -302,6 +302,150 @@ function elements(node, predicate) {
   if (Array.isArray(node)) return node.flatMap((child) => elements(child, predicate));
   return [...(predicate(node) ? [node] : []), ...elements(node.props?.children, predicate)];
 }
+
+test("body keeps an old latest record visible when its 90-day history is empty", async () => {
+  const driver = componentDriver("src/components/body/body-screen.tsx", {}, {
+    "@/lib/body-api": { bodyApi: { getTrend: async (days) => {
+      assert.equal(days, 90);
+      return { latest: { id: 1, weightKg: 72.3, bodyFatPercentage: 18.9, skeletalMuscleKg: 34.1,
+        measuredAt: "2026-01-01T00:00:00Z", memo: null,
+        createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+      changeFromPrevious: { weightKg: -0.5, bodyFatPercentage: -0.3, skeletalMuscleKg: 0.2 }, records: [] };
+    } } },
+  });
+  driver.render();
+  driver.flushEffects();
+  await new Promise((resolve) => setImmediate(resolve));
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const html = renderToStaticMarkup(driver.render());
+  assert.match(html, /72\.30/);
+  assert.match(html, /직전 대비 -0\.50kg/);
+  assert.match(html, /최근 90일 동안 등록한 신체 기록이 없습니다/);
+  assert.doesNotMatch(html, /아직 신체 기록이 없습니다/);
+});
+
+test("body distinguishes pending or failed history requests from an empty history", async () => {
+  let rejectTrend;
+  const pending = new Promise((resolve, reject) => { rejectTrend = reject; });
+  const driver = componentDriver("src/components/body/body-screen.tsx", {}, {
+    "@/lib/body-api": { bodyApi: { getTrend: () => pending } },
+  });
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const initial = renderToStaticMarkup(driver.render());
+  assert.match(initial, /신체 기록을 불러오는 중/);
+  assert.doesNotMatch(initial, /아직 신체 기록이 없습니다/);
+  driver.flushEffects();
+  rejectTrend(new Error("조회 실패"));
+  await new Promise((resolve) => setImmediate(resolve));
+  const failed = renderToStaticMarkup(driver.render());
+  assert.match(failed, /조회 실패/);
+  assert.match(failed, /다시 불러오기/);
+  assert.doesNotMatch(failed, /최근 90일 동안 등록한 신체 기록이 없습니다/);
+});
+
+test("body opens registration only by action and returns to history after saving or canceling", async () => {
+  const calls = [];
+  const BodyRecordForm = () => null;
+  const driver = componentDriver("src/components/body/body-screen.tsx", {}, {
+    "./body-record-form": { default: BodyRecordForm },
+    "@/lib/body-api": { bodyApi: {
+      getTrend: async () => ({ latest: null, changeFromPrevious: null, records: [] }),
+      createRecord: async (input) => { calls.push(input); return { id: 1 }; },
+    } },
+  }, { window: { scrollTo() {} } });
+  let tree = driver.render();
+  driver.flushEffects();
+  await new Promise((resolve) => setImmediate(resolve));
+  tree = driver.render();
+  assert.equal(elements(tree, (node) => node.type === "form").length, 0);
+  const add = elements(tree, (node) => node.type === "button" && node.props.children === "기록 추가")[0];
+  assert.ok(add);
+  add.props.onClick();
+  tree = driver.render();
+  let editor = elements(tree, (node) => node.type === BodyRecordForm)[0];
+  assert.ok(editor);
+  assert.equal(elements(tree, (node) => node.props.children === "최근 90일 기록").length, 0);
+  editor.props.onCancel();
+  assert.equal(elements(driver.render(), (node) => node.type === BodyRecordForm).length, 0);
+  add.props.onClick();
+  editor = elements(driver.render(), (node) => node.type === BodyRecordForm)[0];
+  const input = { weightKg: 64, bodyFatPercentage: 16, skeletalMuscleKg: 30,
+    measuredAt: "2026-10-01T00:00:00Z", memo: null };
+  await editor.props.onSave(input);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], input);
+  assert.equal(elements(driver.render(), (node) => node.type === BodyRecordForm).length, 0);
+});
+
+test("body editing uses the selected record and keeps the editor open on save failure", async () => {
+  const record = { id: 7, weightKg: 64, bodyFatPercentage: 16, skeletalMuscleKg: 30,
+    measuredAt: "2026-10-01T00:00:00Z", memo: "기존 기록" };
+  const calls = [];
+  const BodyRecordForm = () => null;
+  const driver = componentDriver("src/components/body/body-screen.tsx", {}, {
+    "./body-record-form": { default: BodyRecordForm },
+    "@/lib/body-api": { bodyApi: {
+      getTrend: async () => ({ latest: record, changeFromPrevious: null, records: [record] }),
+      updateRecord: async (id, input) => { calls.push({ id, input }); throw new Error("저장 실패"); },
+    } },
+  }, { window: { scrollTo() {} }, requestAnimationFrame() {} });
+  driver.render();
+  driver.flushEffects();
+  await new Promise((resolve) => setImmediate(resolve));
+  const edit = elements(driver.render(), (node) => node.type === "button" && node.props.children === "수정")[0];
+  edit.props.onClick();
+  let editor = elements(driver.render(), (node) => node.type === BodyRecordForm)[0];
+  assert.ok(editor);
+  assert.equal(editor.props.record.id, 7);
+  const input = { weightKg: 65, bodyFatPercentage: 16, skeletalMuscleKg: 30,
+    measuredAt: record.measuredAt, memo: record.memo };
+  await editor.props.onSave(input);
+  assert.equal(calls[0].id, 7);
+  assert.deepEqual(calls[0].input, input);
+  editor = elements(driver.render(), (node) => node.type === BodyRecordForm)[0];
+  assert.ok(editor);
+  const { renderToStaticMarkup } = require("react-dom/server");
+  assert.match(renderToStaticMarkup(driver.render()), /저장 실패/);
+});
+
+test("body form preserves measurement time, converts edited values, and blocks submission while busy", async () => {
+  const saved = [];
+  const props = { record: { id: 7, weightKg: 64, bodyFatPercentage: 16, skeletalMuscleKg: 30,
+    measuredAt: "2026-10-01T00:00:00Z", memo: "기존 기록" }, busy: false,
+    onSave: async (input) => { saved.push(input); }, onCancel() {} };
+  const driver = componentDriver("src/components/body/body-record-form.tsx", props);
+  let tree = driver.render();
+  const weight = elements(tree, (node) => node.props.label === "체중")[0];
+  assert.equal(weight.props.value, "64");
+  weight.props.onChange("65.50");
+  elements(tree, (node) => node.type === "textarea")[0].props.onChange({ target: { value: " 변경 " } });
+  tree = driver.render();
+  await elements(tree, (node) => node.type === "form")[0].props.onSubmit({ preventDefault() {} });
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].weightKg, 65.5);
+  assert.equal(saved[0].bodyFatPercentage, 16);
+  assert.equal(saved[0].skeletalMuscleKg, 30);
+  assert.equal(new Date(saved[0].measuredAt).getTime(), new Date(props.record.measuredAt).getTime());
+  assert.equal(saved[0].memo, "변경");
+  props.busy = true;
+  tree = driver.render();
+  await elements(tree, (node) => node.type === "form")[0].props.onSubmit({ preventDefault() {} });
+  assert.equal(saved.length, 1);
+  const cancel = elements(tree, (node) => node.type === "button" && node.props.children === "취소")[0];
+  assert.equal(cancel.props.disabled, true);
+});
+
+test("body form refuses invalid measurements without invoking save", async () => {
+  let calls = 0;
+  const driver = componentDriver("src/components/body/body-record-form.tsx", {
+    busy: false, onSave: async () => { calls++; }, onCancel() {},
+  });
+  const tree = driver.render();
+  await elements(tree, (node) => node.type === "form")[0].props.onSubmit({ preventDefault() {} });
+  assert.equal(calls, 0);
+  const { renderToStaticMarkup } = require("react-dom/server");
+  assert.match(renderToStaticMarkup(driver.render()), /체중은 0보다 큰 숫자로 입력해주세요/);
+});
 
 test("batch editing excludes a food, preserves unknown macros, and prevents duplicate pending submits", async () => {
   const saved = [];
