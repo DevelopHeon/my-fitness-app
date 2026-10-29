@@ -5,7 +5,7 @@
 
 ## 기본 검증
 
-저장소 루트, Java 21·Node 22 환경에서 실행한다.
+저장소 루트, Java 21·[.nvmrc](../.nvmrc)에 지정된 Node.js 환경에서 실행한다.
 
 ```bash
 ./gradlew checkstyleMain checkstyleTest --no-daemon
@@ -17,6 +17,10 @@
 test는 Checkstyle을 선행 실행한다. build의 check에는 frontend Node 테스트가 포함되고
 BootJar에는 정적 PWA 빌드·자산 검사가 연결된다. 일반 test는 `ai-policy-eval` tag를 제외한다.
 CI는 frontend lint와 CDK 검사도 별도로 실행한다.
+
+의존성 보안 점검은 `frontend/`와 `infra/`에서 각각 `npm audit`를 실행한다.
+패키지 수와 실제 운영 공격 경로를 구분하며, 호환성이 깨지는 `npm audit fix --force`를 자동 적용하지 않는다.
+개발 도구의 미해결 경고는 [Infrastructure](../infra/README.md#인프라-변경)에서 확인한다.
 
 프론트 단독 검사·lint·빌드는 [Frontend](../frontend/README.md#검증과-빌드)의 명령을 사용한다.
 

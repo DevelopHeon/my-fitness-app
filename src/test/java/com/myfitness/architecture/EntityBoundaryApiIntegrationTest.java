@@ -92,7 +92,9 @@ class EntityBoundaryApiIntegrationTest {
                         .value(70));
 
         mockMvc.perform(get("/api/workouts")
-                        .with(authenticatedUser(WORKOUT_USER)))
+                        .with(authenticatedUser(WORKOUT_USER))
+                        .param("from", "2026-09-20")
+                        .param("to", "2026-09-20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].exercises[0].sets[0].reps")
                         .value(8));

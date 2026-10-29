@@ -208,7 +208,9 @@ class WorkoutApiIntegrationTest {
                 .andExpect(jsonPath("$.sets[0].weightKg").value(65));
 
         mockMvc.perform(get("/api/workouts")
-                        .with(authenticatedUser(1L)))
+                        .with(authenticatedUser(1L))
+                        .param("from", "2026-09-18")
+                        .param("to", "2026-09-18"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].exercises[0].exerciseName")
                         .value("벤치프레스"))

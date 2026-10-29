@@ -134,18 +134,25 @@ secret·자원·모니터링 설정·앱 parameter/image preflight 뒤 Caddy가 
 
 ## 인프라 변경
 
-저장소 루트에서 시작한다. Node 22와 AWS/CDK 인증이 필요하다.
+저장소 루트에서 시작한다. Node.js는 [.nvmrc](../.nvmrc)의 버전을 사용하며 AWS/CDK 인증이 필요하다.
 
 ```bash
 cd infra
 npm ci
 npm run build
 npm test -- --runInBand
+npm audit
 npx cdk synth
 npx cdk diff
 ```
 
 위 검사 뒤 diff를 검토하고 필요한 StackName을 선택한다.
+
+2026-10-29 보안 점검에서 Jest의 개발 의존성 `deepmerge@4.3.1`에
+[Low 취약점](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)이 남아 있다.
+동일 원인이 Jest 관련 5개 패키지로 집계되며 `npm audit`는 종료 코드 1을 반환한다. 운영 앱에는 포함되지 않는다.
+호환 가능한 수정 버전이 없어 유지하며, `npm audit fix --force`가 제안하는 Jest 25 다운그레이드는 적용하지 않는다.
+업스트림 수정 버전이 나오면 Jest 호환 범위에서 갱신하고 CDK 테스트를 재실행한다.
 
 ```bash
 npx cdk deploy <StackName> --exclusively

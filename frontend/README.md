@@ -5,9 +5,12 @@ Next.js·TypeScript·Tailwind CSS 기반 PWA다. 운영에서는 정적 export�
 
 ## 실행
 
-Node.js 22를 사용한다. 아래 명령은 저장소 루트에서 시작한다.
+Node.js 버전은 루트 [.nvmrc](../.nvmrc)를 기준으로 로컬과 CI/CD에서 동일하게 사용한다.
+아래 명령은 nvm이 설치된 환경의 저장소 루트에서 시작한다.
 
 ```bash
+nvm install
+nvm use
 cd frontend
 npm ci
 npm run dev
