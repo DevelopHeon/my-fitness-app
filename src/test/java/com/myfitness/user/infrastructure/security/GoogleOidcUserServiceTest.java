@@ -8,9 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.myfitness.user.application.dto.request.GoogleLoginCommand;
-import com.myfitness.user.application.dto.response.UserProfileResult;
-import com.myfitness.user.application.port.in.GoogleLoginUseCase;
+import com.myfitness.user.application.port.in.GoogleLoginPort.LoginInput;
+import com.myfitness.user.application.port.in.UserProfileView;
+import com.myfitness.user.application.port.in.GoogleLoginPort;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.time.Instant;
@@ -27,20 +27,20 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 class GoogleOidcUserServiceTest {
 
-    private final GoogleLoginUseCase loginUseCase =
-            mock(GoogleLoginUseCase.class);
+    private final GoogleLoginPort loginPort =
+            mock(GoogleLoginPort.class);
     private final OAuth2UserService<OidcUserRequest, OidcUser> delegate =
             mock(OAuth2UserService.class);
     private final GoogleOidcUserService service =
-            new GoogleOidcUserService(loginUseCase, delegate);
+            new GoogleOidcUserService(loginPort, delegate);
 
     @Test
     void mapsGoogleClaimsToInternalUserAndPrincipal() throws Exception {
         OidcUserRequest request = mock(OidcUserRequest.class);
         OidcUser googleUser = googleUser();
         when(delegate.loadUser(request)).thenReturn(googleUser);
-        when(loginUseCase.login(any(GoogleLoginCommand.class)))
-                .thenReturn(new UserProfileResult(
+        when(loginPort.login(any(LoginInput.class)))
+                .thenReturn(new UserProfileView(
                         42L,
                         "user@example.com",
                         "Fitness User",
@@ -48,9 +48,9 @@ class GoogleOidcUserServiceTest {
 
         OidcUser loaded = service.loadUser(request);
 
-        ArgumentCaptor<GoogleLoginCommand> command =
-                ArgumentCaptor.forClass(GoogleLoginCommand.class);
-        verify(loginUseCase).login(command.capture());
+        ArgumentCaptor<LoginInput> command =
+                ArgumentCaptor.forClass(LoginInput.class);
+        verify(loginPort).login(command.capture());
         assertThat(command.getValue().googleSubject())
                 .isEqualTo("google-subject-42");
         assertThat(command.getValue().email())
@@ -75,8 +75,8 @@ class GoogleOidcUserServiceTest {
                 null,
                 null);
         when(delegate.loadUser(request)).thenReturn(googleUser);
-        when(loginUseCase.login(any(GoogleLoginCommand.class)))
-                .thenReturn(new UserProfileResult(
+        when(loginPort.login(any(LoginInput.class)))
+                .thenReturn(new UserProfileView(
                         42L,
                         null,
                         null,
@@ -84,9 +84,9 @@ class GoogleOidcUserServiceTest {
 
         service.loadUser(request);
 
-        ArgumentCaptor<GoogleLoginCommand> command =
-                ArgumentCaptor.forClass(GoogleLoginCommand.class);
-        verify(loginUseCase).login(command.capture());
+        ArgumentCaptor<LoginInput> command =
+                ArgumentCaptor.forClass(LoginInput.class);
+        verify(loginPort).login(command.capture());
         assertThat(command.getValue().googleSubject())
                 .isEqualTo("google-subject-42");
         assertThat(command.getValue().email()).isNull();
@@ -108,8 +108,8 @@ class GoogleOidcUserServiceTest {
                 .isInstanceOf(OAuth2AuthenticationException.class)
                 .hasMessageContaining("sub claim");
 
-        verify(loginUseCase, never())
-                .login(any(GoogleLoginCommand.class));
+        verify(loginPort, never())
+                .login(any(LoginInput.class));
     }
 
     @Test
@@ -121,8 +121,8 @@ class GoogleOidcUserServiceTest {
                 .isInstanceOf(OAuth2AuthenticationException.class)
                 .hasMessageContaining("사용자 정보가 비어");
 
-        verify(loginUseCase, never())
-                .login(any(GoogleLoginCommand.class));
+        verify(loginPort, never())
+                .login(any(LoginInput.class));
     }
 
     @Test

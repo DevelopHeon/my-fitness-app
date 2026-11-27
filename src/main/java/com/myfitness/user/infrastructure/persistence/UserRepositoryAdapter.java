@@ -1,12 +1,12 @@
 package com.myfitness.user.infrastructure.persistence;
 
-import com.myfitness.user.application.port.out.UserRepositoryPort;
+import com.myfitness.user.domain.repository.UserRepository;
 import com.myfitness.user.domain.model.User;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class UserRepositoryAdapter implements UserRepositoryPort {
+public class UserRepositoryAdapter implements UserRepository {
     private final SpringDataUserRepository repository;
 
     public UserRepositoryAdapter(SpringDataUserRepository repository) {

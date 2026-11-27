@@ -1,6 +1,5 @@
 package com.myfitness.workout.domain.model;
 
-import com.myfitness.exercise.domain.model.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -29,7 +28,7 @@ class WorkoutTest {
     @DisplayName("다른 사용자의 커스텀 운동 종목은 Workout에 추가할 수 없다")
     void rejectsCustomExerciseOwnedByAnotherUser() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
-        ExerciseReference otherUsersExercise = new ExerciseReference(
+        ExerciseSnapshot otherUsersExercise = new ExerciseSnapshot(
                 ExerciseType.CUSTOM, 1L, "내 운동", ExerciseCategory.CHEST, 2L);
 
         assertThatThrownBy(() -> workout.addExercise(otherUsersExercise, null))
@@ -41,7 +40,7 @@ class WorkoutTest {
     @DisplayName("기본 운동 종목은 모든 사용자가 Workout에 추가할 수 있다")
     void allowsDefaultExerciseForEveryUser() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
-        ExerciseReference exercise = new ExerciseReference(
+        ExerciseSnapshot exercise = new ExerciseSnapshot(
                 ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null);
 
         workout.addExercise(exercise, null);
@@ -55,13 +54,13 @@ class WorkoutTest {
     @DisplayName("완료된 운동은 수정하거나 다시 완료할 수 없다")
     void rejectsChangesAfterWorkoutIsCompleted() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
-        ExerciseReference exercise = new ExerciseReference(
+        ExerciseSnapshot exercise = new ExerciseSnapshot(
                 ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null);
         workout.addExercise(exercise, null);
         workout.complete(startedAt.plusSeconds(3600));
 
         assertThatThrownBy(() -> workout.addExercise(
-                new ExerciseReference(
+                new ExerciseSnapshot(
                         ExerciseType.DEFAULT, 2L, "딥스", ExerciseCategory.CHEST, null),
                 null))
                 .isInstanceOf(WorkoutRuleException.class);
@@ -74,14 +73,14 @@ class WorkoutTest {
     void reopensCompletedWorkoutForEditing() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
         workout.addExercise(
-                new ExerciseReference(
+                new ExerciseSnapshot(
                         ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
                 null);
         workout.complete(startedAt.plusSeconds(3600));
 
         workout.reopen();
         workout.addExercise(
-                new ExerciseReference(
+                new ExerciseSnapshot(
                         ExerciseType.DEFAULT, 2L, "딥스", ExerciseCategory.CHEST, null),
                 null);
         workout.complete(startedAt.plusSeconds(7200));
@@ -96,7 +95,7 @@ class WorkoutTest {
     void requiresRepsOrDurationForSet() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
         WorkoutExercise exercise = workout.addExercise(
-                new ExerciseReference(
+                new ExerciseSnapshot(
                         ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
                 null);
 
@@ -110,7 +109,7 @@ class WorkoutTest {
     void reordersSetNumbersAfterDeletion() {
         Workout workout = Workout.start(1L, LocalDate.now(), null, startedAt);
         WorkoutExercise exercise = workout.addExercise(
-                new ExerciseReference(
+                new ExerciseSnapshot(
                         ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null),
                 null);
         WorkoutSet first = exercise.addSet(

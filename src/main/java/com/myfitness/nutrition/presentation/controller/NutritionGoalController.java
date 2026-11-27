@@ -1,7 +1,7 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
-import com.myfitness.nutrition.application.port.in.NutritionUseCase;
+import com.myfitness.nutrition.application.port.in.NutritionGoalView;
+import com.myfitness.nutrition.application.port.in.NutritionPort;
 import com.myfitness.nutrition.presentation.dto.request.NutritionGoalUpsertRequest;
 import com.myfitness.nutrition.presentation.dto.response.NutritionGoalResponse;
 import jakarta.validation.Valid;
@@ -11,18 +11,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/nutrition-goals")
 public class NutritionGoalController {
-    private final NutritionUseCase nutritionUseCase;
+    private final NutritionPort nutritionPort;
 
     public NutritionGoalController(
-            NutritionUseCase nutritionUseCase) {
-        this.nutritionUseCase = nutritionUseCase;
+            NutritionPort nutritionPort) {
+        this.nutritionPort = nutritionPort;
     }
 
     @GetMapping("/current")
     public NutritionGoalResponse current(
             @AuthenticationPrincipal(expression = "userId") Long userId) {
-        NutritionGoalResult goal =
-                nutritionUseCase.currentGoal(userId);
+        NutritionGoalView goal =
+                nutritionPort.currentGoal(userId);
         return goal == null
                 ? null
                 : NutritionGoalResponse.from(goal);
@@ -33,7 +33,7 @@ public class NutritionGoalController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody NutritionGoalUpsertRequest request) {
         return NutritionGoalResponse.from(
-                nutritionUseCase.upsertGoal(
+                nutritionPort.upsertGoal(
                         userId,
                         request.calories(),
                         request.carbohydrateGrams(),

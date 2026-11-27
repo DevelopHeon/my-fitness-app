@@ -1,11 +1,10 @@
 package com.myfitness.routine.presentation.dto.response;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.ExerciseView;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.PreviousRecordView;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.SetView;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.WorkoutView;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView.Exercise;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView.PreviousRecord;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView.Set;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView.Workout;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,7 +15,7 @@ public record RoutineWorkoutStartResponse(
         List<PreviousRecordEntry> previousRecords
 ) {
     public static RoutineWorkoutStartResponse from(
-            RoutineWorkoutStartResult result) {
+            RoutineWorkoutStartView result) {
         return new RoutineWorkoutStartResponse(
                 WorkoutEntry.from(result.workout()),
                 result.previousRecords().stream()
@@ -33,7 +32,7 @@ public record RoutineWorkoutStartResponse(
             Instant completedAt,
             List<ExerciseEntry> exercises
     ) {
-        static WorkoutEntry from(WorkoutView workout) {
+        static WorkoutEntry from(Workout workout) {
             return new WorkoutEntry(
                     workout.id(),
                     workout.workoutDate(),
@@ -49,7 +48,7 @@ public record RoutineWorkoutStartResponse(
 
     public record ExerciseEntry(
             Long id,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,
@@ -57,7 +56,7 @@ public record RoutineWorkoutStartResponse(
             String memo,
             List<SetEntry> sets
     ) {
-        static ExerciseEntry from(ExerciseView entry) {
+        static ExerciseEntry from(Exercise entry) {
             return new ExerciseEntry(
                     entry.id(),
                     entry.exerciseType(),
@@ -80,7 +79,7 @@ public record RoutineWorkoutStartResponse(
             Integer durationSeconds,
             boolean completed
     ) {
-        static SetEntry from(SetView set) {
+        static SetEntry from(Set set) {
             return new SetEntry(
                     set.id(),
                     set.setNumber(),
@@ -95,12 +94,12 @@ public record RoutineWorkoutStartResponse(
             Long workoutId,
             LocalDate workoutDate,
             Long workoutExerciseId,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String exerciseName,
             List<SetEntry> sets
     ) {
-        static PreviousRecordEntry from(PreviousRecordView entry) {
+        static PreviousRecordEntry from(PreviousRecord entry) {
             return new PreviousRecordEntry(
                     entry.workoutId(),
                     entry.workoutDate(),

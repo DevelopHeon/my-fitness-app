@@ -1,11 +1,10 @@
 package com.myfitness.nutrition.application.support;
 
-import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
-import com.myfitness.nutrition.application.dto.response.MealFoodResult;
-import com.myfitness.nutrition.application.dto.response.MealSectionResult;
-import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
-import com.myfitness.nutrition.application.dto.response.NutritionTotals;
-import com.myfitness.nutrition.domain.model.MealFood;
+import com.myfitness.nutrition.application.usecase.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.usecase.response.MealFoodResult;
+import com.myfitness.nutrition.application.usecase.response.MealSectionResult;
+import com.myfitness.nutrition.application.usecase.response.NutritionGoalResult;
+import com.myfitness.nutrition.application.usecase.response.NutritionTotals;
 import com.myfitness.nutrition.domain.model.MealType;
 import com.myfitness.nutrition.domain.model.NutritionGoal;
 import java.time.LocalDate;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class NutritionResultAssembler {
     public DailyNutritionResult daily(
             LocalDate date,
-            List<MealFood> items,
+            List<MealFoodResult> items,
             NutritionGoal goal) {
         List<MealSectionResult> sections = new ArrayList<>();
         NutritionTotals consumed = NutritionTotals.zero();
@@ -44,10 +43,10 @@ public class NutritionResultAssembler {
 
     private static MealSectionResult mealSection(
             MealType mealType,
-            List<MealFood> items) {
-        List<MealFood> mealItems = items.stream()
+            List<MealFoodResult> items) {
+        List<MealFoodResult> mealItems = items.stream()
                 .filter(item ->
-                        item.getMeal().getMealType() == mealType)
+                        mealType.name().equals(item.mealType()))
                 .toList();
 
         NutritionTotals total = mealItems.stream()
@@ -57,10 +56,8 @@ public class NutritionResultAssembler {
                         NutritionTotals::add);
 
         return new MealSectionResult(
-                mealType,
-                mealItems.stream()
-                        .map(MealFoodResult::from)
-                        .toList(),
+                mealType.name(),
+                mealItems,
                 total);
     }
 

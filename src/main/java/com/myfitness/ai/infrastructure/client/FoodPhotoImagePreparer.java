@@ -1,6 +1,6 @@
 package com.myfitness.ai.infrastructure.client;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
+import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoUpload;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException.Reason;
 import java.awt.Color;
@@ -21,7 +21,7 @@ public class FoodPhotoImagePreparer {
     private static final long MAX_PIXEL_COUNT = 32_000_000L;
     private static final int MAX_OUTPUT_EDGE = 1600;
 
-    public byte[] prepare(FoodPhotoCommand command) {
+    public byte[] prepare(PhotoUpload command) {
         validateUpload(command);
         try (MemoryCacheImageInputStream input = new MemoryCacheImageInputStream(
                 new ByteArrayInputStream(command.bytes()))) {
@@ -32,7 +32,7 @@ public class FoodPhotoImagePreparer {
         }
     }
 
-    private void validateUpload(FoodPhotoCommand command) {
+    private void validateUpload(PhotoUpload command) {
         if (command == null || command.bytes() == null || command.bytes().length == 0) {
             throw new InvalidFoodPhotoException(Reason.INVALID);
         }

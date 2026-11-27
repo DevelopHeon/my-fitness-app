@@ -5,8 +5,8 @@ import static org.mockito.Mockito.when;
 
 import com.myfitness.workout.domain.model.Workout;
 import com.myfitness.workout.application.exception.WorkoutAccessException;
-import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
-import com.myfitness.workout.application.port.out.WorkoutRepositoryPort;
+import com.myfitness.workout.application.port.out.PreviousExerciseRecordQueryPort;
+import com.myfitness.workout.domain.repository.WorkoutRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -16,9 +16,9 @@ import org.mockito.Mockito;
 
 class WorkoutServiceTest {
 
-    private final WorkoutRepositoryPort workoutRepository = Mockito.mock(WorkoutRepositoryPort.class);
-    private final WorkoutExerciseRepositoryPort workoutExerciseRepository =
-            Mockito.mock(WorkoutExerciseRepositoryPort.class);
+    private final WorkoutRepository workoutRepository = Mockito.mock(WorkoutRepository.class);
+    private final PreviousExerciseRecordQueryPort workoutExerciseRepository =
+            Mockito.mock(PreviousExerciseRecordQueryPort.class);
     private final WorkoutService service =
             new WorkoutService(workoutRepository, workoutExerciseRepository);
 

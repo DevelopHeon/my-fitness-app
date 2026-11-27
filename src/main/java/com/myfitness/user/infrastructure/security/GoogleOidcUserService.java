@@ -1,8 +1,8 @@
 package com.myfitness.user.infrastructure.security;
 
-import com.myfitness.user.application.dto.request.GoogleLoginCommand;
-import com.myfitness.user.application.dto.response.UserProfileResult;
-import com.myfitness.user.application.port.in.GoogleLoginUseCase;
+import com.myfitness.user.application.port.in.GoogleLoginPort.LoginInput;
+import com.myfitness.user.application.port.in.UserProfileView;
+import com.myfitness.user.application.port.in.GoogleLoginPort;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -16,19 +16,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class GoogleOidcUserService
         implements OAuth2UserService<OidcUserRequest, OidcUser> {
-    private final GoogleLoginUseCase googleLoginUseCase;
+    private final GoogleLoginPort googleLoginPort;
     private final OAuth2UserService<OidcUserRequest, OidcUser> delegate;
 
     @Autowired
     public GoogleOidcUserService(
-            GoogleLoginUseCase googleLoginUseCase) {
-        this(googleLoginUseCase, new OidcUserService());
+            GoogleLoginPort googleLoginPort) {
+        this(googleLoginPort, new OidcUserService());
     }
 
     GoogleOidcUserService(
-            GoogleLoginUseCase googleLoginUseCase,
+            GoogleLoginPort googleLoginPort,
             OAuth2UserService<OidcUserRequest, OidcUser> delegate) {
-        this.googleLoginUseCase = googleLoginUseCase;
+        this.googleLoginPort = googleLoginPort;
         this.delegate = delegate;
     }
 
@@ -37,8 +37,8 @@ public class GoogleOidcUserService
         OidcUser oidcUser = requireOidcUser(delegate.loadUser(userRequest));
         String subject = requireSubject(oidcUser);
 
-        UserProfileResult user = googleLoginUseCase.login(
-                new GoogleLoginCommand(
+        UserProfileView user = googleLoginPort.login(
+                new LoginInput(
                         subject,
                         oidcUser.getEmail(),
                         oidcUser.getFullName(),

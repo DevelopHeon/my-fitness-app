@@ -1,7 +1,7 @@
 package com.myfitness.workout.presentation.controller;
 
-import com.myfitness.workout.application.dto.request.WorkoutSetCommand;
-import com.myfitness.workout.application.port.in.WorkoutUseCase;
+import com.myfitness.workout.application.port.in.WorkoutPort.WorkoutSetInput;
+import com.myfitness.workout.application.port.in.WorkoutPort;
 import com.myfitness.workout.presentation.dto.request.AddWorkoutExerciseRequest;
 import com.myfitness.workout.presentation.dto.request.StartWorkoutRequest;
 import com.myfitness.workout.presentation.dto.request.WorkoutSetBatchRequest;
@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/workouts")
 public class WorkoutController {
-    private final WorkoutUseCase workoutUseCase;
+    private final WorkoutPort workoutPort;
 
     public WorkoutController(
-            WorkoutUseCase workoutUseCase) {
-        this.workoutUseCase = workoutUseCase;
+            WorkoutPort workoutPort) {
+        this.workoutPort = workoutPort;
     }
 
     @PostMapping
@@ -32,7 +32,7 @@ public class WorkoutController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody StartWorkoutRequest request) {
         return WorkoutResponse.from(
-                workoutUseCase.startWorkout(
+                workoutPort.startWorkout(
                         userId,
                         request.workoutDate(),
                         request.memo()));
@@ -43,7 +43,7 @@ public class WorkoutController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutUseCase.getWorkout(userId, workoutId));
+                workoutPort.getWorkout(userId, workoutId));
     }
 
     @GetMapping
@@ -51,7 +51,7 @@ public class WorkoutController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to) {
-        return workoutUseCase
+        return workoutPort
                 .getWorkouts(userId, from, to)
                 .stream()
                 .map(WorkoutResponse::from)
@@ -62,7 +62,7 @@ public class WorkoutController {
     public List<WorkoutCalendarDayResponse> calendar(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam String month) {
-        return workoutUseCase
+        return workoutPort
                 .getCalendar(userId, YearMonth.parse(month))
                 .stream()
                 .map(WorkoutCalendarDayResponse::from)
@@ -75,7 +75,7 @@ public class WorkoutController {
             @PathVariable Long workoutId,
             @Valid @RequestBody AddWorkoutExerciseRequest request) {
         return WorkoutResponse.from(
-                workoutUseCase.addExercise(
+                workoutPort.addExercise(
                         userId,
                         workoutId,
                         request.exerciseType(),
@@ -89,7 +89,7 @@ public class WorkoutController {
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId) {
         return WorkoutResponse.from(
-                workoutUseCase.removeExercise(
+                workoutPort.removeExercise(
                         userId, workoutId, workoutExerciseId));
     }
 
@@ -100,7 +100,7 @@ public class WorkoutController {
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetRequest request) {
         return WorkoutResponse.from(
-                workoutUseCase.addSet(
+                workoutPort.addSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -116,15 +116,15 @@ public class WorkoutController {
             @PathVariable Long workoutId,
             @PathVariable Long workoutExerciseId,
             @Valid @RequestBody WorkoutSetBatchRequest request) {
-        List<WorkoutSetCommand> commands = request.sets().stream()
-                .map(set -> new WorkoutSetCommand(
+        List<WorkoutSetInput> commands = request.sets().stream()
+                .map(set -> new WorkoutSetInput(
                         set.weightKg(),
                         set.reps(),
                         set.durationSeconds(),
                         set.completed()))
                 .toList();
         return WorkoutResponse.from(
-                workoutUseCase.addSets(
+                workoutPort.addSets(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -139,7 +139,7 @@ public class WorkoutController {
             @PathVariable Long setId,
             @Valid @RequestBody WorkoutSetRequest request) {
         return WorkoutResponse.from(
-                workoutUseCase.updateSet(
+                workoutPort.updateSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -157,7 +157,7 @@ public class WorkoutController {
             @PathVariable Long workoutExerciseId,
             @PathVariable Long setId) {
         return WorkoutResponse.from(
-                workoutUseCase.removeSet(
+                workoutPort.removeSet(
                         userId,
                         workoutId,
                         workoutExerciseId,
@@ -169,7 +169,7 @@ public class WorkoutController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutUseCase.completeWorkout(
+                workoutPort.completeWorkout(
                         userId, workoutId));
     }
 
@@ -178,7 +178,7 @@ public class WorkoutController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long workoutId) {
         return WorkoutResponse.from(
-                workoutUseCase.reopenWorkout(
+                workoutPort.reopenWorkout(
                         userId, workoutId));
     }
 }

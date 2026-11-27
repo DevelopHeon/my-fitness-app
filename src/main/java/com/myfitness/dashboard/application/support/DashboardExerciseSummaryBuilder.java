@@ -1,7 +1,7 @@
 package com.myfitness.dashboard.application.support;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult.ExerciseRecord;
-import com.myfitness.dashboard.application.dto.response.DashboardResult.ExerciseSummary;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.ExerciseRecord;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.ExerciseSummary;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.ExerciseData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.SetData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.WorkoutData;

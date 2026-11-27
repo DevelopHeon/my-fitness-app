@@ -1,35 +1,37 @@
 package com.myfitness.routine.application.service;
 
+import com.myfitness.routine.application.usecase.RoutineOperationsUseCase;
 import com.myfitness.routine.domain.model.Routine;
 import com.myfitness.routine.application.exception.RoutineAccessException;
 import com.myfitness.routine.application.exception.RoutineNotFoundException;
 import com.myfitness.routine.domain.exception.RoutineRuleException;
-import com.myfitness.routine.application.port.out.RoutineRepositoryPort;
-import com.myfitness.exercise.domain.model.ExerciseReference;
+import com.myfitness.routine.domain.repository.RoutineRepository;
+import com.myfitness.routine.domain.model.ExerciseSnapshot;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RoutineService {
-    private final RoutineRepositoryPort routineRepository;
+public class RoutineService implements RoutineOperationsUseCase {
+    private final RoutineRepository routineRepository;
     private final Clock clock;
 
     @Autowired
-    public RoutineService(RoutineRepositoryPort routineRepository) {
+    public RoutineService(RoutineRepository routineRepository) {
         this(routineRepository, Clock.systemDefaultZone());
     }
 
-    RoutineService(RoutineRepositoryPort routineRepository, Clock clock) {
+    RoutineService(RoutineRepository routineRepository, Clock clock) {
         this.routineRepository = routineRepository;
         this.clock = clock;
     }
 
+    @Override
     public Routine create(
             Long userId,
             String name,
-            List<ExerciseReference> exercises) {
+            List<ExerciseSnapshot> exercises) {
         if (routineRepository.existsByUserIdAndNameIgnoreCase(userId, name)) {
             throw new RoutineRuleException("이미 등록된 루틴 이름입니다.");
         }
@@ -37,10 +39,11 @@ public class RoutineService {
                 Routine.create(userId, name, exercises, clock.instant()));
     }
 
+    @Override
     public Routine update(
             Routine routine,
             String name,
-            List<ExerciseReference> exercises) {
+            List<ExerciseSnapshot> exercises) {
         if (routineRepository.existsByUserIdAndNameIgnoreCaseAndIdNot(
                 routine.getUserId(), name, routine.getId())) {
             throw new RoutineRuleException("이미 등록된 루틴 이름입니다.");
@@ -49,6 +52,7 @@ public class RoutineService {
         return routineRepository.save(routine);
     }
 
+    @Override
     public Routine getOwned(Long userId, Long routineId) {
         Routine routine = routineRepository.findById(routineId)
                 .orElseThrow(RoutineNotFoundException::new);
@@ -58,10 +62,7 @@ public class RoutineService {
         return routine;
     }
 
-    public List<Routine> list(Long userId) {
-        return routineRepository.findAllByUserId(userId);
-    }
-
+    @Override
     public void delete(Routine routine) {
         routineRepository.delete(routine);
     }

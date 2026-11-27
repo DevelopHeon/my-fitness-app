@@ -73,15 +73,16 @@ Backend 모듈 관계는 아래 공개 계약과 `modulithDocs` 생성물을 활
 
 | Consumer → Provider | 허용 Named Interface |
 | --- | --- |
-| workout → exercise | catalog, domain-model |
-| routine → exercise | catalog, domain-model |
+| workout → exercise | catalog |
+| routine → exercise | catalog |
 | routine → workout | routine-api |
 | dashboard → workout / body | insight |
 | ai → workout / body / nutrition | insight |
 
 `package-info.java`의 `allowedDependencies`와 `@NamedInterface`가 공개 범위를 정의한다.
-다른 모듈의 Service·Repository·내부 패키지를 직접 사용하지 않는다.
-운동 시작 결과와 화면 조회가 즉시 필요하므로 공개 In Port를 동기 호출한다.
+다른 업무 모듈은 호출 모듈의 Output Port와 Module Adapter를 거쳐 상대 Input Port를 동기 호출한다.
+Adapter가 상대 값을 호출 모듈의 타입으로 변환한다. `workout`과 `routine`은 운동 종류·카테고리를 자신의
+모델에 저장하고, 루틴에서 운동을 시작할 때 저장한 이름·카테고리를 값으로 전달한다.
 후속 작업의 비동기 event·재시도·중복 처리 프레임워크는 현재 도입하지 않았다.
 
 ## 모듈 내부 패키지
@@ -93,10 +94,10 @@ Backend 모듈 관계는 아래 공개 계약과 `modulithDocs` 생성물을 활
 │   └── dto/request/, dto/response/
 ├── application/
 │   ├── port/in/, port/out/
-│   ├── dto/request/, dto/response/
+│   ├── usecase/ (내부 계약, request/, response/)
 │   ├── service/
 │   └── support/
-├── domain/model/, domain/exception/
+├── domain/model/, domain/exception/, domain/repository/
 └── infrastructure/
     ├── persistence/
     ├── module/
@@ -107,17 +108,18 @@ Backend 모듈 관계는 아래 공개 계약과 `modulithDocs` 생성물을 활
 
 | 위치 | 책임·허용 경계 |
 | --- | --- |
-| Presentation | HTTP 입력 검증·응답 변환, In Port 호출 |
-| Application Service | 유스케이스 순서와 transaction 경계 |
-| Application Support | Context·prompt·policy·history 등 응집된 내부 협력 기능, Service 역참조 금지 |
-| Domain | 비즈니스 규칙과 모델, 외부 계층 의존 금지 |
-| Out Port | 저장소·외부 연동 계약, Spring Data·Adapter 구현 의존 금지 |
-| Infrastructure persistence | 자신의 DB 저장·조회, Spring Data interface와 Out Port 구현 Adapter |
-| Infrastructure module | 다른 모듈의 공개 In Port 호출 Adapter |
+| Presentation | HTTP 입력 검증과 응답 변환, 자기 모듈의 Input Port 호출 |
+| Input Port | 공개 입력·결과와 값 DTO |
+| PortService | 공개·내부 값 변환과 내부 UseCase 위임 |
+| 내부 UseCase와 업무 Service | 내부 업무 계약과 실행 순서, 트랜잭션 |
+| Application Support | Context·prompt·policy·history 등 내부 협력 기능 |
+| Domain | 업무 규칙과 모델, Aggregate 영속 계약을 정의하는 Domain Repository |
+| Output Port | 검색·집계 projection, 타 모듈 조회와 외부 연동 계약 |
+| Infrastructure persistence | 자기 모듈의 Domain Repository와 조회 Output Port 구현 |
+| Infrastructure module | 다른 모듈의 공개 Input Port 호출과 값 변환 |
 | Infrastructure client | 외부 HTTP·SDK·파일 처리·wire 검증 |
 
-query/command Service를 별도로 강제하지 않는다. `insight`는 공개 조회 계약이며
-자신의 조회인지 타 모듈 조회인지에 따라 persistence 또는 module 구현으로 구분한다.
+`insight`는 모듈 간 읽기에 사용하는 공개 Input Port다.
 JEV 정책 client와 Spring AI 답변 client는 역할이 다르지만 동일한 client 분류 안에 둔다.
 인증·설정·초기 데이터의 security/config/bootstrap은 별도 책임 패키지로 유지한다.
 Spring Data Repository와 Adapter는 같은 persistence에 두고 Repository의 package-private 접근을 유지한다.
@@ -125,14 +127,12 @@ Spring Data Repository와 Adapter는 같은 persistence에 두고 Repository의 
 
 ## DTO와 책임 분리
 
-Application 입력은 `dto/request`의 Command, 출력은 `dto/response`의 Result로 표현한다.
-HTTP DTO는 Presentation에 둔다. Controller는 Service·Support 구현을 직접 호출하지 않는다.
-Port의 중첩 record는 공개 계약의 일부이므로 별도 DTO로 분리하지 않는다.
-Response DTO·HTTP·In Port에 JPA Entity를 직접 노출하지 않는다.
-허용된 Application DTO 전달·변환을 모든 레이어 간 DTO 접근 금지로 확대하지 않는다.
+HTTP DTO는 Presentation에 둔다. Input Port는 `application/port/in`의 값이나 표준 Java 타입으로
+계약을 표현한다. PortService가 내부 UseCase와 공개 계약 사이를 변환한다. 내부 입력과 결과는
+`application/usecase` 아래에서 소유한다. Output Port 전용 값은 해당 Port의 계약에 둔다.
 
-순수한 생성·변환은 해당 DTO의 factory 메서드에 둔다. JSON 해석처럼 별도 협력이 필요한 변환은
-구체 Support mapper가 맡는다. 최소 구현을 이유로 독립적인 변경 책임을 한 Service에 합치지 않는다.
+Entity에서 값을 만드는 변환은 내부 업무 Service나 Persistence Adapter가 담당한다.
+JSON 해석처럼 별도 협력이 필요한 변환은 구체 Support mapper가 맡는다.
 통계·목표 차감·빈도 집계 같은 계산 책임은 Builder·Assembler·Service에 유지한다.
 보조 기능은 의미 있는 메서드나 응집된 구체 클래스로 분리하고 한 줄에 선언·대입을 압축하지 않는다.
 Java `var` 선언은 가독성 컨벤션으로 금지하며 이름·주석·문자열의 var까지 금지하지 않는다.
@@ -142,13 +142,15 @@ Java `var` 선언은 가독성 컨벤션으로 금지하며 이름·주석·문�
 
 ## 트랜잭션과 데이터 경계
 
-DB를 사용하는 In Port 구현 Service는 기본 read-only 경계와 쓰기 메서드의 transaction을 명시한다.
+공개 업무의 진입을 처리하는 Service와 기존 AI 저장 트랜잭션 Service가 기본 read-only 경계와 쓰기 메서드의
+트랜잭션을 선언한다. 업무 간 호출은 모듈 내부 UseCase를 사용한다. 진입 트랜잭션 안에서 실행하는
+운동·루틴·식단의 협력 UseCase는 호출자의 트랜잭션에 참여한다.
 Repository의 암묵적 transaction만으로 유스케이스 경계를 대신하지 않는다.
 외부 AI 호출은 NOT_SUPPORTED 경계에서 실행하고 앞뒤 저장을 별도 짧은 transaction으로 나눈다.
 텍스트 조율은 `AiChatMessageService`, 사진 조율은 `FoodPhotoService`, 저장은 각각의 transaction Service가 맡는다.
 Support가 저장 Service를 역참조하지 않는다.
 
-JPA Entity는 transaction 안에서 Result projection으로 변환한다.
+JPA Entity는 트랜잭션 안에서 필요한 값으로 변환한다.
 `open-in-view=false`, `hibernate.ddl-auto=none`을 유지하고 schema·세션 테이블 변경은 Flyway로 관리한다.
 과거 migration을 덮어쓰지 않는다. schema 복구는 [배포 가이드](../infra/README.md#v11-schema와-복구)를 따른다.
 
@@ -162,7 +164,8 @@ JPA Entity는 transaction 안에서 Result projection으로 변환한다.
 | --- | --- |
 | ModulithArchitectureTest | 모듈 의존·순환·공개 API·허용 목록 |
 | LayerArchitectureTest | 내부 의존 방향·Port 계약·Support 역참조·Presentation 구현 참조 금지 |
-| PersistenceBoundaryArchitectureTest | Entity 비노출·JPA 배치·기본 transaction 선언 |
+| PortBoundaryArchitectureTest | Input Adapter의 내부 호출 우회, 공개 Port와 PortService의 내부 의존, 구체 Service와 타 모듈 직접 의존, Domain Repository 기술 의존, 이전 DTO 패키지 사용 금지 |
+| PersistenceBoundaryArchitectureTest | Entity 비노출·JPA 배치·업무 Service 기본 트랜잭션 선언 |
 | ComponentConventionTest | Spring 컴포넌트·역할 패키지·Command/Result 위치 |
 | Checkstyle Main/Test | Java AST의 var 타입 선언 금지 |
 | JavaConventionTest / ArchitectureRuleDetectionTest | 정상·금지 fixture와 규칙 자체의 탐지 능력 |

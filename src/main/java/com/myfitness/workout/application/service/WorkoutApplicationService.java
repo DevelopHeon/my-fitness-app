@@ -1,45 +1,47 @@
 package com.myfitness.workout.application.service;
 
-import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.application.dto.request.WorkoutSetCommand;
-import com.myfitness.workout.application.dto.response.PreviousExerciseRecordResult;
-import com.myfitness.workout.application.dto.response.WorkoutCalendarDayResult;
-import com.myfitness.workout.application.dto.response.WorkoutResult;
-import com.myfitness.workout.application.port.in.WorkoutUseCase;
+import com.myfitness.workout.application.usecase.WorkoutOperationsUseCase;
+import com.myfitness.workout.application.port.out.ExerciseCatalogPort;
+import com.myfitness.workout.application.port.out.WorkoutReadPort;
+import com.myfitness.workout.domain.model.ExerciseSnapshot;
+import com.myfitness.workout.domain.model.ExerciseType;
+import com.myfitness.workout.application.usecase.request.WorkoutSetCommand;
+import com.myfitness.workout.application.usecase.response.PreviousExerciseRecordResult;
+import com.myfitness.workout.application.usecase.response.WorkoutCalendarDayResult;
+import com.myfitness.workout.application.usecase.response.WorkoutResult;
+import com.myfitness.workout.application.usecase.WorkoutUseCase;
 import com.myfitness.workout.domain.model.Workout;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 public class WorkoutApplicationService implements WorkoutUseCase {
-    private final WorkoutService workoutService;
-    private final ExerciseCatalogQuery exerciseCatalogQuery;
+    private final WorkoutOperationsUseCase workoutService;
+    private final WorkoutReadPort workoutRead;
+    private final Clock clock = Clock.systemDefaultZone();
+    private final ExerciseCatalogPort exerciseCatalog;
 
     public WorkoutApplicationService(
-            WorkoutService workoutService,
-            ExerciseCatalogQuery exerciseCatalogQuery) {
+            WorkoutOperationsUseCase workoutService,
+            ExerciseCatalogPort exerciseCatalog, WorkoutReadPort workoutRead) {
         this.workoutService = workoutService;
-        this.exerciseCatalogQuery = exerciseCatalogQuery;
+        this.exerciseCatalog = exerciseCatalog;
+        this.workoutRead = workoutRead;
     }
 
     public PreviousExerciseRecordResult getPreviousExerciseRecord(
             Long userId,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId) {
-        exerciseCatalogQuery.getAvailable(userId, exerciseType, exerciseId);
-        return PreviousExerciseRecordResult.from(
-                workoutService.getPreviousCompletedExercise(
-                        userId, exerciseType, exerciseId));
+        ExerciseType type = ExerciseType.valueOf(exerciseType);
+        exerciseCatalog.getAvailable(userId, type, exerciseId);
+        return workoutService.getPreviousCompletedExercise(userId, type, exerciseId);
     }
 
     @Transactional
@@ -60,9 +62,9 @@ public class WorkoutApplicationService implements WorkoutUseCase {
             Long userId,
             LocalDate from,
             LocalDate to) {
-        return workoutService.list(userId, from, to).stream()
-                .map(WorkoutResult::from)
-                .toList();
+        LocalDate end = to == null ? LocalDate.now(clock) : to;
+        LocalDate start = from == null ? end.minusDays(30) : from;
+        return workoutRead.findByUserIdAndDateRange(userId, start, end);
     }
 
     public List<WorkoutCalendarDayResult> getCalendar(
@@ -71,28 +73,19 @@ public class WorkoutApplicationService implements WorkoutUseCase {
         LocalDate from = month.atDay(1);
         LocalDate to = month.atEndOfMonth();
 
-        Map<LocalDate, List<Workout>> byDate =
-                workoutService.list(userId, from, to).stream()
-                        .collect(Collectors.groupingBy(
-                                Workout::getWorkoutDate,
-                                TreeMap::new,
-                                Collectors.toList()));
-
-        return byDate.entrySet().stream()
-                .map(entry -> WorkoutCalendarDayResult.from(entry.getKey(), entry.getValue()))
-                .toList();
+        return workoutRead.findCalendar(userId, from, to);
     }
 
     @Transactional
     public WorkoutResult addExercise(
             Long userId,
             Long workoutId,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String memo) {
         Workout workout = workoutService.getOwned(userId, workoutId);
-        ExerciseReference exercise = exerciseCatalogQuery.getAvailable(
-                userId, exerciseType, exerciseId);
+        ExerciseSnapshot exercise = exerciseCatalog.getAvailable(
+                userId, ExerciseType.valueOf(exerciseType), exerciseId);
         return WorkoutResult.from(
                 workoutService.addExercise(workout, exercise, memo));
     }

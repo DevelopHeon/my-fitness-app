@@ -1,7 +1,6 @@
 package com.myfitness.routine.domain.model;
 
 import com.myfitness.routine.domain.exception.RoutineRuleException;
-import com.myfitness.exercise.domain.model.ExerciseReference;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.*;
@@ -35,7 +34,7 @@ public class Routine {
     private Routine(
             Long userId,
             String name,
-            List<ExerciseReference> exercises,
+            List<ExerciseSnapshot> exercises,
             Instant now) {
         validateUserId(userId);
         this.userId = userId;
@@ -48,28 +47,28 @@ public class Routine {
     public static Routine create(
             Long userId,
             String name,
-            List<ExerciseReference> exercises,
+            List<ExerciseSnapshot> exercises,
             Instant now) {
         return new Routine(userId, name, exercises, now);
     }
 
     public void update(
             String name,
-            List<ExerciseReference> exercises,
+            List<ExerciseSnapshot> exercises,
             Instant now) {
         this.name = normalizeName(name);
         replaceExercises(exercises, now);
     }
 
     private void replaceExercises(
-            List<ExerciseReference> exerciseList,
+            List<ExerciseSnapshot> exerciseList,
             Instant now) {
         if (exerciseList == null || exerciseList.isEmpty()) {
             throw new RoutineRuleException("루틴에는 하나 이상의 운동 종목이 필요합니다.");
         }
 
         Set<String> keys = new HashSet<>();
-        for (ExerciseReference exercise : exerciseList) {
+        for (ExerciseSnapshot exercise : exerciseList) {
             if (!exercise.accessibleTo(userId)) {
                 throw new RoutineRuleException("사용 가능한 운동 종목만 루틴에 추가할 수 있습니다.");
             }

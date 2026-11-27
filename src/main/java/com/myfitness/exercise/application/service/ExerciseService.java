@@ -1,12 +1,14 @@
 package com.myfitness.exercise.application.service;
 
 import com.myfitness.exercise.domain.model.*;
-import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
-import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
+import com.myfitness.exercise.application.usecase.ExerciseManagementUseCase;
+import com.myfitness.exercise.application.usecase.ExerciseCatalogUseCase;
+import com.myfitness.exercise.application.usecase.ExerciseValue;
+import com.myfitness.exercise.application.usecase.DefaultExerciseInitializationUseCase;
 import com.myfitness.exercise.application.exception.ExerciseNotFoundException;
 import com.myfitness.exercise.domain.exception.ExerciseRuleException;
-import com.myfitness.exercise.application.port.out.CustomExerciseRepositoryPort;
-import com.myfitness.exercise.application.port.out.ExerciseRepositoryPort;
+import com.myfitness.exercise.domain.repository.CustomExerciseRepository;
+import com.myfitness.exercise.domain.repository.ExerciseRepository;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,21 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatalogQuery {
-    private final ExerciseRepositoryPort exerciseRepository;
-    private final CustomExerciseRepositoryPort customExerciseRepository;
+public class ExerciseService implements ExerciseManagementUseCase,
+        ExerciseCatalogUseCase, DefaultExerciseInitializationUseCase {
+    private final ExerciseRepository exerciseRepository;
+    private final CustomExerciseRepository customExerciseRepository;
     private final Clock clock;
 
     @Autowired
     public ExerciseService(
-            ExerciseRepositoryPort exerciseRepository,
-            CustomExerciseRepositoryPort customExerciseRepository) {
+            ExerciseRepository exerciseRepository,
+            CustomExerciseRepository customExerciseRepository) {
         this(exerciseRepository, customExerciseRepository, Clock.systemDefaultZone());
     }
 
     ExerciseService(
-            ExerciseRepositoryPort exerciseRepository,
-            CustomExerciseRepositoryPort customExerciseRepository,
+            ExerciseRepository exerciseRepository,
+            CustomExerciseRepository customExerciseRepository,
             Clock clock) {
         this.exerciseRepository = exerciseRepository;
         this.customExerciseRepository = customExerciseRepository;
@@ -39,29 +42,40 @@ public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatal
 
     @Override
     @Transactional
-    public ExerciseReference createCustom(
-            Long userId,
-            String name,
-            ExerciseCategory category) {
-        validateUserId(userId);
-        validateDuplicateName(userId, null, name);
-        return customExerciseRepository.save(
-                CustomExercise.create(userId, name, category, clock.instant()))
-                .toReference();
+    public void initialize() {
+        for (DefaultExerciseCatalog.Item item : DefaultExerciseCatalog.items()) {
+            if (!exerciseRepository.existsByNameIgnoreCase(item.name())) {
+                exerciseRepository.save(
+                        Exercise.create(item.name(), item.category(), item.sortOrder()));
+            }
+        }
     }
 
     @Override
     @Transactional
-    public ExerciseReference updateCustom(
+    public ExerciseValue createCustom(
+            Long userId,
+            String name,
+            String category) {
+        validateUserId(userId);
+        validateDuplicateName(userId, null, name);
+        return toValue(customExerciseRepository.save(
+                CustomExercise.create(userId, name, ExerciseCategory.valueOf(category), clock.instant()))
+                .toReference());
+    }
+
+    @Override
+    @Transactional
+    public ExerciseValue updateCustom(
             Long userId,
             Long exerciseId,
             String name,
-            ExerciseCategory category) {
+            String category) {
         validateUserId(userId);
         CustomExercise exercise = getOwnedCustom(userId, exerciseId);
         validateDuplicateName(userId, exerciseId, name);
-        exercise.update(name, category);
-        return customExerciseRepository.save(exercise).toReference();
+        exercise.update(name, ExerciseCategory.valueOf(category));
+        return toValue(customExerciseRepository.save(exercise).toReference());
     }
 
     @Override
@@ -71,29 +85,37 @@ public class ExerciseService implements ExerciseManagementUseCase, ExerciseCatal
         customExerciseRepository.delete(getOwnedCustom(userId, exerciseId));
     }
 
-    public List<ExerciseReference> list(Long userId) {
+    public List<ExerciseValue> list(Long userId) {
         validateUserId(userId);
-        List<ExerciseReference> result = new ArrayList<>();
+        List<ExerciseValue> result = new ArrayList<>();
         exerciseRepository.findAllOrdered()
-                .stream().map(Exercise::toReference).forEach(result::add);
+                .stream().map(Exercise::toReference).map(ExerciseService::toValue).forEach(result::add);
         customExerciseRepository.findAllByUserIdOrdered(userId)
-                .stream().map(CustomExercise::toReference).forEach(result::add);
+                .stream().map(CustomExercise::toReference).map(ExerciseService::toValue).forEach(result::add);
         return result;
     }
 
-    public ExerciseReference getAvailable(
+    public ExerciseValue getAvailable(
             Long userId,
-            ExerciseType type,
+            String type,
             Long exerciseId) {
         validateUserId(userId);
-        if (type == ExerciseType.DEFAULT) {
+        if (ExerciseType.DEFAULT.name().equals(type)) {
             return exerciseRepository.findById(exerciseId)
                     .map(Exercise::toReference)
+                    .map(ExerciseService::toValue)
                     .orElseThrow(() -> new ExerciseNotFoundException("기본 운동 종목"));
         }
         return customExerciseRepository.findByIdAndUserId(exerciseId, userId)
                 .map(CustomExercise::toReference)
+                .map(ExerciseService::toValue)
                 .orElseThrow(() -> new ExerciseNotFoundException("커스텀 운동 종목"));
+    }
+
+    private static ExerciseValue toValue(ExerciseReference exercise) {
+        return new ExerciseValue(
+                exercise.id(), exercise.type().name(), exercise.name(), exercise.category().name(),
+                exercise.ownerUserId());
     }
 
     private CustomExercise getOwnedCustom(Long userId, Long exerciseId) {

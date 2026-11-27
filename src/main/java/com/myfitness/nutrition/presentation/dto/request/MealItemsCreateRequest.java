@@ -1,7 +1,7 @@
 package com.myfitness.nutrition.presentation.dto.request;
 
-import com.myfitness.nutrition.application.dto.request.MealItemCommand;
-import com.myfitness.nutrition.domain.model.MealType;
+import com.myfitness.nutrition.application.port.in.NutritionPort.MealItemInput;
+import com.myfitness.nutrition.application.port.in.NutritionPort.MealType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -24,8 +24,8 @@ public record MealItemsCreateRequest(
             @DecimalMin("0") @DecimalMax("999999.99") @Digits(integer = 6, fraction = 2)
             BigDecimal fatGrams
     ) {
-        public MealItemCommand toCommand() {
-            return new MealItemCommand(foodName, calories, carbohydrateGrams, proteinGrams, fatGrams);
+        public MealItemInput toCommand() {
+            return new MealItemInput(foodName, calories, carbohydrateGrams, proteinGrams, fatGrams);
         }
     }
 }

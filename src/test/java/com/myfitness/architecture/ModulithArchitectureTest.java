@@ -18,11 +18,9 @@ class ModulithArchitectureTest {
             Map.of(
                     "exercise", Set.of(),
                     "workout", Set.of(
-                            "exercise::catalog",
-                            "exercise::domain-model"),
+                            "exercise::catalog"),
                     "routine", Set.of(
                             "exercise::catalog",
-                            "exercise::domain-model",
                             "workout::routine-api"),
                     "body", Set.of(),
                     "nutrition", Set.of(),
@@ -59,7 +57,6 @@ class ModulithArchitectureTest {
                     Map.entry(
                             "exercise.application.port.in.catalog",
                             "catalog"),
-                    Map.entry("exercise.domain.model", "domain-model"),
                     Map.entry(
                             "workout.application.port.in.routine",
                             "routine-api"),

@@ -2,9 +2,9 @@ package com.myfitness.ai.application.support.context;
 
 import static com.myfitness.ai.application.support.context.AiContextFormat.macro;
 
-import com.myfitness.ai.application.dto.request.AiClientContext;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery.NutritionDayInsight;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
+import com.myfitness.ai.application.port.out.NutritionContextPort.NutritionDayInsight;
+import com.myfitness.ai.application.port.out.NutritionContextPort;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,21 +16,21 @@ import org.springframework.stereotype.Component;
 class AiNutritionContextBuilder {
     private static final String NL = System.lineSeparator();
 
-    private final NutritionInsightQuery nutritionInsightQuery;
+    private final NutritionContextPort nutritionContextPort;
     private final Clock clock;
 
     @Autowired
     AiNutritionContextBuilder(
-            NutritionInsightQuery nutritionInsightQuery) {
+            NutritionContextPort nutritionContextPort) {
         this(
-                nutritionInsightQuery,
+                nutritionContextPort,
                 Clock.systemDefaultZone());
     }
 
     AiNutritionContextBuilder(
-            NutritionInsightQuery nutritionInsightQuery,
+            NutritionContextPort nutritionContextPort,
             Clock clock) {
-        this.nutritionInsightQuery = nutritionInsightQuery;
+        this.nutritionContextPort = nutritionContextPort;
         this.clock = clock;
     }
 
@@ -39,7 +39,7 @@ class AiNutritionContextBuilder {
             AiClientContext clientContext) {
         LocalDate date = selectedDate(clientContext);
         NutritionDayInsight day =
-                nutritionInsightQuery.getDay(userId, date);
+                nutritionContextPort.getDay(userId, date);
 
         List<AiContextType> types = new ArrayList<>();
         types.add(AiContextType.NUTRITION_DAY);

@@ -1,7 +1,6 @@
 package com.myfitness.workout.presentation.dto.response;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.application.dto.response.PreviousExerciseRecordResult;
+import com.myfitness.workout.application.port.in.routine.PreviousExerciseRecordView;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,13 +8,13 @@ public record PreviousExerciseRecordResponse(
         Long workoutId,
         LocalDate workoutDate,
         Long workoutExerciseId,
-        ExerciseType exerciseType,
+        String exerciseType,
         Long exerciseId,
         String exerciseName,
         List<WorkoutResponse.SetEntry> sets
 ) {
     public static PreviousExerciseRecordResponse from(
-            PreviousExerciseRecordResult result) {
+            PreviousExerciseRecordView result) {
         return new PreviousExerciseRecordResponse(
                 result.workoutId(),
                 result.workoutDate(),

@@ -5,12 +5,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.myfitness.ai.domain.model.AiQueryType;
-import com.myfitness.body.application.port.in.insight.BodyInsightQuery;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.ExerciseInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.SetInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.WorkoutInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery;
+import com.myfitness.ai.application.port.out.BodyContextPort;
+import com.myfitness.ai.application.port.out.NutritionContextPort;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.ExerciseInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.SetInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.WorkoutInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -25,10 +25,10 @@ class AiContextBuilderTest {
     @Test
     @DisplayName("Workout Context는 기간 Volume과 질문 종목의 최근 중량 및 1RM을 Java에서 계산한다")
     void buildsWorkoutContextWithCalculatedMetrics() {
-        WorkoutInsightQuery workout = mock(WorkoutInsightQuery.class);
-        BodyInsightQuery body = mock(BodyInsightQuery.class);
-        NutritionInsightQuery nutrition =
-                mock(NutritionInsightQuery.class);
+        WorkoutContextPort workout = mock(WorkoutContextPort.class);
+        BodyContextPort body = mock(BodyContextPort.class);
+        NutritionContextPort nutrition =
+                mock(NutritionContextPort.class);
         Clock clock = Clock.fixed(
                 Instant.parse("2026-09-22T03:00:00Z"),
                 ZoneId.of("Asia/Seoul"));

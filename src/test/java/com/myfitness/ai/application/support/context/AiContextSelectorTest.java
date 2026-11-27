@@ -2,7 +2,7 @@ package com.myfitness.ai.application.support.context;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
 import com.myfitness.ai.application.support.context.AiContextSelector.AiContextArea;
 import com.myfitness.ai.domain.model.AiQueryType;
 

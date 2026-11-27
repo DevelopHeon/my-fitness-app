@@ -1,8 +1,8 @@
 package com.myfitness.routine.presentation.controller;
 
-import com.myfitness.routine.application.dto.request.ExerciseSelection;
-import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
-import com.myfitness.routine.application.port.in.RoutineUseCase;
+import com.myfitness.routine.application.port.in.RoutinePort.SelectedExercise;
+import com.myfitness.routine.application.port.in.RoutineWorkoutStartView;
+import com.myfitness.routine.application.port.in.RoutinePort;
 import com.myfitness.routine.presentation.dto.request.RoutineUpsertRequest;
 import com.myfitness.routine.presentation.dto.request.StartRoutineWorkoutRequest;
 import com.myfitness.routine.presentation.dto.response.RoutineResponse;
@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/routines")
 public class RoutineController {
-    private final RoutineUseCase routineUseCase;
+    private final RoutinePort routinePort;
 
     public RoutineController(
-            RoutineUseCase routineUseCase) {
-        this.routineUseCase = routineUseCase;
+            RoutinePort routinePort) {
+        this.routinePort = routinePort;
     }
 
     @PostMapping
@@ -28,7 +28,7 @@ public class RoutineController {
     public RoutineResponse create(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody RoutineUpsertRequest request) {
-        return RoutineResponse.from(routineUseCase.create(
+        return RoutineResponse.from(routinePort.create(
                 userId,
                 request.name(),
                 toSelections(request)));
@@ -37,7 +37,7 @@ public class RoutineController {
     @GetMapping
     public List<RoutineResponse> list(
             @AuthenticationPrincipal(expression = "userId") Long userId) {
-        return routineUseCase.list(userId).stream()
+        return routinePort.list(userId).stream()
                 .map(RoutineResponse::from)
                 .toList();
     }
@@ -47,7 +47,7 @@ public class RoutineController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId) {
         return RoutineResponse.from(
-                routineUseCase.get(userId, routineId));
+                routinePort.get(userId, routineId));
     }
 
     @PutMapping("/{routineId}")
@@ -55,7 +55,7 @@ public class RoutineController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId,
             @Valid @RequestBody RoutineUpsertRequest request) {
-        return RoutineResponse.from(routineUseCase.update(
+        return RoutineResponse.from(routinePort.update(
                 userId,
                 routineId,
                 request.name(),
@@ -67,7 +67,7 @@ public class RoutineController {
     public void delete(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long routineId) {
-        routineUseCase.delete(userId, routineId);
+        routinePort.delete(userId, routineId);
     }
 
     @PostMapping("/{routineId}/workouts")
@@ -79,8 +79,8 @@ public class RoutineController {
         StartRoutineWorkoutRequest actual = request == null
                 ? new StartRoutineWorkoutRequest(null, null)
                 : request;
-        RoutineWorkoutStartResult result =
-                routineUseCase.startWorkout(
+        RoutineWorkoutStartView result =
+                routinePort.startWorkout(
                         userId,
                         routineId,
                         actual.workoutDate(),
@@ -88,10 +88,10 @@ public class RoutineController {
         return RoutineWorkoutStartResponse.from(result);
     }
 
-    private static List<ExerciseSelection> toSelections(
+    private static List<SelectedExercise> toSelections(
             RoutineUpsertRequest request) {
         return request.exercises().stream()
-                .map(exercise -> new ExerciseSelection(
+                .map(exercise -> new SelectedExercise(
                         exercise.exerciseType(),
                         exercise.exerciseId()))
                 .toList();

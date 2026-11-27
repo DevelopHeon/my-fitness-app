@@ -32,6 +32,7 @@ ADR은 하나의 중요한 선택과 그 이유·대안·불이익을 기록한�
 - [0002 · JEV 단일 정책 경로와 장애 차단](docs/adr/0002-jev-policy-gate.md)
 - [0003 · 음식 사진 분석과 사용자 확인 후 기록](docs/adr/0003-food-photo-recording.md)
 - [0004 · 단일 EC2 모니터링과 자원 인수](docs/adr/0004-single-ec2-monitoring.md)
+- [0005 · 공개 진입과 내부 업무·영속 계약 분리](docs/adr/0005-backend-port-usecase-repository.md)
 
 ## 진행 중 스펙
 

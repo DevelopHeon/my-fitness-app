@@ -1,8 +1,8 @@
 package com.myfitness.dashboard.application.support;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult.BodyChange;
-import com.myfitness.dashboard.application.dto.response.DashboardResult.BodyPoint;
-import com.myfitness.dashboard.application.dto.response.DashboardResult.BodySummary;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.BodyChange;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.BodyPoint;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.BodySummary;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.BodyData;
 import java.time.Instant;
 import java.util.Comparator;

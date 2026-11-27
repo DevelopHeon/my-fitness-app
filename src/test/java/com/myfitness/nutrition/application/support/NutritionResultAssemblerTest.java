@@ -2,7 +2,8 @@ package com.myfitness.nutrition.application.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.usecase.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.usecase.response.MealFoodResult;
 import com.myfitness.nutrition.domain.model.*;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,7 +24,7 @@ class NutritionResultAssemblerTest {
                 new BigDecimal("50"), null, now);
         NutritionGoal goal = NutritionGoal.create(1L, new BigDecimal("2000"), new BigDecimal("250"),
                 new BigDecimal("150"), new BigDecimal("60"), now);
-        DailyNutritionResult result = new NutritionResultAssembler().daily(date, List.of(first, second), goal);
+        DailyNutritionResult result = new NutritionResultAssembler().daily(date, List.of(MealFoodResult.from(first), MealFoodResult.from(second)), goal);
         assertThat(result.consumed().calories()).isEqualByComparingTo("700");
         assertThat(result.consumed().proteinGrams()).isEqualByComparingTo("70");
         assertThat(result.remaining().proteinGrams()).isEqualByComparingTo("80");

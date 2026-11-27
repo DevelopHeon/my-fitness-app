@@ -1,12 +1,12 @@
 package com.myfitness.ai.infrastructure.persistence;
 
-import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
+import com.myfitness.ai.domain.repository.AiRequestLogRepository;
 import com.myfitness.ai.domain.model.AiRequestLog;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class AiRequestLogRepositoryAdapter
-        implements AiRequestLogRepositoryPort {
+        implements AiRequestLogRepository {
     private final SpringDataAiRequestLogRepository repository;
 
     public AiRequestLogRepositoryAdapter(

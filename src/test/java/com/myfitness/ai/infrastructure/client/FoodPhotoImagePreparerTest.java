@@ -3,7 +3,7 @@ package com.myfitness.ai.infrastructure.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
+import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoUpload;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -50,7 +50,7 @@ class FoodPhotoImagePreparerTest {
     void rejectsOriginalDimensionsAboveLimitBeforeSubsampling() throws Exception {
         Path image = directory.resolve("too-many-pixels.png");
         ImageIO.write(new BufferedImage(8001, 4000, BufferedImage.TYPE_INT_ARGB), "png", image.toFile());
-        FoodPhotoCommand command = new FoodPhotoCommand(Files.readAllBytes(image), "image/png");
+        PhotoUpload command = new PhotoUpload(Files.readAllBytes(image), "image/png");
         assertThatThrownBy(() -> new FoodPhotoImagePreparer().prepare(command))
                 .isInstanceOf(InvalidFoodPhotoException.class);
     }
@@ -58,7 +58,7 @@ class FoodPhotoImagePreparerTest {
     // Separate JVM makes the heap contract independent of Gradle's test-worker heap.
     public static void main(String[] args) throws Exception {
         byte[] resident = new byte[64 * 1024 * 1024];
-        FoodPhotoCommand command = new FoodPhotoCommand(Files.readAllBytes(Path.of(args[0])), "image/png");
+        PhotoUpload command = new PhotoUpload(Files.readAllBytes(Path.of(args[0])), "image/png");
         CountDownLatch start = new CountDownLatch(1);
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             Future<byte[]> first = executor.submit(() -> prepareAfterStart(command, start));
@@ -75,7 +75,7 @@ class FoodPhotoImagePreparerTest {
         }
     }
 
-    private static byte[] prepareAfterStart(FoodPhotoCommand command, CountDownLatch start) throws Exception {
+    private static byte[] prepareAfterStart(PhotoUpload command, CountDownLatch start) throws Exception {
         start.await();
         return new FoodPhotoImagePreparer().prepare(command);
     }

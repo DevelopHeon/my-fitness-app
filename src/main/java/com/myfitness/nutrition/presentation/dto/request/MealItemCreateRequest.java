@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.request;
 
-import com.myfitness.nutrition.domain.model.MealType;
+import com.myfitness.nutrition.application.port.in.NutritionPort.MealType;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;

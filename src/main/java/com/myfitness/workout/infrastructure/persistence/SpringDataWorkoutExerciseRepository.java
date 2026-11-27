@@ -1,6 +1,6 @@
 package com.myfitness.workout.infrastructure.persistence;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.workout.domain.model.ExerciseType;
 import com.myfitness.workout.domain.model.WorkoutExercise;
 import com.myfitness.workout.domain.model.WorkoutStatus;
 import java.util.Optional;

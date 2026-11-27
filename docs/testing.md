@@ -18,6 +18,10 @@ test는 Checkstyle을 선행 실행한다. build의 check에는 frontend Node �
 BootJar에는 정적 PWA 빌드·자산 검사가 연결된다. 일반 test는 `ai-policy-eval` tag를 제외한다.
 CI는 frontend lint와 CDK 검사도 별도로 실행한다.
 
+`ArchitectureRuleDetectionTest`는 공개 진입, 모듈 간 호출, Domain Repository 규칙을
+정상·금지 fixture에 적용한다. 전환된 업무 Service의 기본 트랜잭션과 공개 값의 Entity 비노출은
+`PersistenceBoundaryArchitectureTest`에서 확인한다.
+
 의존성 보안 점검은 `frontend/`와 `infra/`에서 각각 `npm audit`를 실행한다.
 패키지 수와 실제 운영 공격 경로를 구분하며, 호환성이 깨지는 `npm audit fix --force`를 자동 적용하지 않는다.
 개발 도구의 미해결 경고는 [Infrastructure](../infra/README.md#인프라-변경)에서 확인한다.
@@ -32,7 +36,9 @@ CDK의 검증·배포 명령은 [Deployment](../infra/README.md#인프라-변경
 - Domain/Service: 상태 변경·계산·소유권·null/0·허용/제한의 비즈니스 규칙.
 - Repository: 복잡한 조회·기간·정렬·집계·영속성 계약.
 - API: 사용자 격리·HTTP 오류·검증·호출 차단·결과 저장.
-- 경계: JPA Entity를 Result로 바꾸는 흐름은 테스트 수준 transaction 없이 요청 종료 뒤 응답을 확인한다.
+- 경계: JPA Entity를 값으로 바꾸는 흐름은 테스트 수준 트랜잭션 없이 요청 종료 뒤 응답을 확인한다.
+  루틴 운동 시작의 직전 기록 조회가 실패하면 Workout과 종목이 함께 rollback되는지 확인한다.
+- 카탈로그: 기본 운동 초기화는 반복 실행 후 기존 ID와 이름·카테고리·정렬 순서의 보존을 확인한다.
 - AI: 정책과 Context 선택, 외부 호출 여부·횟수, failure 계약·token·transaction 비활성.
   자연어 전체 문자열 일치나 대역 결과를 모델 정확도로 표현하는 테스트를 피한다.
 - Frontend: 입력·시간·전송·렌더링 계약. Node 테스트는 실제 브라우저 조작과 모델 품질을 대신하지 않는다.

@@ -1,7 +1,7 @@
 package com.myfitness.dashboard.application.service;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult;
-import com.myfitness.dashboard.application.port.in.DashboardQueryUseCase;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult;
+import com.myfitness.dashboard.application.usecase.DashboardQueryUseCase;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort;
 import com.myfitness.dashboard.application.support.DashboardResultAssembler;
 import java.time.Clock;

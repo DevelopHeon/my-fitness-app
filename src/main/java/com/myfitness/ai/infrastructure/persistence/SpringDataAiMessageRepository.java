@@ -3,12 +3,15 @@ package com.myfitness.ai.infrastructure.persistence;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiRequestStatus;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 interface SpringDataAiMessageRepository
         extends JpaRepository<AiMessage, Long> {
+    Optional<AiMessage> findByIdAndConversationId(Long id, Long conversationId);
+
     List<AiMessage> findAllByConversationIdOrderByCreatedAtAscIdAsc(
             Long conversationId);
     @Query("""

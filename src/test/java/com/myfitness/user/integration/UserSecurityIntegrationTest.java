@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.myfitness.user.application.port.out.UserRepositoryPort;
+import com.myfitness.user.domain.repository.UserRepository;
 import com.myfitness.user.domain.model.User;
 
 import jakarta.servlet.http.Cookie;
@@ -37,7 +37,7 @@ import java.util.List;
 @Transactional
 class UserSecurityIntegrationTest {
     @Autowired WebApplicationContext context;
-    @Autowired UserRepositoryPort userRepository;
+    @Autowired UserRepository userRepository;
 
     private MockMvc mockMvc;
 

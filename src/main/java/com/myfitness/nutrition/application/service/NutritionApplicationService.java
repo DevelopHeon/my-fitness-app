@@ -1,14 +1,16 @@
 package com.myfitness.nutrition.application.service;
 
-import com.myfitness.nutrition.application.dto.request.MealItemCommand;
-import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
-import com.myfitness.nutrition.application.dto.response.MealFoodResult;
-import com.myfitness.nutrition.application.dto.response.NutritionCalendarDayResult;
-import com.myfitness.nutrition.application.dto.response.NutritionGoalResult;
-import com.myfitness.nutrition.application.port.in.NutritionUseCase;
+import com.myfitness.nutrition.application.usecase.NutritionGoalUseCase;
+import com.myfitness.nutrition.application.usecase.MealOperationsUseCase;
+import com.myfitness.nutrition.application.usecase.request.MealItemCommand;
+import com.myfitness.nutrition.application.usecase.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.usecase.response.MealFoodResult;
+import com.myfitness.nutrition.application.usecase.response.NutritionCalendarDayResult;
+import com.myfitness.nutrition.application.usecase.response.NutritionGoalResult;
+import com.myfitness.nutrition.application.usecase.NutritionUseCase;
+import com.myfitness.nutrition.application.port.out.MealFoodReadPort;
 import com.myfitness.nutrition.application.support.NutritionResultAssembler;
 import com.myfitness.nutrition.domain.exception.NutritionRuleException;
-import com.myfitness.nutrition.domain.model.MealFood;
 import com.myfitness.nutrition.domain.model.MealType;
 import com.myfitness.nutrition.domain.model.NutritionGoal;
 import java.math.BigDecimal;
@@ -25,50 +27,52 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class NutritionApplicationService implements NutritionUseCase {
-    private final MealService mealService;
-    private final NutritionGoalService nutritionGoalService;
+    private final MealOperationsUseCase mealService;
+    private final MealFoodReadPort mealFoodRead;
+    private final NutritionGoalUseCase nutritionGoalService;
     private final NutritionResultAssembler resultAssembler;
 
     NutritionApplicationService(
-            MealService mealService,
-            NutritionGoalService nutritionGoalService,
-            NutritionResultAssembler resultAssembler) {
+            MealOperationsUseCase mealService,
+            NutritionGoalUseCase nutritionGoalService,
+            NutritionResultAssembler resultAssembler, MealFoodReadPort mealFoodRead) {
         this.mealService = mealService;
         this.nutritionGoalService = nutritionGoalService;
         this.resultAssembler = resultAssembler;
+        this.mealFoodRead = mealFoodRead;
     }
 
     @Transactional
-    public MealFoodResult addMealItem(Long userId, LocalDate mealDate, MealType mealType, String name,
+    public MealFoodResult addMealItem(Long userId, LocalDate mealDate, String mealType, String name,
             BigDecimal calories, BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat) {
-        return MealFoodResult.from(mealService.addFood(userId, mealDate, mealType, name,
+        return MealFoodResult.from(mealService.addFood(userId, mealDate, toMealType(mealType), name,
                 calories, carbohydrate, protein, fat));
     }
 
     @Transactional
-    public MealFoodResult updateMealItem(Long userId, Long itemId, LocalDate date, MealType type,
+    public MealFoodResult updateMealItem(Long userId, Long itemId, LocalDate date, String type,
             String name, BigDecimal calories, BigDecimal carbohydrate, BigDecimal protein, BigDecimal fat) {
         return MealFoodResult.from(mealService.updateItem(mealService.getOwnedItem(userId, itemId),
-                date, type, name, calories, carbohydrate, protein, fat));
+                date, toMealType(type), name, calories, carbohydrate, protein, fat));
     }
 
     @Transactional
-    public List<MealFoodResult> addMealItems(Long userId, LocalDate date, MealType type,
+    public List<MealFoodResult> addMealItems(Long userId, LocalDate date, String type,
             List<MealItemCommand> items) {
         if (items == null || items.isEmpty() || items.size() > 20 || items.stream().anyMatch(Objects::isNull)) {
             throw new NutritionRuleException("음식은 1~20개까지 한 번에 기록할 수 있습니다.");
         }
         return items.stream()
-                .map(item -> MealFoodResult.from(mealService.addFood(userId, date, type,
+                .map(item -> MealFoodResult.from(mealService.addFood(userId, date, toMealType(type),
                         item.foodName(), item.calories(), item.carbohydrateGrams(),
                         item.proteinGrams(), item.fatGrams())))
                 .toList();
     }
 
     public List<NutritionCalendarDayResult> calendar(Long userId, YearMonth month) {
-        Map<LocalDate, List<MealFood>> byDate = mealService
+        Map<LocalDate, List<MealFoodResult>> byDate = mealFoodRead
                 .listItemsBetween(userId, month.atDay(1), month.atEndOfMonth()).stream()
-                .collect(Collectors.groupingBy(item -> item.getMeal().getMealDate(),
+                .collect(Collectors.groupingBy(MealFoodResult::mealDate,
                         TreeMap::new, Collectors.toList()));
         return byDate.entrySet().stream()
                 .map(entry -> NutritionCalendarDayResult.from(entry.getKey(), entry.getValue()))
@@ -84,8 +88,8 @@ public class NutritionApplicationService implements NutritionUseCase {
     public DailyNutritionResult daily(
             Long userId,
             LocalDate date) {
-        List<MealFood> items =
-                mealService.listDailyItems(userId, date);
+        List<MealFoodResult> items =
+                mealFoodRead.listDailyItems(userId, date);
         NutritionGoal goal =
                 nutritionGoalService.get(userId).orElse(null);
 
@@ -114,5 +118,9 @@ public class NutritionApplicationService implements NutritionUseCase {
                         carbohydrateGrams,
                         proteinGrams,
                         fatGrams));
+    }
+
+    private static MealType toMealType(String type) {
+        return type == null ? null : MealType.valueOf(type);
     }
 }

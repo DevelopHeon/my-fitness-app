@@ -3,7 +3,7 @@ package com.myfitness.ai.infrastructure.client;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
+import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoUpload;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
@@ -104,9 +104,9 @@ class OpenAiFoodPhotoGatewayTest {
     void rejectsOversizedUnsupportedAndPixelBombBeforeRemoteCall() throws Exception {
         ChatModel model = mock(ChatModel.class);
         OpenAiFoodPhotoGateway gateway = gateway(model);
-        assertThatThrownBy(() -> gateway.prepare(new FoodPhotoCommand(new byte[5 * 1024 * 1024 + 1], "image/jpeg")))
+        assertThatThrownBy(() -> gateway.prepare(new PhotoUpload(new byte[5 * 1024 * 1024 + 1], "image/jpeg")))
                 .isInstanceOf(InvalidFoodPhotoException.class);
-        assertThatThrownBy(() -> gateway.prepare(new FoodPhotoCommand(photo().bytes(), "image/webp")))
+        assertThatThrownBy(() -> gateway.prepare(new PhotoUpload(photo().bytes(), "image/webp")))
                 .isInstanceOf(InvalidFoodPhotoException.class);
         byte[] jpeg = photo().bytes();
         for (int i = 0; i < jpeg.length - 8; i++) {
@@ -119,7 +119,7 @@ class OpenAiFoodPhotoGatewayTest {
                 break;
             }
         }
-        assertThatThrownBy(() -> gateway.prepare(new FoodPhotoCommand(jpeg, "image/jpeg")))
+        assertThatThrownBy(() -> gateway.prepare(new PhotoUpload(jpeg, "image/jpeg")))
                 .isInstanceOf(InvalidFoodPhotoException.class);
         verifyNoInteractions(model);
     }
@@ -134,9 +134,9 @@ class OpenAiFoodPhotoGatewayTest {
                 new FoodPhotoImagePreparer(), new FoodPhotoResponseParser(mapper));
     }
 
-    private FoodPhotoCommand photo() throws Exception {
+    private PhotoUpload photo() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB), "jpeg", out);
-        return new FoodPhotoCommand(out.toByteArray(), "image/jpeg");
+        return new PhotoUpload(out.toByteArray(), "image/jpeg");
     }
 }

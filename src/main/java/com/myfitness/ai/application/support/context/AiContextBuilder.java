@@ -1,6 +1,6 @@
 package com.myfitness.ai.application.support.context;
 
-import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
 import com.myfitness.ai.application.support.context.AiContextSelector.AiContextArea;
 import com.myfitness.ai.domain.model.AiQueryType;
 import java.util.ArrayList;

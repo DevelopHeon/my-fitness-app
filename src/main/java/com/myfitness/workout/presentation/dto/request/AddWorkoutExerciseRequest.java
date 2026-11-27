@@ -1,6 +1,6 @@
 package com.myfitness.workout.presentation.dto.request;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.workout.application.port.in.WorkoutPort.ExerciseType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 

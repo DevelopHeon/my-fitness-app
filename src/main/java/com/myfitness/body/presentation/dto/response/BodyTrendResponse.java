@@ -1,6 +1,6 @@
 package com.myfitness.body.presentation.dto.response;
 
-import com.myfitness.body.application.dto.response.BodyTrendResult;
+import com.myfitness.body.application.port.in.BodyTrendView;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -9,7 +9,7 @@ public record BodyTrendResponse(
         Change changeFromPrevious,
         List<BodyRecordResponse> records
 ) {
-    public static BodyTrendResponse from(BodyTrendResult result) {
+    public static BodyTrendResponse from(BodyTrendView result) {
         return new BodyTrendResponse(
                 result.latest() == null
                         ? null

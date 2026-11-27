@@ -1,10 +1,10 @@
 package com.myfitness.ai.presentation.controller;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
+import com.myfitness.ai.application.port.in.FoodPhotoPort.PhotoInput;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException;
 import com.myfitness.ai.application.exception.InvalidFoodPhotoException.Reason;
-import com.myfitness.ai.application.port.in.AiCoachUseCase;
-import com.myfitness.ai.application.port.in.FoodPhotoUseCase;
+import com.myfitness.ai.application.port.in.AiCoachPort;
+import com.myfitness.ai.application.port.in.FoodPhotoPort;
 import com.myfitness.ai.presentation.dto.request.AiConversationRenameRequest;
 import com.myfitness.ai.presentation.dto.request.AiMessageRequest;
 import com.myfitness.ai.presentation.dto.response.AiConversationResponse;
@@ -31,19 +31,19 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/ai/conversations")
 public class AiCoachController {
-    private final AiCoachUseCase aiCoachUseCase;
-    private final FoodPhotoUseCase foodPhotoUseCase;
+    private final AiCoachPort aiCoachPort;
+    private final FoodPhotoPort foodPhotoPort;
 
-    public AiCoachController(AiCoachUseCase aiCoachUseCase,
-            FoodPhotoUseCase foodPhotoUseCase) {
-        this.aiCoachUseCase = aiCoachUseCase;
-        this.foodPhotoUseCase = foodPhotoUseCase;
+    public AiCoachController(AiCoachPort aiCoachPort,
+            FoodPhotoPort foodPhotoPort) {
+        this.aiCoachPort = aiCoachPort;
+        this.foodPhotoPort = foodPhotoPort;
     }
 
     @GetMapping
     public List<AiConversationResponse> list(
             @AuthenticationPrincipal(expression = "userId") Long userId) {
-        return aiCoachUseCase.listConversations(userId).stream()
+        return aiCoachPort.listConversations(userId).stream()
                 .map(AiConversationResponse::from)
                 .toList();
     }
@@ -53,7 +53,7 @@ public class AiCoachController {
     public AiConversationResponse create(
             @AuthenticationPrincipal(expression = "userId") Long userId) {
         return AiConversationResponse.from(
-                aiCoachUseCase.createConversation(userId));
+                aiCoachPort.createConversation(userId));
     }
 
     @PatchMapping("/{conversationId}")
@@ -62,7 +62,7 @@ public class AiCoachController {
             @PathVariable Long conversationId,
             @Valid @RequestBody AiConversationRenameRequest request) {
         return AiConversationResponse.from(
-                aiCoachUseCase.renameConversation(
+                aiCoachPort.renameConversation(
                         userId,
                         conversationId,
                         request.title()));
@@ -73,14 +73,14 @@ public class AiCoachController {
     public void delete(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId) {
-        aiCoachUseCase.deleteConversation(userId, conversationId);
+        aiCoachPort.deleteConversation(userId, conversationId);
     }
 
     @GetMapping("/{conversationId}/messages")
     public List<AiMessageResponse> messages(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long conversationId) {
-        return aiCoachUseCase.listMessages(userId, conversationId).stream()
+        return aiCoachPort.listMessages(userId, conversationId).stream()
                 .map(AiMessageResponse::from)
                 .toList();
     }
@@ -95,8 +95,8 @@ public class AiCoachController {
             throw new InvalidFoodPhotoException(Reason.INVALID);
         }
         MultipartFile image = images.getFirst();
-        return AiFoodPhotoResponse.from(foodPhotoUseCase.analyze(
-                userId, conversationId, new FoodPhotoCommand(
+        return AiFoodPhotoResponse.from(foodPhotoPort.analyze(
+                userId, conversationId, new PhotoInput(
                         image.getBytes(), image.getContentType())));
     }
 
@@ -106,7 +106,7 @@ public class AiCoachController {
             @PathVariable Long conversationId,
             @Valid @RequestBody AiMessageRequest request) {
         return AiSendMessageResponse.from(
-                aiCoachUseCase.sendMessage(
+                aiCoachPort.sendMessage(
                         userId,
                         conversationId,
                         request.toCommand()));

@@ -1,11 +1,18 @@
 package com.myfitness.ai.application.service;
 
+import com.myfitness.ai.application.usecase.response.AiUserMessageWriteResult;
+
+import com.myfitness.ai.application.usecase.AiMessageTransactionUseCase;
+import com.myfitness.ai.application.usecase.AiConversationUseCase;
+import com.myfitness.ai.application.usecase.response.AiConversationResult;
+import com.myfitness.ai.application.usecase.response.AiMessageResult;
+
 import com.myfitness.ai.application.config.AiCoachProperties;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
-import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
-import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
+import com.myfitness.ai.domain.repository.AiConversationRepository;
+import com.myfitness.ai.domain.repository.AiMessageRepository;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyAssessment;
-import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
+import com.myfitness.ai.domain.repository.AiRequestLogRepository;
 import com.myfitness.ai.application.support.context.AiContextBundle;
 import com.myfitness.ai.application.support.policy.AiPolicyDecision.Action;
 import com.myfitness.ai.application.support.policy.AiPolicyRun;
@@ -25,20 +32,20 @@ import tools.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
-public class AiMessageTransactionService {
-    private final AiConversationRepositoryPort conversationRepository;
-    private final AiMessageRepositoryPort messageRepository;
-    private final AiRequestLogRepositoryPort requestLogRepository;
-    private final AiConversationService conversations;
+public class AiMessageTransactionService implements AiMessageTransactionUseCase {
+    private final AiConversationRepository conversationRepository;
+    private final AiMessageRepository messageRepository;
+    private final AiRequestLogRepository requestLogRepository;
+    private final AiConversationUseCase conversations;
     private final AiCoachProperties properties;
     private final Clock clock;
 
     @Autowired
     public AiMessageTransactionService(
-            AiConversationRepositoryPort conversationRepository,
-            AiMessageRepositoryPort messageRepository,
-            AiRequestLogRepositoryPort requestLogRepository,
-            AiConversationService conversations,
+            AiConversationRepository conversationRepository,
+            AiMessageRepository messageRepository,
+            AiRequestLogRepository requestLogRepository,
+            AiConversationUseCase conversations,
             AiCoachProperties properties) {
         this(
                 conversationRepository,
@@ -50,10 +57,10 @@ public class AiMessageTransactionService {
     }
 
     AiMessageTransactionService(
-            AiConversationRepositoryPort conversationRepository,
-            AiMessageRepositoryPort messageRepository,
-            AiRequestLogRepositoryPort requestLogRepository,
-            AiConversationService conversations,
+            AiConversationRepository conversationRepository,
+            AiMessageRepository messageRepository,
+            AiRequestLogRepository requestLogRepository,
+            AiConversationUseCase conversations,
             AiCoachProperties properties,
             Clock clock) {
         this.conversationRepository = conversationRepository;
@@ -64,13 +71,15 @@ public class AiMessageTransactionService {
         this.clock = clock;
     }
 
+    @Override
     public List<AiMessage> loadMessagesForOwnedConversation(Long userId, Long conversationId) {
         conversations.requireOwned(userId, conversationId);
         return messageRepository.findAcceptedByConversationId(conversationId);
     }
 
+    @Override
     @Transactional
-    public UserMessageWrite saveUserMessage(Long userId, Long conversationId, String message) {
+    public AiUserMessageWriteResult saveUserMessage(Long userId, Long conversationId, String message) {
         AiConversation conversation = conversations.requireOwned(userId, conversationId);
         Instant now = clock.instant();
 
@@ -85,14 +94,15 @@ public class AiMessageTransactionService {
         }
         conversationRepository.save(conversation);
 
-        return new UserMessageWrite(conversation, userMessage);
+        return new AiUserMessageWriteResult(AiConversationResult.from(conversation), AiMessageResult.from(userMessage, null));
     }
 
+    @Override
     @Transactional
     public AiMessage saveRejectedResponse(
             Long userId,
             Long conversationId,
-            AiMessage userMessage,
+            AiMessageResult userMessage,
             AiQueryType queryType,
             String content,
             AiPolicyRun.Success policy) {
@@ -104,7 +114,7 @@ public class AiMessageTransactionService {
                 AiRequestLog.rejected(
                         userId,
                         conversationId,
-                        userMessage.getId(),
+                        userMessage.id(),
                         queryType,
                         properties.getPromptVersion(),
                         clock.instant());
@@ -115,11 +125,12 @@ public class AiMessageTransactionService {
         return assistantMessage;
     }
 
+    @Override
     @Transactional
     public AiMessage saveProviderSuccess(
             Long userId,
             Long conversationId,
-            AiMessage userMessage,
+            AiMessageResult userMessage,
             AiQueryType queryType,
             AiContextBundle context,
             AiModelResponse response,
@@ -135,7 +146,7 @@ public class AiMessageTransactionService {
                         AiRequestLog.success(
                                 userId,
                                 conversationId,
-                                userMessage.getId(),
+                                userMessage.id(),
                                 assistantMessage.getId(),
                                 queryType,
                                 response.provider(),
@@ -152,11 +163,12 @@ public class AiMessageTransactionService {
         return assistantMessage;
     }
 
+    @Override
     @Transactional
     public void saveProviderFailure(
             Long userId,
             Long conversationId,
-            AiMessage userMessage,
+            AiMessageResult userMessage,
             AiQueryType queryType,
             AiContextBundle context,
             String provider,
@@ -169,7 +181,7 @@ public class AiMessageTransactionService {
                         AiRequestLog.failed(
                                 userId,
                                 conversationId,
-                                userMessage.getId(),
+                                userMessage.id(),
                                 queryType,
                                 provider,
                                 model,
@@ -181,24 +193,27 @@ public class AiMessageTransactionService {
                         policy));
     }
 
+    @Override
     @Transactional
-    public AiMessage classifyUserMessage(
-            Long userId, Long conversationId, AiMessage message, AiQueryType type) {
+    public AiMessageResult classifyUserMessage(
+            Long userId, Long conversationId, Long messageId, AiQueryType type) {
         conversations.requireOwned(userId, conversationId);
+        AiMessage message = messageRepository.findByIdAndConversationId(messageId, conversationId).orElseThrow();
         message.classify(type);
-        return messageRepository.save(message);
+        return AiMessageResult.from(messageRepository.save(message), null);
     }
 
+    @Override
     @Transactional
     public void savePolicyFailure(
-            Long userId, Long conversationId, AiMessage userMessage, AiPolicyRun.Failure failure) {
+            Long userId, Long conversationId, AiMessageResult userMessage, AiPolicyRun.Failure failure) {
         conversations.requireOwned(userId, conversationId);
         AiRequestLog log =
                 AiRequestLog.failed(
                         userId,
                         conversationId,
-                        userMessage.getId(),
-                        userMessage.getQueryType(),
+                        userMessage.id(),
+                        AiQueryType.valueOf(userMessage.queryType()),
                         null,
                         null,
                         properties.getPromptVersion(),
@@ -257,6 +272,4 @@ public class AiMessageTransactionService {
         }
         return normalized.substring(0, limit);
     }
-
-    public record UserMessageWrite(AiConversation conversation, AiMessage userMessage) {}
 }

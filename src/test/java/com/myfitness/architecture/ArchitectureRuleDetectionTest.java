@@ -2,14 +2,27 @@ package com.myfitness.architecture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.myfitness.architecture.fixture.application.BadApplication;
 import com.myfitness.architecture.fixture.domain.BadDomain;
 import com.myfitness.architecture.fixture.domain.NormalDomain;
 import com.myfitness.architecture.fixture.infrastructure.DataRepository;
 import com.myfitness.architecture.fixture.presentation.BadController;
+import com.myfitness.architecture.fixture.application.service.ForbiddenPortService;
+import com.myfitness.architecture.fixture.application.service.ForeignPortConsumer;
+import com.myfitness.architecture.fixture.application.service.NormalPortService;
+import com.myfitness.architecture.fixture.domain.repository.ForbiddenRepository;
+import com.myfitness.architecture.fixture.domain.repository.NormalRepository;
+import com.myfitness.architecture.fixture.application.port.in.FixturePort;
+import com.myfitness.architecture.fixture.presentation.PortFixtureController;
+import com.myfitness.architecture.fixture.application.dto.response.LegacyResult;
+import com.myfitness.architecture.fixture.application.service.ServiceDependencyFixture;
+import com.myfitness.architecture.fixture.application.usecase.response.CurrentResult;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+
+import com.tngtech.archunit.lang.ArchRule;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,5 +93,50 @@ class ArchitectureRuleDetectionTest {
                                 .getDetails())
                 .anySatisfy(
                         detail -> assertThat(detail).contains("BadController", "DataRepository"));
+    }
+
+    @Test
+    @DisplayName("공개 진입과 Domain Repository 검사 규칙은 정상 fixture를 허용하고 위반을 탐지한다")
+    void detectsPortBoundaryViolations() {
+        assertBoundary(
+                PortBoundaryArchitectureTest.PORT_SERVICE_RULE,
+                NormalPortService.class, ForbiddenPortService.class,
+                "NormalDomain", "NormalRepository", "FixtureOutputPort", "NormalPortService", "Transactional");
+        assertBoundary(
+                PortBoundaryArchitectureTest.INPUT_PORT_IMPLEMENTATION_RULE,
+                NormalPortService.class, PortFixtureController.BypassPortImplementation.class, "PortService");
+        assertBoundary(
+                PortBoundaryArchitectureTest.INPUT_PORT_RULE,
+                FixturePort.class, FixturePort.ForbiddenPort.class, "InternalUseCase");
+        assertBoundary(
+                PortBoundaryArchitectureTest.INPUT_ADAPTER_RULE,
+                PortFixtureController.class, PortFixtureController.BypassController.class, "InternalUseCase");
+        assertBoundary(
+                PortBoundaryArchitectureTest.DOMAIN_REPOSITORY_RULE,
+                NormalRepository.class, ForbiddenRepository.class, "JpaRepository");
+        assertBoundary(
+                PortBoundaryArchitectureTest.moduleAdapterRule(
+                        "com.myfitness.architecture.fixture", "com.myfitness.body.."),
+                NormalPortService.class, ForeignPortConsumer.class, "BodyInsightQuery");
+    }
+
+    @Test
+    @DisplayName("직접 업무 구현 참조와 이전 DTO 위치를 실제 경계 규칙이 탐지한다")
+    void detectsServiceAndDtoBoundaryViolations() {
+        assertBoundary(
+                PortBoundaryArchitectureTest.BUSINESS_SERVICE_DEPENDENCY_RULE,
+                ServiceDependencyFixture.UsesContract.class,
+                ServiceDependencyFixture.BypassesContract.class,
+                "BusinessService");
+        assertBoundary(
+                PortBoundaryArchitectureTest.LEGACY_DTO_PACKAGE_RULE,
+                CurrentResult.class, LegacyResult.class, "application.dto.response");
+    }
+
+    private void assertBoundary(ArchRule rule, Class<?> valid, Class<?> invalid, String... dependencies) {
+        ClassFileImporter importer = new ClassFileImporter();
+        rule.check(importer.importClasses(valid));
+        AssertionError error = assertThrows(AssertionError.class, () -> rule.check(importer.importClasses(invalid)));
+        assertThat(error.getMessage()).contains("Architecture Violation", invalid.getSimpleName()).contains(dependencies);
     }
 }

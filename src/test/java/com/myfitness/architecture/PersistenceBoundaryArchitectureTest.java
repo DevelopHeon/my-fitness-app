@@ -5,6 +5,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tngtech.archunit.core.domain.Dependency;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Entity 비노출, JPA 배치, 기본 transaction 선언을 검증한다. 실제 transaction 동작은 통합 테스트가 담당한다. */
 class PersistenceBoundaryArchitectureTest {
@@ -69,39 +73,21 @@ class PersistenceBoundaryArchitectureTest {
     }
 
     @Test
-    @DisplayName("Application Response DTO의 필드는 JPA Entity 타입을 노출하지 않는다")
-    void applicationResponseDtosDoNotExposeJpaEntitiesAsFields() {
-        assertThat(
-                        CLASSES.stream()
-                                .filter(
-                                        type ->
-                                                type.getPackageName()
-                                                        .contains(".application.dto.response")))
-                .as("Application Response DTO 검사 대상")
-                .isNotEmpty();
-        CLASSES.stream()
-                .filter(javaClass -> javaClass.getPackageName().contains(".application.dto.response"))
-                .forEach(
-                        javaClass ->
-                                javaClass
-                                        .getAllFields()
-                                        .forEach(
-                                                field -> {
-                                                    List<String> entityTypes =
-                                                            field.getAllInvolvedRawTypes().stream()
-                                                                    .filter(
-                                                                            type ->
-                                                                                    type
-                                                                                            .isAnnotatedWith(
-                                                                                                    Entity
-                                                                                                            .class))
-                                                                    .map(type -> type.getName())
-                                                                    .toList();
+    @DisplayName("내부 UseCase와 Output Port의 DTO 필드는 JPA Entity를 노출하지 않는다")
+    void applicationDtosDoNotExposeJpaEntitiesAsFields() {
+        List<JavaClass> dtoTypes = CLASSES.stream()
+                .filter(type -> type.getPackageName().contains(".application.usecase.request")
+                        || type.getPackageName().contains(".application.usecase.response")
+                        || (type.isRecord() && (type.getPackageName().contains(".application.usecase")
+                                || type.getPackageName().contains(".application.port.out"))))
+                .toList();
 
-                                                    assertThat(entityTypes)
-                                                            .as(field.getFullName())
-                                                            .isEmpty();
-                                                }));
+        assertThat(dtoTypes).as("내부 DTO 검사 대상").isNotEmpty();
+        for (JavaClass type : dtoTypes) {
+            type.getAllFields().forEach(field -> assertThat(field.getAllInvolvedRawTypes())
+                    .as(field.getFullName())
+                    .noneMatch(fieldType -> fieldType.isAnnotatedWith(Entity.class)));
+        }
     }
 
     @Test
@@ -118,41 +104,30 @@ class PersistenceBoundaryArchitectureTest {
     }
 
     @Test
-    @DisplayName("Application In Port 구현 Service는 read-only transaction을 기본 경계로 선언한다")
-    void inputPortServicesDeclareReadOnlyTransactionBoundary() {
-        assertThat(
-                        CLASSES.stream()
-                                .filter(type -> type.isAnnotatedWith(Service.class))
-                                .filter(
-                                        type ->
-                                                type.getAllRawInterfaces().stream()
-                                                        .anyMatch(
-                                                                it ->
-                                                                        it.getPackageName()
-                                                                                .contains(
-                                                                                        ".application.port.in"))))
-                .as("In Port Service transaction 검사 대상")
-                .isNotEmpty();
-        CLASSES.stream()
-                .filter(javaClass -> javaClass.isAnnotatedWith(Service.class))
-                .filter(
-                        javaClass ->
-                                javaClass.getAllRawInterfaces().stream()
-                                        .anyMatch(
-                                                type ->
-                                                        type.getPackageName()
-                                                                .contains(".application.port.in")))
-                .forEach(
-                        javaClass -> {
-                            assertThat(javaClass.isAnnotatedWith(Transactional.class))
-                                    .as("%s transaction boundary", javaClass.getName())
-                                    .isTrue();
+    @DisplayName("PortService가 호출하는 업무 Service와 저장 트랜잭션 Service는 기본 read-only 경계를 선언한다")
+    void businessServicesDeclareReadOnlyTransactionBoundary() {
+        Set<JavaClass> entryContracts = CLASSES.stream()
+                .filter(type -> type.getSimpleName().endsWith("PortService"))
+                .flatMap(type -> type.getDirectDependenciesFromSelf().stream())
+                .map(Dependency::getTargetClass)
+                .filter(type -> type.isInterface() && type.getPackageName().contains(".application.usecase"))
+                .collect(Collectors.toSet());
 
-                            Transactional transaction =
-                                    javaClass.getAnnotationOfType(Transactional.class);
-                            assertThat(transaction.readOnly())
-                                    .as("%s default transaction", javaClass.getName())
-                                    .isTrue();
-                        });
+        assertThat(entryContracts).as("공개 진입이 호출하는 내부 UseCase").isNotEmpty();
+        List<JavaClass> services = CLASSES.stream()
+                .filter(type -> type.isAnnotatedWith(Service.class))
+                .filter(type -> type.getAllRawInterfaces().stream().anyMatch(contract -> entryContracts.contains(contract)
+                                || contract.getSimpleName().endsWith("TransactionUseCase"))
+                        || type.getMethods().stream().anyMatch(method -> method.isAnnotatedWith(Transactional.class)))
+                .toList();
+        assertThat(services).as("트랜잭션 경계를 소유하는 Service").isNotEmpty();
+        for (JavaClass service : services) {
+            assertThat(service.isAnnotatedWith(Transactional.class))
+                    .as("%s transaction boundary", service.getName())
+                    .isTrue();
+            assertThat(service.getAnnotationOfType(Transactional.class).readOnly())
+                    .as("%s default transaction", service.getName())
+                    .isTrue();
+        }
     }
 }

@@ -1,8 +1,8 @@
 package com.myfitness.dashboard.application.support;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult.CategoryDailyVolume;
-import com.myfitness.dashboard.application.dto.response.DashboardResult.DailyVolume;
-import com.myfitness.dashboard.application.dto.response.DashboardResult.WorkoutSummary;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.CategoryDailyVolume;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.DailyVolume;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.WorkoutSummary;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.SetData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.WorkoutData;
 import com.myfitness.dashboard.domain.service.DashboardCalculator;

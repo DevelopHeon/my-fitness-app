@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.response;
 
-import com.myfitness.ai.application.dto.response.AiConversationResult;
+import com.myfitness.ai.application.port.in.AiConversationView;
 import java.time.Instant;
 
 public record AiConversationResponse(
@@ -10,7 +10,7 @@ public record AiConversationResponse(
         Instant updatedAt
 ) {
     public static AiConversationResponse from(
-            AiConversationResult result) {
+            AiConversationView result) {
         return new AiConversationResponse(
                 result.id(),
                 result.title(),

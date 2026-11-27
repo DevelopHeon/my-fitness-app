@@ -1,14 +1,16 @@
 package com.myfitness.routine.application.service;
 
-import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.routine.application.dto.request.ExerciseSelection;
-import com.myfitness.routine.application.dto.response.RoutineResult;
-import com.myfitness.routine.application.dto.response.RoutineWorkoutStartResult;
-import com.myfitness.routine.application.port.in.RoutineUseCase;
+import com.myfitness.routine.application.usecase.RoutineOperationsUseCase;
+import com.myfitness.routine.application.port.out.ExerciseCatalogPort;
+import com.myfitness.routine.domain.model.ExerciseSnapshot;
+import com.myfitness.routine.application.usecase.request.ExerciseSelection;
+import com.myfitness.routine.application.usecase.response.RoutineResult;
+import com.myfitness.routine.application.usecase.response.RoutineWorkoutStartResult;
+import com.myfitness.routine.application.usecase.RoutineUseCase;
 import com.myfitness.routine.domain.model.Routine;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase.RoutineWorkoutView;
-import com.myfitness.workout.application.port.in.routine.WorkoutRoutineUseCase;
+import com.myfitness.routine.domain.model.ExerciseType;
+import com.myfitness.routine.application.port.out.RoutineWorkoutPort;
+import com.myfitness.routine.application.port.out.RoutineReadPort;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -17,17 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class RoutineApplicationService implements RoutineUseCase {
-    private final RoutineService routineService;
-    private final ExerciseCatalogQuery exerciseCatalogQuery;
-    private final WorkoutRoutineUseCase workoutRoutineUseCase;
+    private final RoutineOperationsUseCase routineService;
+    private final RoutineReadPort routineRead;
+    private final ExerciseCatalogPort exerciseCatalog;
+    private final RoutineWorkoutPort routineWorkout;
 
     public RoutineApplicationService(
-            RoutineService routineService,
-            ExerciseCatalogQuery exerciseCatalogQuery,
-            WorkoutRoutineUseCase workoutRoutineUseCase) {
+            RoutineOperationsUseCase routineService,
+            ExerciseCatalogPort exerciseCatalog,
+            RoutineWorkoutPort routineWorkout, RoutineReadPort routineRead) {
         this.routineService = routineService;
-        this.exerciseCatalogQuery = exerciseCatalogQuery;
-        this.workoutRoutineUseCase = workoutRoutineUseCase;
+        this.exerciseCatalog = exerciseCatalog;
+        this.routineWorkout = routineWorkout;
+        this.routineRead = routineRead;
     }
 
     @Transactional
@@ -35,16 +39,14 @@ public class RoutineApplicationService implements RoutineUseCase {
             Long userId,
             String name,
             List<ExerciseSelection> selections) {
-        List<ExerciseReference> exercises =
+        List<ExerciseSnapshot> exercises =
                 resolveExercises(userId, selections);
         return RoutineResult.from(
                 routineService.create(userId, name, exercises));
     }
 
     public List<RoutineResult> list(Long userId) {
-        return routineService.list(userId).stream()
-                .map(RoutineResult::from)
-                .toList();
+        return routineRead.findAllByUserId(userId);
     }
 
     public RoutineResult get(Long userId, Long routineId) {
@@ -59,7 +61,7 @@ public class RoutineApplicationService implements RoutineUseCase {
             String name,
             List<ExerciseSelection> selections) {
         Routine routine = routineService.getOwned(userId, routineId);
-        List<ExerciseReference> exercises =
+        List<ExerciseSnapshot> exercises =
                 resolveExercises(userId, selections);
         return RoutineResult.from(
                 routineService.update(routine, name, exercises));
@@ -77,24 +79,20 @@ public class RoutineApplicationService implements RoutineUseCase {
             LocalDate workoutDate,
             String memo) {
         Routine routine = routineService.getOwned(userId, routineId);
-        List<ExerciseReference> exercises = routine.getExercises().stream()
+        List<ExerciseSnapshot> exercises = routine.getExercises().stream()
                 .map(entry -> entry.toReference())
                 .toList();
 
-        RoutineWorkoutView result =
-                workoutRoutineUseCase.startWorkout(
-                        userId, workoutDate, memo, exercises);
-
-        return RoutineWorkoutStartResult.from(result);
+        return routineWorkout.startWorkout(userId, workoutDate, memo, exercises);
     }
 
-    private List<ExerciseReference> resolveExercises(
+    private List<ExerciseSnapshot> resolveExercises(
             Long userId,
             List<ExerciseSelection> selections) {
         return selections.stream()
-                .map(selection -> exerciseCatalogQuery.getAvailable(
+                .map(selection -> exerciseCatalog.getAvailable(
                         userId,
-                        selection.exerciseType(),
+                        ExerciseType.valueOf(selection.exerciseType()),
                         selection.exerciseId()))
                 .toList();
     }

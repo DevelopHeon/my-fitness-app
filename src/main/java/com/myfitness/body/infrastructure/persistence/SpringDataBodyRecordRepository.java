@@ -1,5 +1,6 @@
 package com.myfitness.body.infrastructure.persistence;
 
+import com.myfitness.body.application.usecase.response.BodyRecordResult;
 import com.myfitness.body.domain.model.BodyRecord;
 import java.time.Instant;
 import java.util.List;
@@ -7,16 +8,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface SpringDataBodyRecordRepository extends JpaRepository<BodyRecord, Long> {
-    List<BodyRecord>
+    List<BodyRecordResult>
             findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDescIdDesc(
                     Long userId,
                     Instant from,
                     Instant to);
 
-    List<BodyRecord> findAllByUserIdOrderByMeasuredAtDescIdDesc(
+    List<BodyRecordResult> findAllByUserIdOrderByMeasuredAtDescIdDesc(
             Long userId);
 
-    List<BodyRecord> findAllByUserIdOrderByMeasuredAtDescIdDesc(
+    List<BodyRecordResult> findAllByUserIdOrderByMeasuredAtDescIdDesc(
             Long userId,
             Pageable pageable);
 

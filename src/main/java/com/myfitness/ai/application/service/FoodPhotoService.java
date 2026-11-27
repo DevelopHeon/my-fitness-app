@@ -1,10 +1,15 @@
 package com.myfitness.ai.application.service;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
-import com.myfitness.ai.application.dto.response.AiFoodPhotoResult;
+import com.myfitness.ai.application.usecase.response.AiUserMessageWriteResult;
+
+import com.myfitness.ai.application.usecase.FoodPhotoTransactionUseCase;
+import com.myfitness.ai.application.usecase.AiConversationUseCase;
+
+import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoUpload;
+import com.myfitness.ai.application.usecase.response.AiFoodPhotoResult;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
-import com.myfitness.ai.application.port.in.FoodPhotoUseCase;
+import com.myfitness.ai.application.usecase.FoodPhotoUseCase;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoResponse;
 import com.myfitness.ai.application.support.AiMessageResultMapper;
@@ -19,15 +24,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class FoodPhotoService implements FoodPhotoUseCase {
     private final FoodPhotoGateway gateway;
-    private final FoodPhotoTransactionService transactions;
-    private final AiConversationService conversations;
+    private final FoodPhotoTransactionUseCase transactions;
+    private final AiConversationUseCase conversations;
     private final AiMessageResultMapper messageMapper;
     private final AiMetrics metrics;
 
     public FoodPhotoService(
             FoodPhotoGateway gateway,
-            FoodPhotoTransactionService transactions,
-            AiConversationService conversations,
+            FoodPhotoTransactionUseCase transactions,
+            AiConversationUseCase conversations,
             AiMessageResultMapper messageMapper,
             AiMetrics metrics) {
         this.gateway = gateway;
@@ -39,27 +44,27 @@ public class FoodPhotoService implements FoodPhotoUseCase {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public AiFoodPhotoResult analyze(Long userId, Long conversationId, FoodPhotoCommand command) {
+    public AiFoodPhotoResult analyze(Long userId, Long conversationId, byte[] bytes, String contentType) {
         conversations.requireOwned(userId, conversationId);
-        byte[] image = gateway.prepare(command);
-        FoodPhotoTransactionService.PhotoMessageWrite write = transactions.savePhotoUser(userId, conversationId);
+        byte[] image = gateway.prepare(new PhotoUpload(bytes, contentType));
+        AiUserMessageWriteResult write = transactions.savePhotoUser(userId, conversationId);
         long started = System.nanoTime();
-        PhotoResponse response = analyzeAndLogFailure(userId, conversationId, write.userMessage(), image, started);
+        PhotoResponse response = analyzeAndLogFailure(userId, conversationId, write.userMessage().id(), image, started);
         AiMessage assistant = transactions.savePhotoSuccess(
                 userId,
                 conversationId,
-                write.userMessage(),
+                write.userMessage().id(),
                 response,
                 guidance(response.analysis()),
                 elapsedMillis(started));
-        return AiFoodPhotoResult.from(
+        return new AiFoodPhotoResult(
                 write.conversation(),
-                messageMapper.map(write.userMessage()),
+                write.userMessage(),
                 messageMapper.map(assistant));
     }
 
     private PhotoResponse analyzeAndLogFailure(
-            Long userId, Long conversationId, AiMessage userMessage, byte[] image, long started) {
+            Long userId, Long conversationId, Long userMessageId, byte[] image, long started) {
         PhotoResponse response;
         try {
             response = gateway.analyze(image);
@@ -68,7 +73,7 @@ public class FoodPhotoService implements FoodPhotoUseCase {
                     ? failure.getErrorCode() : Code.TRANSPORT_ERROR;
             metrics.provider("photo", "openai", "FAILURE", errorCode, elapsedMillis(started));
             transactions.savePhotoFailure(
-                    userId, conversationId, userMessage, gateway.model(), errorCode.name(), elapsedMillis(started));
+                    userId, conversationId, userMessageId, gateway.model(), errorCode.name(), elapsedMillis(started));
             throw exception;
         }
         metrics.provider("photo", "openai", response.analysis().status().name(), Code.NONE, elapsedMillis(started));

@@ -1,6 +1,6 @@
 package com.myfitness.ai.application.support.context;
 
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery.MacroInsight;
+import com.myfitness.ai.application.port.out.NutritionContextPort.MacroInsight;
 import java.math.BigDecimal;
 
 final class AiContextFormat {

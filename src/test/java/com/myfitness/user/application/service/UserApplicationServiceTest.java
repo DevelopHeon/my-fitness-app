@@ -7,9 +7,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.myfitness.user.application.dto.request.GoogleLoginCommand;
+import com.myfitness.user.application.usecase.request.GoogleLoginCommand;
 import com.myfitness.user.application.exception.UserNotFoundException;
-import com.myfitness.user.application.port.out.UserRepositoryPort;
+import com.myfitness.user.domain.repository.UserRepository;
 import com.myfitness.user.domain.model.User;
 import java.time.Clock;
 import java.time.Instant;
@@ -24,8 +24,8 @@ class UserApplicationServiceTest {
     private static final Clock CLOCK =
             Clock.fixed(NOW, ZoneOffset.UTC);
 
-    private final UserRepositoryPort repository =
-            mock(UserRepositoryPort.class);
+    private final UserRepository repository =
+            mock(UserRepository.class);
     private final UserApplicationService service =
             new UserApplicationService(repository, CLOCK);
 

@@ -1,6 +1,6 @@
 package com.myfitness.ai.application.support;
 
-import com.myfitness.ai.application.dto.response.AiMessageResult;
+import com.myfitness.ai.application.usecase.response.AiMessageResult;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.FoodPhotoAnalysis;
 import org.springframework.stereotype.Component;

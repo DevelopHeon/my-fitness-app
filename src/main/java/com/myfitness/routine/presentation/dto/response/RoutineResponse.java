@@ -1,7 +1,6 @@
 package com.myfitness.routine.presentation.dto.response;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.routine.application.dto.response.RoutineResult;
+import com.myfitness.routine.application.port.in.RoutineView;
 import java.time.Instant;
 import java.util.List;
 
@@ -12,7 +11,7 @@ public record RoutineResponse(
         Instant updatedAt,
         List<ExerciseEntry> exercises
 ) {
-    public static RoutineResponse from(RoutineResult result) {
+    public static RoutineResponse from(RoutineView result) {
         return new RoutineResponse(
                 result.id(),
                 result.name(),
@@ -25,13 +24,13 @@ public record RoutineResponse(
 
     public record ExerciseEntry(
             Long id,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,
             int orderIndex
     ) {
-        static ExerciseEntry from(RoutineResult.ExerciseResult exercise) {
+        static ExerciseEntry from(RoutineView.ExerciseView exercise) {
             return new ExerciseEntry(
                     exercise.id(),
                     exercise.exerciseType(),

@@ -30,18 +30,19 @@ class ComponentConventionTest {
                 .resideInAnyPackage(
                         "..application",
                         "..application.config..",
-                        "..application.dto.request..",
-                        "..application.dto.response..",
+                        "..application.usecase.request..",
+                        "..application.usecase.response..",
                         "..application.exception..",
                         "..application.port..",
                         "..application.service..",
-                        "..application.support..")
-                .because("입출력 DTO와 내부 협력 기능은 dto/request·response와 support에 모은다.")
+                        "..application.support..",
+                        "..application.usecase..")
+                .because("내부 업무 계약은 usecase에 두고 입출력 DTO와 협력 기능은 각 역할 패키지에 둔다.")
                 .check(CLASSES);
     }
 
     @Test
-    @DisplayName("Application Command는 request DTO 패키지에 둔다")
+    @DisplayName("Application Command는 UseCase 요청 패키지에 둔다")
     void applicationCommandsStayInRequestDtoPackages() {
         classes()
                 .that()
@@ -49,12 +50,12 @@ class ComponentConventionTest {
                 .and()
                 .haveSimpleNameEndingWith("Command")
                 .should()
-                .resideInAPackage("..application.dto.request..")
+                .resideInAPackage("..application.usecase.request..")
                 .check(CLASSES);
     }
 
     @Test
-    @DisplayName("Application Result는 response DTO 패키지에 둔다")
+    @DisplayName("Application Result는 UseCase 결과 패키지에 둔다")
     void applicationResultsStayInResponseDtoPackages() {
         classes()
                 .that()
@@ -62,7 +63,7 @@ class ComponentConventionTest {
                 .and()
                 .haveSimpleNameEndingWith("Result")
                 .should()
-                .resideInAPackage("..application.dto.response..")
+                .resideInAPackage("..application.usecase.response..")
                 .check(CLASSES);
     }
 

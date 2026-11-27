@@ -2,7 +2,9 @@ package com.myfitness.body.infrastructure.persistence;
 
 import com.myfitness.body.domain.exception.BodyRecordRuleException;
 import com.myfitness.body.domain.model.BodyRecord;
-import com.myfitness.body.application.port.out.BodyRecordRepositoryPort;
+import com.myfitness.body.application.usecase.response.BodyRecordResult;
+import com.myfitness.body.application.port.out.BodyRecordReadPort;
+import com.myfitness.body.domain.repository.BodyRecordRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class BodyRecordRepositoryAdapter implements BodyRecordRepositoryPort {
+public class BodyRecordRepositoryAdapter implements BodyRecordRepository, BodyRecordReadPort {
     private final SpringDataBodyRecordRepository repository;
 
     public BodyRecordRepositoryAdapter(SpringDataBodyRecordRepository repository) {
@@ -34,7 +36,7 @@ public class BodyRecordRepositoryAdapter implements BodyRecordRepositoryPort {
     }
 
     @Override
-    public List<BodyRecord> findByUserIdAndMeasuredAtBetween(
+    public List<BodyRecordResult> findByUserIdAndMeasuredAtBetween(
             Long userId, Instant from, Instant to) {
         return repository
                 .findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDescIdDesc(
@@ -42,13 +44,13 @@ public class BodyRecordRepositoryAdapter implements BodyRecordRepositoryPort {
     }
 
     @Override
-    public List<BodyRecord> findAllByUserId(Long userId) {
+    public List<BodyRecordResult> findAllByUserId(Long userId) {
         return repository.findAllByUserIdOrderByMeasuredAtDescIdDesc(
                 userId);
     }
 
     @Override
-    public List<BodyRecord> findRecentByUserId(
+    public List<BodyRecordResult> findRecentByUserId(
             Long userId,
             int limit) {
         return repository.findAllByUserIdOrderByMeasuredAtDescIdDesc(

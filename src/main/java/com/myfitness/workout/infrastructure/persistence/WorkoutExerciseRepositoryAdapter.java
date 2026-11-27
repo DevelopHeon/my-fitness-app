@@ -1,14 +1,14 @@
 package com.myfitness.workout.infrastructure.persistence;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.domain.model.WorkoutExercise;
+import com.myfitness.workout.domain.model.ExerciseType;
+import com.myfitness.workout.application.usecase.response.PreviousExerciseRecordResult;
 import com.myfitness.workout.domain.model.WorkoutStatus;
-import com.myfitness.workout.application.port.out.WorkoutExerciseRepositoryPort;
+import com.myfitness.workout.application.port.out.PreviousExerciseRecordQueryPort;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class WorkoutExerciseRepositoryAdapter implements WorkoutExerciseRepositoryPort {
+public class WorkoutExerciseRepositoryAdapter implements PreviousExerciseRecordQueryPort {
     private final SpringDataWorkoutExerciseRepository repository;
 
     public WorkoutExerciseRepositoryAdapter(SpringDataWorkoutExerciseRepository repository) {
@@ -16,12 +16,13 @@ public class WorkoutExerciseRepositoryAdapter implements WorkoutExerciseReposito
     }
 
     @Override
-    public Optional<WorkoutExercise> findLatestCompletedByExercise(
+    public Optional<PreviousExerciseRecordResult> findLatestCompletedByExercise(
             Long userId,
             ExerciseType exerciseType,
             Long exerciseId) {
         return repository
                 .findFirstByWorkout_UserIdAndExerciseTypeAndExerciseIdAndWorkout_StatusOrderByWorkout_CompletedAtDesc(
-                        userId, exerciseType, exerciseId, WorkoutStatus.COMPLETED);
+                        userId, exerciseType, exerciseId, WorkoutStatus.COMPLETED)
+                .map(PreviousExerciseRecordResult::from);
     }
 }

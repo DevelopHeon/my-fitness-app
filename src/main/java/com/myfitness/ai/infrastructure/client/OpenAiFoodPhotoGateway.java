@@ -1,6 +1,6 @@
 package com.myfitness.ai.infrastructure.client;
 
-import com.myfitness.ai.application.dto.request.FoodPhotoCommand;
+import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoUpload;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException.Code;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway;
@@ -70,7 +70,7 @@ public class OpenAiFoodPhotoGateway implements FoodPhotoGateway {
     }
 
     @Override
-    public byte[] prepare(FoodPhotoCommand command) {
+    public byte[] prepare(PhotoUpload command) {
         return imagePreparer.prepare(command);
     }
 

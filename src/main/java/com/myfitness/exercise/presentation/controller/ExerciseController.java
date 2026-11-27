@@ -1,7 +1,7 @@
 package com.myfitness.exercise.presentation.controller;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.myfitness.exercise.application.port.in.ExerciseManagementUseCase;
+import com.myfitness.exercise.application.port.in.ExerciseManagementPort;
 import com.myfitness.exercise.application.port.in.catalog.ExerciseCatalogQuery;
 import com.myfitness.exercise.presentation.dto.request.CreateExerciseRequest;
 import com.myfitness.exercise.presentation.dto.request.UpdateExerciseRequest;
@@ -14,13 +14,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/exercises")
 public class ExerciseController {
-    private final ExerciseManagementUseCase exerciseManagementUseCase;
+    private final ExerciseManagementPort exerciseManagementPort;
     private final ExerciseCatalogQuery exerciseCatalogQuery;
 
     public ExerciseController(
-            ExerciseManagementUseCase exerciseManagementUseCase,
+            ExerciseManagementPort exerciseManagementPort,
             ExerciseCatalogQuery exerciseCatalogQuery) {
-        this.exerciseManagementUseCase = exerciseManagementUseCase;
+        this.exerciseManagementPort = exerciseManagementPort;
         this.exerciseCatalogQuery = exerciseCatalogQuery;
     }
 
@@ -37,7 +37,7 @@ public class ExerciseController {
     public ExerciseResponse createCustom(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody CreateExerciseRequest request) {
-        return ExerciseResponse.from(exerciseManagementUseCase.createCustom(
+        return ExerciseResponse.from(exerciseManagementPort.createCustom(
                 userId, request.name(), request.category()));
     }
 
@@ -46,7 +46,7 @@ public class ExerciseController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long exerciseId,
             @Valid @RequestBody UpdateExerciseRequest request) {
-        return ExerciseResponse.from(exerciseManagementUseCase.updateCustom(
+        return ExerciseResponse.from(exerciseManagementPort.updateCustom(
                 userId,
                 exerciseId,
                 request.name(),
@@ -58,6 +58,6 @@ public class ExerciseController {
     public void deleteCustom(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long exerciseId) {
-        exerciseManagementUseCase.deleteCustom(userId, exerciseId);
+        exerciseManagementPort.deleteCustom(userId, exerciseId);
     }
 }

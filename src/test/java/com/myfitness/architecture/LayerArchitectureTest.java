@@ -140,14 +140,14 @@ class LayerArchitectureTest {
     }
 
     @Test
-    @DisplayName("Repository Out Port는 인터페이스로 선언한다")
-    void repositoryOutputPortsAreInterfaces() {
+    @DisplayName("Application Output Port는 인터페이스로 선언한다")
+    void applicationOutputPortsAreInterfaces() {
         ArchRule rule =
                 classes()
                         .that()
                         .resideInAPackage("..application.port.out..")
                         .and()
-                        .haveSimpleNameEndingWith("RepositoryPort")
+                        .areTopLevelClasses()
                         .should()
                         .beInterfaces();
 

@@ -2,7 +2,7 @@ package com.myfitness.ai.application.support.policy;
 
 import com.myfitness.ai.application.config.AiPolicyProperties;
 import com.myfitness.ai.application.support.AiMetrics;
-import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
 import com.myfitness.ai.application.exception.AiPolicyUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
 import com.myfitness.ai.application.port.out.AiPolicyGateway.AiPolicyRequest;

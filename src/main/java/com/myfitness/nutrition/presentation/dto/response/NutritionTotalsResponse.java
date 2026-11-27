@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.dto.response.NutritionTotals;
+import com.myfitness.nutrition.application.port.in.NutritionTotalsView;
 import java.math.BigDecimal;
 
 public record NutritionTotalsResponse(
@@ -10,7 +10,7 @@ public record NutritionTotalsResponse(
         BigDecimal fatGrams
 ) {
     public static NutritionTotalsResponse from(
-            NutritionTotals totals) {
+            NutritionTotalsView totals) {
         if (totals == null) {
             return null;
         }

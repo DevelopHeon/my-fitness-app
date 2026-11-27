@@ -1,8 +1,6 @@
 package com.myfitness.workout.presentation.dto.response;
 
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.workout.application.dto.response.WorkoutResult;
-import com.myfitness.workout.domain.model.WorkoutStatus;
+import com.myfitness.workout.application.port.in.routine.WorkoutView;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,13 +9,13 @@ import java.util.List;
 public record WorkoutResponse(
         Long id,
         LocalDate workoutDate,
-        WorkoutStatus status,
+        String status,
         String memo,
         Instant startedAt,
         Instant completedAt,
         List<ExerciseEntry> exercises
 ) {
-    public static WorkoutResponse from(WorkoutResult result) {
+    public static WorkoutResponse from(WorkoutView result) {
         return new WorkoutResponse(
                 result.id(),
                 result.workoutDate(),
@@ -32,7 +30,7 @@ public record WorkoutResponse(
 
     public record ExerciseEntry(
             Long id,
-            ExerciseType exerciseType,
+            String exerciseType,
             Long exerciseId,
             String exerciseName,
             String category,
@@ -40,7 +38,7 @@ public record WorkoutResponse(
             String memo,
             List<SetEntry> sets
     ) {
-        static ExerciseEntry from(WorkoutResult.ExerciseResult exercise) {
+        static ExerciseEntry from(WorkoutView.ExerciseView exercise) {
             return new ExerciseEntry(
                     exercise.id(),
                     exercise.exerciseType(),
@@ -63,7 +61,7 @@ public record WorkoutResponse(
             Integer durationSeconds,
             boolean completed
     ) {
-        static SetEntry from(WorkoutResult.SetResult set) {
+        static SetEntry from(WorkoutView.SetView set) {
             return new SetEntry(
                     set.id(),
                     set.setNumber(),

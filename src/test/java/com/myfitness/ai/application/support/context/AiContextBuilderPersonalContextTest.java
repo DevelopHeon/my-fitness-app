@@ -5,14 +5,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
 import com.myfitness.ai.domain.model.AiQueryType;
-import com.myfitness.body.application.port.in.insight.BodyInsightQuery.BodyInsight;
-import com.myfitness.body.application.port.in.insight.BodyInsightQuery;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery.MacroInsight;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery.NutritionDayInsight;
-import com.myfitness.nutrition.application.port.in.insight.NutritionInsightQuery;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery;
+import com.myfitness.ai.application.port.out.BodyContextPort.BodyInsight;
+import com.myfitness.ai.application.port.out.BodyContextPort;
+import com.myfitness.ai.application.port.out.NutritionContextPort.MacroInsight;
+import com.myfitness.ai.application.port.out.NutritionContextPort.NutritionDayInsight;
+import com.myfitness.ai.application.port.out.NutritionContextPort;
+import com.myfitness.ai.application.port.out.WorkoutContextPort;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -30,9 +30,9 @@ class AiContextBuilderPersonalContextTest {
     @Test
     @DisplayName("Body Context는 최신 신체 기록과 직전 기록 대비 변화를 제공한다")
     void buildsBodyContextWithLatestChange() {
-        WorkoutInsightQuery workout = mock(WorkoutInsightQuery.class);
-        BodyInsightQuery body = mock(BodyInsightQuery.class);
-        NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
+        WorkoutContextPort workout = mock(WorkoutContextPort.class);
+        BodyContextPort body = mock(BodyContextPort.class);
+        NutritionContextPort nutrition = mock(NutritionContextPort.class);
 
         when(body.findRecent(1L, 2)).thenReturn(List.of(
                 new BodyInsight(
@@ -75,9 +75,9 @@ class AiContextBuilderPersonalContextTest {
     @Test
     @DisplayName("Body Context는 동일 측정 일시면 높은 ID를 더 최신 기록으로 판단한다")
     void prefersHigherIdWhenBodyMeasurementTimeIsEqual() {
-        WorkoutInsightQuery workout = mock(WorkoutInsightQuery.class);
-        BodyInsightQuery body = mock(BodyInsightQuery.class);
-        NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
+        WorkoutContextPort workout = mock(WorkoutContextPort.class);
+        BodyContextPort body = mock(BodyContextPort.class);
+        NutritionContextPort nutrition = mock(NutritionContextPort.class);
         Instant measuredAt = Instant.parse("2026-09-21T03:00:00Z");
 
         when(body.findRecent(1L, 2)).thenReturn(List.of(
@@ -118,9 +118,9 @@ class AiContextBuilderPersonalContextTest {
     @Test
     @DisplayName("Nutrition Context는 화면에서 선택한 날짜의 섭취량과 남은 목표를 조회한다")
     void buildsNutritionContextForSelectedDate() {
-        WorkoutInsightQuery workout = mock(WorkoutInsightQuery.class);
-        BodyInsightQuery body = mock(BodyInsightQuery.class);
-        NutritionInsightQuery nutrition = mock(NutritionInsightQuery.class);
+        WorkoutContextPort workout = mock(WorkoutContextPort.class);
+        BodyContextPort body = mock(BodyContextPort.class);
+        NutritionContextPort nutrition = mock(NutritionContextPort.class);
         LocalDate selectedDate = LocalDate.of(2026, 9, 18);
 
         MacroInsight goal = new MacroInsight(

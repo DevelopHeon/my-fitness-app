@@ -1,6 +1,6 @@
 package com.myfitness.dashboard.application.support;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.DashboardSourceData;
 import java.time.Instant;
 import java.time.LocalDate;

@@ -1,6 +1,5 @@
 package com.myfitness.routine.domain.model;
 
-import com.myfitness.exercise.domain.model.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -17,9 +16,9 @@ class RoutineTest {
     @Test
     @DisplayName("루틴은 기본 운동과 커스텀 운동의 저장 순서를 유지한다")
     void keepsExerciseOrder() {
-        ExerciseReference benchPress = new ExerciseReference(
+        ExerciseSnapshot benchPress = new ExerciseSnapshot(
                 ExerciseType.DEFAULT, 1L, "벤치프레스", ExerciseCategory.CHEST, null);
-        ExerciseReference custom = new ExerciseReference(
+        ExerciseSnapshot custom = new ExerciseSnapshot(
                 ExerciseType.CUSTOM, 1L, "나만의 스쿼트", ExerciseCategory.LEGS, 1L);
 
         Routine routine = Routine.create(
@@ -36,7 +35,7 @@ class RoutineTest {
     @Test
     @DisplayName("다른 사용자의 커스텀 운동 종목은 루틴에 추가할 수 없다")
     void rejectsCustomExerciseOwnedByAnotherUser() {
-        ExerciseReference otherUsersExercise = new ExerciseReference(
+        ExerciseSnapshot otherUsersExercise = new ExerciseSnapshot(
                 ExerciseType.CUSTOM, 1L, "타인 운동", ExerciseCategory.LEGS, 2L);
 
         assertThatThrownBy(() ->

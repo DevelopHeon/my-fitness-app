@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.request;
 
-import com.myfitness.ai.application.dto.request.AiClientContext;
+import com.myfitness.ai.application.port.in.AiCoachPort.ClientContext;
 import java.time.LocalDate;
 
 public record AiClientContextRequest(
@@ -8,8 +8,8 @@ public record AiClientContextRequest(
         LocalDate selectedDate,
         Long resourceId
 ) {
-    public AiClientContext toCommand() {
-        return new AiClientContext(
+    public ClientContext toCommand() {
+        return new ClientContext(
                 screen,
                 selectedDate,
                 resourceId);

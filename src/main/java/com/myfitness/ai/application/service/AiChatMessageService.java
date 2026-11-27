@@ -1,9 +1,12 @@
 package com.myfitness.ai.application.service;
 
+import com.myfitness.ai.application.usecase.response.AiUserMessageWriteResult;
+
+import com.myfitness.ai.application.usecase.AiMessageTransactionUseCase;
 import com.myfitness.ai.application.config.AiCoachProperties;
-import com.myfitness.ai.application.dto.request.AiClientContext;
-import com.myfitness.ai.application.dto.request.AiMessageCommand;
-import com.myfitness.ai.application.dto.response.AiSendMessageResult;
+import com.myfitness.ai.application.usecase.request.AiClientContext;
+import com.myfitness.ai.application.usecase.request.AiMessageCommand;
+import com.myfitness.ai.application.usecase.response.AiSendMessageResult;
 import com.myfitness.ai.application.exception.AiProviderUnavailableException;
 import com.myfitness.ai.application.port.out.AiChatGateway.AiModelResponse;
 import com.myfitness.ai.application.port.out.AiChatGateway.HistoryMessage;
@@ -15,8 +18,10 @@ import com.myfitness.ai.application.support.context.AiContextBundle;
 import com.myfitness.ai.application.support.policy.AiPolicyDecision;
 import com.myfitness.ai.application.support.policy.AiPolicyGuard;
 import com.myfitness.ai.application.support.policy.AiPolicyRun;
+import com.myfitness.ai.application.usecase.AiChatMessageUseCase;
 import com.myfitness.ai.domain.exception.AiRuleException;
-import com.myfitness.ai.domain.model.AiConversation;
+import com.myfitness.ai.application.usecase.response.AiConversationResult;
+import com.myfitness.ai.application.usecase.response.AiMessageResult;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiQueryType;
 
@@ -28,7 +33,7 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
-public class AiChatMessageService {
+public class AiChatMessageService implements AiChatMessageUseCase {
     private static final String OUT_OF_SCOPE_MESSAGE =
             "My Fitness AI Coach에서는 운동, 신체 기록, 식단 및 영양과 관련된 질문을 도와드릴 수 있습니다.";
 
@@ -36,7 +41,7 @@ public class AiChatMessageService {
     private final AiContextBuilder contextBuilder;
     private final AiHistorySelector historySelector;
     private final AiProviderExecutor providerExecutor;
-    private final AiMessageTransactionService transactionService;
+    private final AiMessageTransactionUseCase transactionService;
     private final AiCoachProperties properties;
     private final AiMessageResultMapper messageMapper;
 
@@ -45,7 +50,7 @@ public class AiChatMessageService {
             AiContextBuilder contextBuilder,
             AiHistorySelector historySelector,
             AiProviderExecutor providerExecutor,
-            AiMessageTransactionService transactionService,
+            AiMessageTransactionUseCase transactionService,
             AiCoachProperties properties,
             AiMessageResultMapper messageMapper) {
         this.policyGuard = policyGuard;
@@ -57,6 +62,7 @@ public class AiChatMessageService {
         this.messageMapper = messageMapper;
     }
 
+    @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiSendMessageResult sendMessage(
             Long userId, Long conversationId, AiMessageCommand command) {
@@ -65,10 +71,10 @@ public class AiChatMessageService {
 
         List<AiMessage> previousMessages =
                 transactionService.loadMessagesForOwnedConversation(userId, conversationId);
-        AiMessageTransactionService.UserMessageWrite userWrite =
+        AiUserMessageWriteResult userWrite =
                 transactionService.saveUserMessage(userId, conversationId, message);
-        AiConversation conversation = userWrite.conversation();
-        AiMessage userMessage = userWrite.userMessage();
+        AiConversationResult conversation = userWrite.conversation();
+        AiMessageResult userMessage = userWrite.userMessage();
 
         AiPolicyRun.Success policy = evaluatePolicy(
                 userId, conversationId, userMessage, message, clientContext, previousMessages);
@@ -76,7 +82,7 @@ public class AiChatMessageService {
         AiQueryType queryType = decision.storedQueryType();
         userMessage =
                 transactionService.classifyUserMessage(
-                        userId, conversationId, userMessage, queryType);
+                        userId, conversationId, userMessage.id(), queryType);
         if (decision.action() != AiPolicyDecision.Action.ALLOW) {
             AiMessage assistantMessage =
                     transactionService.saveRejectedResponse(
@@ -86,9 +92,9 @@ public class AiChatMessageService {
                             queryType,
                             policyMessage(decision),
                             policy);
-            return AiSendMessageResult.from(
+            return new AiSendMessageResult(
                     conversation,
-                    messageMapper.map(userMessage),
+                    userMessage,
                     messageMapper.map(assistantMessage),
                     false,
                     decision.action().name());
@@ -106,9 +112,9 @@ public class AiChatMessageService {
                         message,
                         policy);
 
-        return AiSendMessageResult.from(
+        return new AiSendMessageResult(
                 conversation,
-                messageMapper.map(userMessage),
+                userMessage,
                 messageMapper.map(assistantMessage),
                 true,
                 decision.action().name());
@@ -117,7 +123,7 @@ public class AiChatMessageService {
     private AiPolicyRun.Success evaluatePolicy(
             Long userId,
             Long conversationId,
-            AiMessage userMessage,
+            AiMessageResult userMessage,
             String message,
             AiClientContext clientContext,
             List<AiMessage> previousMessages) {
@@ -133,7 +139,7 @@ public class AiChatMessageService {
     private AiMessage generateResponse(
             Long userId,
             Long conversationId,
-            AiMessage userMessage,
+            AiMessageResult userMessage,
             AiQueryType queryType,
             AiContextBundle context,
             List<HistoryMessage> history,
@@ -200,5 +206,4 @@ public class AiChatMessageService {
         }
         return normalized;
     }
-
 }

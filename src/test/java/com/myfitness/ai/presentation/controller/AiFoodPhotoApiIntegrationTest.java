@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.myfitness.ai.application.port.out.AiChatGateway;
-import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
+import com.myfitness.ai.domain.repository.AiMessageRepository;
 import com.myfitness.ai.application.port.out.AiPolicyGateway;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +46,7 @@ class AiFoodPhotoApiIntegrationTest {
     private long providerCountBefore;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
-    @Autowired AiMessageRepositoryPort messages;
+    @Autowired AiMessageRepository messages;
     @MockitoBean ChatModel model;
     @MockitoBean AiChatGateway textGateway;
     @MockitoBean AiPolicyGateway policyGateway;

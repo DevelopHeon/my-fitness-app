@@ -1,7 +1,5 @@
 package com.myfitness.workout.domain.model;
 
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.exercise.domain.model.ExerciseType;
 import com.myfitness.workout.domain.exception.WorkoutRuleException;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -64,7 +62,7 @@ public class Workout {
         return new Workout(userId, workoutDate, memo, startedAt);
     }
 
-    public WorkoutExercise addExercise(ExerciseReference exercise, String memo) {
+    public WorkoutExercise addExercise(ExerciseSnapshot exercise, String memo) {
         ensureMutable();
         if (!exercise.accessibleTo(userId)) {
             throw new WorkoutRuleException("사용 가능한 운동 종목만 추가할 수 있습니다.");

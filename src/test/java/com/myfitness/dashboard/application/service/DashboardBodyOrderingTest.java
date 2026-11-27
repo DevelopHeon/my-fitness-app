@@ -2,7 +2,7 @@ package com.myfitness.dashboard.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult.BodySummary;
+import com.myfitness.dashboard.application.usecase.response.DashboardResult.BodySummary;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.BodyData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort.DashboardSourceData;
 import com.myfitness.dashboard.application.port.out.DashboardDataPort;

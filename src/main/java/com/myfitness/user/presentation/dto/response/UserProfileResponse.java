@@ -1,6 +1,6 @@
 package com.myfitness.user.presentation.dto.response;
 
-import com.myfitness.user.application.dto.response.UserProfileResult;
+import com.myfitness.user.application.port.in.UserProfileView;
 
 public record UserProfileResponse(
         Long id,
@@ -9,7 +9,7 @@ public record UserProfileResponse(
         String profileImageUrl
 ) {
     public static UserProfileResponse from(
-            UserProfileResult result) {
+            UserProfileView result) {
         return new UserProfileResponse(
                 result.id(),
                 result.email(),

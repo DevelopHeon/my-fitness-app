@@ -1,11 +1,11 @@
 package com.myfitness.user.application.service;
 
-import com.myfitness.user.application.dto.request.GoogleLoginCommand;
-import com.myfitness.user.application.dto.response.UserProfileResult;
+import com.myfitness.user.application.usecase.request.GoogleLoginCommand;
+import com.myfitness.user.application.usecase.response.UserProfileResult;
 import com.myfitness.user.application.exception.UserNotFoundException;
-import com.myfitness.user.application.port.in.CurrentUserQuery;
-import com.myfitness.user.application.port.in.GoogleLoginUseCase;
-import com.myfitness.user.application.port.out.UserRepositoryPort;
+import com.myfitness.user.application.usecase.CurrentUserUseCase;
+import com.myfitness.user.application.usecase.GoogleLoginUseCase;
+import com.myfitness.user.domain.repository.UserRepository;
 import com.myfitness.user.domain.model.User;
 import java.time.Clock;
 import java.time.Instant;
@@ -16,17 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class UserApplicationService
-        implements GoogleLoginUseCase, CurrentUserQuery {
-    private final UserRepositoryPort userRepository;
+        implements GoogleLoginUseCase, CurrentUserUseCase {
+    private final UserRepository userRepository;
     private final Clock clock;
 
     @Autowired
-    public UserApplicationService(UserRepositoryPort userRepository) {
+    public UserApplicationService(UserRepository userRepository) {
         this(userRepository, Clock.systemUTC());
     }
 
     UserApplicationService(
-            UserRepositoryPort userRepository,
+            UserRepository userRepository,
             Clock clock) {
         this.userRepository = userRepository;
         this.clock = clock;

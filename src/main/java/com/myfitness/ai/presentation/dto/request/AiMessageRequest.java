@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.request;
 
-import com.myfitness.ai.application.dto.request.AiMessageCommand;
+import com.myfitness.ai.application.port.in.AiCoachPort.MessageInput;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -10,8 +10,8 @@ public record AiMessageRequest(
         String message,
         AiClientContextRequest clientContext
 ) {
-    public AiMessageCommand toCommand() {
-        return new AiMessageCommand(
+    public MessageInput toCommand() {
+        return new MessageInput(
                 message,
                 clientContext == null
                         ? null

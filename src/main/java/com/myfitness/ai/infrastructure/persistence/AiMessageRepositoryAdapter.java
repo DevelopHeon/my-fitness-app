@@ -1,19 +1,25 @@
 package com.myfitness.ai.infrastructure.persistence;
 
-import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
+import com.myfitness.ai.domain.repository.AiMessageRepository;
 import com.myfitness.ai.domain.model.AiMessage;
 import com.myfitness.ai.domain.model.AiRequestStatus;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class AiMessageRepositoryAdapter
-        implements AiMessageRepositoryPort {
+        implements AiMessageRepository {
     private final SpringDataAiMessageRepository repository;
 
     public AiMessageRepositoryAdapter(
             SpringDataAiMessageRepository repository) {
         this.repository = repository;
+    }
+
+    @Override
+    public Optional<AiMessage> findByIdAndConversationId(Long id, Long conversationId) {
+        return repository.findByIdAndConversationId(id, conversationId);
     }
 
     @Override

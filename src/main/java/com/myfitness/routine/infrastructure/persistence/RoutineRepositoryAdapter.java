@@ -1,13 +1,15 @@
 package com.myfitness.routine.infrastructure.persistence;
 
+import com.myfitness.routine.application.usecase.response.RoutineResult;
+import com.myfitness.routine.application.port.out.RoutineReadPort;
 import com.myfitness.routine.domain.model.Routine;
-import com.myfitness.routine.application.port.out.RoutineRepositoryPort;
+import com.myfitness.routine.domain.repository.RoutineRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class RoutineRepositoryAdapter implements RoutineRepositoryPort {
+public class RoutineRepositoryAdapter implements RoutineRepository, RoutineReadPort {
     private final SpringDataRoutineRepository repository;
 
     public RoutineRepositoryAdapter(SpringDataRoutineRepository repository) {
@@ -25,8 +27,8 @@ public class RoutineRepositoryAdapter implements RoutineRepositoryPort {
     }
 
     @Override
-    public List<Routine> findAllByUserId(Long userId) {
-        return repository.findAllByUserIdOrderByUpdatedAtDesc(userId);
+    public List<RoutineResult> findAllByUserId(Long userId) {
+        return repository.findAllByUserIdOrderByUpdatedAtDesc(userId).stream().map(RoutineResult::from).toList();
     }
 
     @Override

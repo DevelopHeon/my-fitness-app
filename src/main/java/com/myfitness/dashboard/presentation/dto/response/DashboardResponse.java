@@ -1,6 +1,6 @@
 package com.myfitness.dashboard.presentation.dto.response;
 
-import com.myfitness.dashboard.application.dto.response.DashboardResult;
+import com.myfitness.dashboard.application.port.in.DashboardView;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,7 +12,7 @@ public record DashboardResponse(
         BodySummary body,
         List<ExerciseSummary> exercises
 ) {
-    public static DashboardResponse from(DashboardResult result) {
+    public static DashboardResponse from(DashboardView result) {
         return new DashboardResponse(
                 result.generatedDate(),
                 WorkoutSummary.from(result.workout()),
@@ -34,7 +34,7 @@ public record DashboardResponse(
             List<DailyVolume> dailyVolumes,
             List<CategoryDailyVolume> categoryDailyVolumes
     ) {
-        static WorkoutSummary from(DashboardResult.WorkoutSummary result) {
+        static WorkoutSummary from(DashboardView.WorkoutSummary result) {
             return new WorkoutSummary(
                     result.last7DaysWorkoutCount(),
                     result.last30DaysWorkoutCount(),
@@ -58,7 +58,7 @@ public record DashboardResponse(
             List<DailyVolume> dailyVolumes
     ) {
         static CategoryDailyVolume from(
-                DashboardResult.CategoryDailyVolume result) {
+                DashboardView.CategoryDailyVolume result) {
             return new CategoryDailyVolume(
                     result.category(),
                     result.dailyVolumes().stream()
@@ -71,7 +71,7 @@ public record DashboardResponse(
             LocalDate date,
             BigDecimal volume
     ) {
-        static DailyVolume from(DashboardResult.DailyVolume result) {
+        static DailyVolume from(DashboardView.DailyVolume result) {
             return new DailyVolume(result.date(), result.volume());
         }
     }
@@ -81,7 +81,7 @@ public record DashboardResponse(
             BodyChange changeFromPrevious,
             List<BodyPoint> history
     ) {
-        static BodySummary from(DashboardResult.BodySummary result) {
+        static BodySummary from(DashboardView.BodySummary result) {
             return new BodySummary(
                     result.latest() == null
                             ? null
@@ -101,7 +101,7 @@ public record DashboardResponse(
             BigDecimal bodyFatPercentage,
             BigDecimal skeletalMuscleKg
     ) {
-        static BodyPoint from(DashboardResult.BodyPoint result) {
+        static BodyPoint from(DashboardView.BodyPoint result) {
             return new BodyPoint(
                     result.measuredAt(),
                     result.weightKg(),
@@ -115,7 +115,7 @@ public record DashboardResponse(
             BigDecimal bodyFatPercentage,
             BigDecimal skeletalMuscleKg
     ) {
-        static BodyChange from(DashboardResult.BodyChange result) {
+        static BodyChange from(DashboardView.BodyChange result) {
             return new BodyChange(
                     result.weightKg(),
                     result.bodyFatPercentage(),
@@ -134,7 +134,7 @@ public record DashboardResponse(
             List<ExerciseRecord> recentRecords
     ) {
         static ExerciseSummary from(
-                DashboardResult.ExerciseSummary result) {
+                DashboardView.ExerciseSummary result) {
             return new ExerciseSummary(
                     result.exerciseType(),
                     result.exerciseId(),
@@ -155,7 +155,7 @@ public record DashboardResponse(
             BigDecimal maxWeightKg,
             BigDecimal maxEstimatedOneRepMax
     ) {
-        static ExerciseRecord from(DashboardResult.ExerciseRecord result) {
+        static ExerciseRecord from(DashboardView.ExerciseRecord result) {
             return new ExerciseRecord(
                     result.workoutDate(),
                     result.volume(),

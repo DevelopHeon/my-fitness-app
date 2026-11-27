@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.dto.response;
 
-import com.myfitness.nutrition.application.dto.response.DailyNutritionResult;
+import com.myfitness.nutrition.application.port.in.DailyNutritionView;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -12,7 +12,7 @@ public record DailyNutritionResponse(
         List<MealSectionResponse> meals
 ) {
     public static DailyNutritionResponse from(
-            DailyNutritionResult result) {
+            DailyNutritionView result) {
         return new DailyNutritionResponse(
                 result.date(),
                 result.goal() == null

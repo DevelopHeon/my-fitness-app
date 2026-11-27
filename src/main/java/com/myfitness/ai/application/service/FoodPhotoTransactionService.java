@@ -1,8 +1,15 @@
 package com.myfitness.ai.application.service;
 
-import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
-import com.myfitness.ai.application.port.out.AiMessageRepositoryPort;
-import com.myfitness.ai.application.port.out.AiRequestLogRepositoryPort;
+import com.myfitness.ai.application.usecase.response.AiUserMessageWriteResult;
+
+import com.myfitness.ai.application.usecase.FoodPhotoTransactionUseCase;
+import com.myfitness.ai.application.usecase.AiConversationUseCase;
+import com.myfitness.ai.application.usecase.response.AiConversationResult;
+import com.myfitness.ai.application.usecase.response.AiMessageResult;
+
+import com.myfitness.ai.domain.repository.AiConversationRepository;
+import com.myfitness.ai.domain.repository.AiMessageRepository;
+import com.myfitness.ai.domain.repository.AiRequestLogRepository;
 import com.myfitness.ai.application.port.out.FoodPhotoGateway.PhotoResponse;
 import com.myfitness.ai.domain.model.AiConversation;
 import com.myfitness.ai.domain.model.AiMessage;
@@ -17,20 +24,20 @@ import tools.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
-public class FoodPhotoTransactionService {
+public class FoodPhotoTransactionService implements FoodPhotoTransactionUseCase {
     private static final String PROMPT_VERSION = "food-photo-v1";
-    private final AiConversationService conversations;
-    private final AiConversationRepositoryPort conversationRepository;
-    private final AiMessageRepositoryPort messageRepository;
-    private final AiRequestLogRepositoryPort requestLogRepository;
+    private final AiConversationUseCase conversations;
+    private final AiConversationRepository conversationRepository;
+    private final AiMessageRepository messageRepository;
+    private final AiRequestLogRepository requestLogRepository;
     private final ObjectMapper mapper;
     private final Clock clock = Clock.systemUTC();
 
     public FoodPhotoTransactionService(
-            AiConversationService conversations,
-            AiConversationRepositoryPort conversationRepository,
-            AiMessageRepositoryPort messageRepository,
-            AiRequestLogRepositoryPort requestLogRepository,
+            AiConversationUseCase conversations,
+            AiConversationRepository conversationRepository,
+            AiMessageRepository messageRepository,
+            AiRequestLogRepository requestLogRepository,
             ObjectMapper mapper) {
         this.conversations = conversations;
         this.conversationRepository = conversationRepository;
@@ -39,8 +46,9 @@ public class FoodPhotoTransactionService {
         this.mapper = mapper;
     }
 
+    @Override
     @Transactional
-    public PhotoMessageWrite savePhotoUser(Long userId, Long conversationId) {
+    public AiUserMessageWriteResult savePhotoUser(Long userId, Long conversationId) {
         AiConversation conversation = conversations.requireOwned(userId, conversationId);
         Instant now = clock.instant();
         AiMessage message = messageRepository.save(AiMessage.photo(
@@ -51,14 +59,15 @@ public class FoodPhotoTransactionService {
             conversation.touch(now);
         }
         conversationRepository.save(conversation);
-        return new PhotoMessageWrite(conversation, message);
+        return new AiUserMessageWriteResult(AiConversationResult.from(conversation), AiMessageResult.from(message, null));
     }
 
+    @Override
     @Transactional
     public AiMessage savePhotoSuccess(
             Long userId,
             Long conversationId,
-            AiMessage user,
+            Long userMessageId,
             PhotoResponse response,
             String content,
             long latencyMs) {
@@ -72,7 +81,7 @@ public class FoodPhotoTransactionService {
         AiRequestLog log = AiRequestLog.success(
                 userId,
                 conversationId,
-                user.getId(),
+                userMessageId,
                 assistant.getId(),
                 AiQueryType.NUTRITION,
                 "openai",
@@ -88,11 +97,12 @@ public class FoodPhotoTransactionService {
         return assistant;
     }
 
+    @Override
     @Transactional
     public void savePhotoFailure(
             Long userId,
             Long conversationId,
-            AiMessage user,
+            Long userMessageId,
             String model,
             String errorCode,
             long latencyMs) {
@@ -100,7 +110,7 @@ public class FoodPhotoTransactionService {
         AiRequestLog log = AiRequestLog.failed(
                 userId,
                 conversationId,
-                user.getId(),
+                userMessageId,
                 AiQueryType.NUTRITION,
                 "openai",
                 model,
@@ -111,6 +121,4 @@ public class FoodPhotoTransactionService {
                 clock.instant());
         requestLogRepository.save(log.foodPhoto());
     }
-
-    public record PhotoMessageWrite(AiConversation conversation, AiMessage userMessage) {}
 }

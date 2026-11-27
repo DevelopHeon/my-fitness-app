@@ -1,8 +1,5 @@
 package com.myfitness.workout.domain.model;
 
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.exercise.domain.model.ExerciseType;
-import com.myfitness.exercise.domain.model.ExerciseCategory;
 import com.myfitness.workout.domain.exception.WorkoutRuleException;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -49,7 +46,7 @@ public class WorkoutExercise {
 
     private WorkoutExercise(
             Workout workout,
-            ExerciseReference exercise,
+            ExerciseSnapshot exercise,
             int orderIndex,
             String memo) {
         this.workout = workout;
@@ -63,7 +60,7 @@ public class WorkoutExercise {
 
     static WorkoutExercise create(
             Workout workout,
-            ExerciseReference exercise,
+            ExerciseSnapshot exercise,
             int orderIndex,
             String memo) {
         return new WorkoutExercise(workout, exercise, orderIndex, memo);

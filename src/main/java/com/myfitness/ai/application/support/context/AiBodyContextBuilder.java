@@ -3,8 +3,8 @@ package com.myfitness.ai.application.support.context;
 import static com.myfitness.ai.application.support.context.AiContextFormat.number;
 import static com.myfitness.ai.application.support.context.AiContextFormat.signed;
 
-import com.myfitness.body.application.port.in.insight.BodyInsightQuery.BodyInsight;
-import com.myfitness.body.application.port.in.insight.BodyInsightQuery;
+import com.myfitness.ai.application.port.out.BodyContextPort.BodyInsight;
+import com.myfitness.ai.application.port.out.BodyContextPort;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -17,23 +17,23 @@ class AiBodyContextBuilder {
     private static final int RECENT_LIMIT = 2;
     private static final String NL = System.lineSeparator();
 
-    private final BodyInsightQuery bodyInsightQuery;
+    private final BodyContextPort bodyContextPort;
     private final Clock clock;
 
     @Autowired
-    AiBodyContextBuilder(BodyInsightQuery bodyInsightQuery) {
-        this(bodyInsightQuery, Clock.systemDefaultZone());
+    AiBodyContextBuilder(BodyContextPort bodyContextPort) {
+        this(bodyContextPort, Clock.systemDefaultZone());
     }
 
     AiBodyContextBuilder(
-            BodyInsightQuery bodyInsightQuery,
+            BodyContextPort bodyContextPort,
             Clock clock) {
-        this.bodyInsightQuery = bodyInsightQuery;
+        this.bodyContextPort = bodyContextPort;
         this.clock = clock;
     }
 
     AiContextSection build(Long userId) {
-        List<BodyInsight> records = bodyInsightQuery
+        List<BodyInsight> records = bodyContextPort
                 .findRecent(userId, RECENT_LIMIT)
                 .stream()
                 .sorted(Comparator

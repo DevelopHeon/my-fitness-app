@@ -1,19 +1,27 @@
 package com.myfitness.routine.presentation.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static com.myfitness.test.security.TestSecurity.authenticatedUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.myfitness.workout.domain.model.ExerciseType;
+import com.myfitness.workout.domain.exception.WorkoutRuleException;
+import com.myfitness.workout.infrastructure.persistence.WorkoutExerciseRepositoryAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
@@ -24,6 +32,8 @@ import tools.jackson.databind.ObjectMapper;
 class RoutineApiIntegrationTest {
     @Autowired WebApplicationContext context;
     @Autowired ObjectMapper objectMapper;
+    @Autowired JdbcTemplate jdbc;
+    @MockitoSpyBean WorkoutExerciseRepositoryAdapter previousRecordAdapter;
 
     private MockMvc mockMvc;
 
@@ -61,6 +71,21 @@ class RoutineApiIntegrationTest {
                 .andExpect(jsonPath("$.exercises[1].exerciseName").value("나만의 레그 프레스"))
                 .andReturn();
         long routineId = json(created).path("id").asLong();
+
+        mockMvc.perform(patch("/api/exercises/custom/{exerciseId}", customId)
+                        .with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"수정한 운동\",\"category\":\"BACK\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/routines/{routineId}/workouts", routineId)
+                        .with(authenticatedUser(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.workout.exercises[1].exerciseType").value("CUSTOM"))
+                .andExpect(jsonPath("$.workout.exercises[1].exerciseName").value("나만의 레그 프레스"))
+                .andExpect(jsonPath("$.workout.exercises[1].category").value("LEGS"));
 
         mockMvc.perform(put("/api/routines/{routineId}", routineId)
                         .with(authenticatedUser(1L))
@@ -122,6 +147,43 @@ class RoutineApiIntegrationTest {
         mockMvc.perform(get("/api/routines/{routineId}", routineId)
                         .with(authenticatedUser(1L)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("루틴 운동 시작 중 직전 기록 조회가 실패하면 Workout과 운동 종목을 rollback한다")
+    void rollsBackWorkoutWhenPreviousRecordQueryFails() throws Exception {
+        long userId = 1L;
+        long exerciseId = findDefaultExerciseId("벤치프레스");
+        long routineId = json(mockMvc.perform(post("/api/routines")
+                        .with(authenticatedUser(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"Rollback routine","exercises":[{"exerciseType":"DEFAULT","exerciseId":%d}]}
+                                """.formatted(exerciseId)))
+                .andExpect(status().isCreated())
+                .andReturn()).path("id").asLong();
+
+        try {
+            Long workoutsBefore = jdbc.queryForObject("select count(*) from workouts", Long.class);
+            Long exercisesBefore = jdbc.queryForObject("select count(*) from workout_exercises", Long.class);
+            doThrow(new WorkoutRuleException("직전 기록 조회 실패")).when(previousRecordAdapter)
+                    .findLatestCompletedByExercise(userId, ExerciseType.DEFAULT, exerciseId);
+
+            mockMvc.perform(post("/api/routines/{routineId}/workouts", routineId)
+                            .with(authenticatedUser(userId))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"workoutDate\":\"2026-09-16\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("직전 기록 조회 실패"));
+
+            assertThat(jdbc.queryForObject("select count(*) from workouts", Long.class)).isEqualTo(workoutsBefore);
+            assertThat(jdbc.queryForObject("select count(*) from workout_exercises", Long.class)).isEqualTo(exercisesBefore);
+        } finally {
+            mockMvc.perform(delete("/api/routines/{routineId}", routineId)
+                            .with(authenticatedUser(userId)))
+                    .andExpect(status().isNoContent());
+        }
     }
 
     private long findDefaultExerciseId(String name) throws Exception {

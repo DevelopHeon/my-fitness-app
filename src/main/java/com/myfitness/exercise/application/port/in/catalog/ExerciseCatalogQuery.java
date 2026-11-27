@@ -1,14 +1,13 @@
 package com.myfitness.exercise.application.port.in.catalog;
 
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseView.Type;
 import java.util.List;
 
 public interface ExerciseCatalogQuery {
-    List<ExerciseReference> list(Long userId);
+    List<ExerciseView> list(Long userId);
 
-    ExerciseReference getAvailable(
+    ExerciseView getAvailable(
             Long userId,
-            ExerciseType type,
+            Type type,
             Long exerciseId);
 }

@@ -1,6 +1,6 @@
 package com.myfitness.nutrition.presentation.controller;
 
-import com.myfitness.nutrition.application.port.in.NutritionUseCase;
+import com.myfitness.nutrition.application.port.in.NutritionPort;
 import com.myfitness.nutrition.presentation.dto.request.MealItemCreateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemUpdateRequest;
 import com.myfitness.nutrition.presentation.dto.request.MealItemsCreateRequest;
@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/meals")
 public class MealController {
-    private final NutritionUseCase nutritionUseCase;
+    private final NutritionPort nutritionPort;
 
     public MealController(
-            NutritionUseCase nutritionUseCase) {
-        this.nutritionUseCase = nutritionUseCase;
+            NutritionPort nutritionPort) {
+        this.nutritionPort = nutritionPort;
     }
 
     @GetMapping("/daily")
@@ -33,14 +33,14 @@ public class MealController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
         return DailyNutritionResponse.from(
-                nutritionUseCase.daily(userId, date));
+                nutritionPort.daily(userId, date));
     }
 
     @GetMapping("/calendar")
     public List<NutritionCalendarDayResponse> calendar(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
-        return nutritionUseCase.calendar(userId, month).stream()
+        return nutritionPort.calendar(userId, month).stream()
                 .map(NutritionCalendarDayResponse::from)
                 .toList();
     }
@@ -50,7 +50,7 @@ public class MealController {
     public List<MealFoodResponse> addItems(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody MealItemsCreateRequest request) {
-        return nutritionUseCase.addMealItems(userId, request.mealDate(), request.mealType(),
+        return nutritionPort.addMealItems(userId, request.mealDate(), request.mealType(),
                         request.items().stream().map(MealItemsCreateRequest.ItemRequest::toCommand).toList())
                 .stream()
                 .map(MealFoodResponse::from)
@@ -63,7 +63,7 @@ public class MealController {
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @Valid @RequestBody MealItemCreateRequest request) {
         return MealFoodResponse.from(
-                nutritionUseCase.addMealItem(
+                nutritionPort.addMealItem(
                         userId,
                         request.mealDate(),
                         request.mealType(),
@@ -80,7 +80,7 @@ public class MealController {
             @PathVariable Long itemId,
             @Valid @RequestBody MealItemUpdateRequest request) {
         return MealFoodResponse.from(
-                nutritionUseCase.updateMealItem(
+                nutritionPort.updateMealItem(
                         userId,
                         itemId,
                         request.mealDate(),
@@ -97,6 +97,6 @@ public class MealController {
     public void deleteItem(
             @AuthenticationPrincipal(expression = "userId") Long userId,
             @PathVariable Long itemId) {
-        nutritionUseCase.deleteMealItem(userId, itemId);
+        nutritionPort.deleteMealItem(userId, itemId);
     }
 }

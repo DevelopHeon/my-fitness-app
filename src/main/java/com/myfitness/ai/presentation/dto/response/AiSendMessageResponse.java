@@ -1,6 +1,6 @@
 package com.myfitness.ai.presentation.dto.response;
 
-import com.myfitness.ai.application.dto.response.AiSendMessageResult;
+import com.myfitness.ai.application.port.in.AiSendMessageView;
 
 public record AiSendMessageResponse(
         AiConversationResponse conversation,
@@ -10,7 +10,7 @@ public record AiSendMessageResponse(
         String policyDecision
 ) {
     public static AiSendMessageResponse from(
-            AiSendMessageResult result) {
+            AiSendMessageView result) {
         return new AiSendMessageResponse(
                 AiConversationResponse.from(result.conversation()),
                 AiMessageResponse.from(result.userMessage()),

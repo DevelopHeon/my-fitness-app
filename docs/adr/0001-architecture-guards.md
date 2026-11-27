@@ -28,3 +28,5 @@ Java var 선언 금지는 AST 기반 Checkstyle로 강제한다. 규칙 자체�
 - [당시 패키지·검사 정리와 금지 의존 탐지 검증](../archive/specs/2026-09-29-architecture-package-cleanup-validation.md)
 - [책임 분리 후속 작업](../archive/specs/2026-10-01-ai-responsibility-refactoring-spec.md)
 - [현재 검사 실행과 검증 범위](../testing.md)
+
+[ADR 0005](0005-backend-port-usecase-repository.md)에서 공개 진입·내부 업무·Domain Repository의 검사 범위를 확장했다.

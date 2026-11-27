@@ -2,10 +2,10 @@ package com.myfitness.ai.application.support.context;
 
 import static com.myfitness.ai.application.support.context.AiContextFormat.number;
 
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.ExerciseInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.SetInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery.WorkoutInsight;
-import com.myfitness.workout.application.port.in.insight.WorkoutInsightQuery;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.ExerciseInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.SetInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort.WorkoutInsight;
+import com.myfitness.ai.application.port.out.WorkoutContextPort;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -23,18 +23,18 @@ class AiWorkoutContextBuilder {
     private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
     private static final String NL = System.lineSeparator();
 
-    private final WorkoutInsightQuery workoutInsightQuery;
+    private final WorkoutContextPort workoutContextPort;
     private final Clock clock;
 
     @Autowired
-    AiWorkoutContextBuilder(WorkoutInsightQuery workoutInsightQuery) {
-        this(workoutInsightQuery, Clock.systemDefaultZone());
+    AiWorkoutContextBuilder(WorkoutContextPort workoutContextPort) {
+        this(workoutContextPort, Clock.systemDefaultZone());
     }
 
     AiWorkoutContextBuilder(
-            WorkoutInsightQuery workoutInsightQuery,
+            WorkoutContextPort workoutContextPort,
             Clock clock) {
-        this.workoutInsightQuery = workoutInsightQuery;
+        this.workoutContextPort = workoutContextPort;
         this.clock = clock;
     }
 
@@ -70,7 +70,7 @@ class AiWorkoutContextBuilder {
     private List<WorkoutInsight> recentWorkouts(
             Long userId,
             LocalDate from) {
-        return workoutInsightQuery.findCompletedSince(userId, from)
+        return workoutContextPort.findCompletedSince(userId, from)
                 .stream()
                 .sorted(Comparator
                         .comparing(WorkoutInsight::workoutDate)

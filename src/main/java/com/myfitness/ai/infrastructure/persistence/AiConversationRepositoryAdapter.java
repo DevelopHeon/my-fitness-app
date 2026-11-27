@@ -1,6 +1,6 @@
 package com.myfitness.ai.infrastructure.persistence;
 
-import com.myfitness.ai.application.port.out.AiConversationRepositoryPort;
+import com.myfitness.ai.domain.repository.AiConversationRepository;
 import com.myfitness.ai.domain.model.AiConversation;
 import java.util.List;
 import java.util.Optional;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AiConversationRepositoryAdapter
-        implements AiConversationRepositoryPort {
+        implements AiConversationRepository {
     private final SpringDataAiConversationRepository repository;
 
     public AiConversationRepositoryAdapter(

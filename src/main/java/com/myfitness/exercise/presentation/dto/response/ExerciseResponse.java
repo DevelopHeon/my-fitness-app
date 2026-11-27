@@ -1,15 +1,15 @@
 package com.myfitness.exercise.presentation.dto.response;
 
-import com.myfitness.exercise.domain.model.ExerciseReference;
-import com.myfitness.exercise.domain.model.ExerciseType;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseView;
+import com.myfitness.exercise.application.port.in.catalog.ExerciseView.Type;
 
 public record ExerciseResponse(
         Long id,
-        ExerciseType type,
+        Type type,
         String name,
         String category
 ) {
-    public static ExerciseResponse from(ExerciseReference exercise) {
+    public static ExerciseResponse from(ExerciseView exercise) {
         return new ExerciseResponse(
                 exercise.id(),
                 exercise.type(),

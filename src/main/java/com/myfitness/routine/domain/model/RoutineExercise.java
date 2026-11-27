@@ -1,6 +1,5 @@
 package com.myfitness.routine.domain.model;
 
-import com.myfitness.exercise.domain.model.*;
 import jakarta.persistence.*;
 
 @Entity
@@ -34,7 +33,7 @@ public class RoutineExercise {
 
     private RoutineExercise(
             Routine routine,
-            ExerciseReference exercise,
+            ExerciseSnapshot exercise,
             int orderIndex) {
         this.routine = routine;
         this.exerciseType = exercise.type();
@@ -46,16 +45,16 @@ public class RoutineExercise {
 
     static RoutineExercise create(
             Routine routine,
-            ExerciseReference exercise,
+            ExerciseSnapshot exercise,
             int orderIndex) {
         return new RoutineExercise(routine, exercise, orderIndex);
     }
 
-    public ExerciseReference toReference() {
+    public ExerciseSnapshot toReference() {
         Long ownerUserId = exerciseType == ExerciseType.CUSTOM
                 ? routine.getUserId()
                 : null;
-        return new ExerciseReference(
+        return new ExerciseSnapshot(
                 exerciseType, exerciseId, exerciseName, category, ownerUserId);
     }
 
