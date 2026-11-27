@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -91,8 +92,9 @@ class DashboardApiIntegrationTest {
         createCompletedWorkout(today.minusDays(1), benchPressId, 100, 5, 1L);
         createCompletedWorkout(today.minusDays(2), benchPressId, 80, 5, 1L);
 
-        Instant laterMeasuredAt = Instant.now().minusSeconds(86_400L);
-        Instant earlierMeasuredAt = Instant.now().minusSeconds(86_400L * 2);
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Instant laterMeasuredAt = now.minus(1, ChronoUnit.DAYS);
+        Instant earlierMeasuredAt = now.minus(2, ChronoUnit.DAYS);
         createBodyRecord(
                 new BigDecimal("71.0"),
                 new BigDecimal("17.5"),
